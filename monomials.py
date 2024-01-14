@@ -307,3 +307,69 @@ def print_readable_matrix(monomials_matrix):
         for j in range(len(monomials_matrix)):
             print(monomials_matrix[i][j], end=" ")
         print()
+
+def generate_monomials_from_string(polynomial_string):
+    """
+    Generates a dictionary of monomials from a string representing a polynomial.
+
+    Parameters
+    ----------
+    polynomial_string : string
+        String representing a polynomial.
+
+    Returns
+    -------
+    monomials : dict
+        Dictionary of monomials.
+
+    Examples
+    --------
+    >>> generate_monomials_from_string("2x1^2x2^2 + 3x1^2x2 + 4x1^2 + 5x1x2^2 + 6x1x2 + 7x1 + 8x2^2 + 9x2 + 10")
+    {(2, 2): 2, (2, 1): 3, (2, 0): 4, (1, 2): 5, (1, 1): 6, (1, 0): 7, (0, 2): 8, (0, 1): 9, (0, 0): 10}
+
+    """
+
+    monomials = {}
+    monomial_string_list = polynomial_string.split(" + ")
+    for monomial_string in monomial_string_list:
+        monomial, coefficient = parse_monomial(monomial_string)
+        monomials[monomial] = coefficient
+
+    return monomials
+
+def parse_monomial(monomial_string, n):
+    """
+    Parses a string to a monomial.
+
+    Parameters
+    ----------
+    monomial_string : string
+        String representing a monomial.
+    n : int
+        Number of variables.
+
+    Returns
+    -------
+    monomial : tuple
+        Monomial represented by the string.
+    coefficient : int
+        Coefficient of the monomial.
+
+    Examples
+    --------
+    >>> parse_monomial("2x1^2x2^2", 3)
+    ((2, 2, 0), 2)
+
+    """
+
+    monomial = np.zeros(n)
+    monomial_string_list = monomial_string.split("x")[1:]
+    coefficient = int(monomial_string.split("x")[0])
+
+    for monomial_string in monomial_string_list:
+        monomial_string = monomial_string.split("^")
+        if len(monomial_string) == 1:
+            monomial_string.append(1)
+        monomial[int(monomial_string[0]) - 1] = int(monomial_string[1])
+
+    return tuple(monomial), coefficient

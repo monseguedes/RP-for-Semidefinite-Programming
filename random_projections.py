@@ -7,12 +7,12 @@ The module contains functions to generate random projectors.
 import numpy as np
 
 
-def generate_random_projector(k, type='sparse'):
+def generate_random_projector(k, type="sparse"):
     """
     Generates a squared random projector of a given dimension k.
 
     Possible types of random projectors:
-        - 'gaussian': Gaussian random projector. 
+        - 'gaussian': Gaussian random projector.
         - 'sparse': Sparse random projector, 1, -1, or 0 with
         probability 1/6, 1/6, 2/3, respectively.
 
@@ -42,10 +42,10 @@ def generate_random_projector(k, type='sparse'):
 
     """
 
-    if type == 'gaussian':
+    if type == "gaussian":
         projector = np.random.randn(k, k)
-    elif type == 'sparse':
-        projector = np.random.choice([-1, 0, 1], size=(k, k), p=[1/6, 2/3, 1/6])
+    elif type == "sparse":
+        projector = np.random.choice([-1, 0, 1], size=(k, k), p=[1 / 6, 2 / 3, 1 / 6])
     else:
-        raise ValueError('The type of random projector is not valid.')
+        raise ValueError("The type of random projector is not valid.")
     return projector

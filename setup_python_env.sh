@@ -13,7 +13,7 @@ if [ -d "env" ]; then
     exit 0
 fi
 
-~/download/Python-3.9.17/python -m venv env
+~/Documents/GitHub/Virtual_Environment/KrakenflexVErn/bin/python -m venv env
 
 . ./env/bin/activate
 
@@ -24,8 +24,7 @@ pip install \
     isort \
     matplotlib \
     numpy \
+    Mosek \
     pandas \
-    pyomo \
-    scikit-learn \
-    seaborn \
-    torch
+    seaborn 
+    

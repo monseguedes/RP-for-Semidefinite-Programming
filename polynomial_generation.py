@@ -2,13 +2,14 @@
 Module for generating polynomials either randomly, from a given set of coefficients
 and variables, or from a string.
 
+Author: Monse Guedes Ayala
 """
 
 import numpy as np
 import monomials
 
 
-def generate_random_polynomial(n, d, seed=0, density=0.5):
+def generate_random_polynomial(n, d, seed=0, density=0.5, max_coefficient=50, min_coefficient=-50):
     """
     Generates a random polynomial of a given degree and dimension.
 
@@ -42,7 +43,7 @@ def generate_random_polynomial(n, d, seed=0, density=0.5):
 
     np.random.seed(seed)
     coefficients = np.random.randint(
-        -100, 100, size=monomials.number_of_monomials_up_to_degree(n, d)
+        min_coefficient, max_coefficient, size=monomials.number_of_monomials_up_to_degree(n, d)
     )
     coefficients[
         np.random.choice(len(polynomial), int(len(polynomial) * density), replace=False)
@@ -52,6 +53,8 @@ def generate_random_polynomial(n, d, seed=0, density=0.5):
         polynomial[monomial] = coefficients[i]
 
     return polynomial
+
+print(generate_random_polynomial(2,2))
 
 
 def parse_polynomial(polynomial_string, n, d):
@@ -86,6 +89,10 @@ def parse_polynomial(polynomial_string, n, d):
     monomial_string_list = polynomial_string.split(" + ")
     for monomial_string in monomial_string_list:
         monomial, coefficient = monomials.parse_monomial(monomial_string, n)
-        polynomial[monomial] = coefficient
+        if monomial not in polynomial.keys():
+            raise ValueError("The input polynomial does not match the indicated degree.")
+        polynomial[monomial] += coefficient
 
     return polynomial
+
+print(parse_polynomial("2x1x2 + 3x1^2 + 4x2^2 + 5x1x2 + 6x1 + 7x2 + 8", 2, 2))

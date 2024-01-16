@@ -26,5 +26,6 @@ pip install \
     numpy \
     Mosek \
     pandas \
+    scipy \ 
     seaborn 
     

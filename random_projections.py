@@ -49,3 +49,30 @@ def generate_random_projector(k, type="sparse"):
     else:
         raise ValueError("The type of random projector is not valid.")
     return projector
+
+
+def apply_rp_map(matrix, projector):
+    """
+    Applies the random projection map m_P(A):A --> PAP^T to a matrix A.
+
+    Parameters
+    ----------
+    matrix : numpy.ndarray
+        Squared matrix to be projected.
+    projector : numpy.ndarray
+        Random projector.
+
+    Returns
+    -------
+    projected_matrix : numpy.ndarray
+        Projected matrix.
+
+    Examples
+    --------
+    >>> apply_rp_map(np.array([[1, 2], [3, 4]]), np.array([[0, 0], [0, 1]]))
+    array([[0, 0],
+           [0, 4]])
+           
+    """
+
+    return projector @ matrix @ projector.T

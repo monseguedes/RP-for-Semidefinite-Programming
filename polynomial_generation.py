@@ -33,6 +33,8 @@ class Polynomial:
 
         if polynomial == "random":
             self.polynomial = self.generate_random_polynomial(n, d)  # TODO fix input
+        elif polynomial == "normal_form":
+            self.polynomial = self.generate_normal_form(n, d)
         elif "x" in polynomial:
             self.polynomial = self.parse_polynomial(polynomial, n, d)  # TODO fix input
         elif type(polynomial) == dict:
@@ -57,13 +59,14 @@ class Polynomial:
 
         Returns
         -------
-        polynomial : numpy.ndarray
+        polynomial : dict
             Random polynomial of degree d and dimension n.
+
 
         Examples
         --------
         >>> generate_random_polynomial(2, 2)
-        array([  0,  34,   0, -14,   0,   0])
+        {(2, 2): 3, (2, 1): 0, (1, 2): 6, (1, 1): 0, (1, 0): 0, (0, 1): 8, (0, 0): 0}
 
         """
 
@@ -88,6 +91,50 @@ class Polynomial:
 
         for i, monomial in enumerate(polynomial):
             polynomial[monomial] = coefficients[i]
+
+        return polynomial
+
+    def generate_normal_form(self, n, d, seed=0, mean=0, variance=1):
+        """
+        Generates a (form) polynomial of a given degree and dimension with
+        coefficients taken from a normal distribution.
+
+        Parameters
+        ----------
+        n : int
+            Number of variables.
+        d : int
+            Degree of the polynomial.
+        seed : int
+            Seed for the random generator.
+        mean : float
+            Mean of the normal distribution.
+        variance : float
+            Variance of the normal distribution.
+
+        Returns
+        -------
+        polynomial : dict
+            Random polynomial of degree d and dimension n.
+
+        Examples
+        --------
+        >>> generate_normal_form(2, 2)
+        {(2, 2): 3, (2, 1): 0, (1, 2): 6, (1, 1): 0, (1, 0): 0, (0, 1): 8, (0, 0): 0}
+
+        """
+
+        polynomial = {
+            tuple: 0
+            for tuple in monomials.get_list_of_distinct_monomials(
+                monomials.generate_monomials_matrix(n, d)
+            )
+        }
+
+        np.random.seed(seed)
+        for i, monomial in enumerate(polynomial):
+            if sum([power for power in monomial]) == d:
+                polynomial[monomial] = np.random.normal(mean, variance)
 
         return polynomial
 

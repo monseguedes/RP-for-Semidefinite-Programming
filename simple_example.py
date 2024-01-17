@@ -16,20 +16,23 @@ import sys
 variables = 2
 degree = 2
 
-polynomial = polynomial_generation.Polynomial('x1^2 + x2^2 + 2x1x2', 2, 2)
-random_polynomial = polynomial_generation.Polynomial('random', variables, degree)
-print('Polynomial:', random_polynomial.polynomial)
+polynomial = polynomial_generation.Polynomial("x1^2 + x2^2 + 2x1x2", 2, 2)
+random_polynomial = polynomial_generation.Polynomial("random", variables, degree)
+print("Polynomial:", random_polynomial.polynomial)
 
-def solve_unconstrained_polynomial_optimization_problem(polynomial: polynomial_generation.Polynomial, relaxation_degree):
+
+def solve_unconstrained_polynomial_optimization_problem(
+    polynomial: polynomial_generation.Polynomial, relaxation_degree
+):
     """
     Solves a the relaxation of an unconstrained polynomial optimization problem using Mosek.
 
-    max g 
+    max g
     s.t. A_i · X = c_i
          A_0 · X - g = c_0
          X is positive semidefinite
 
-    where X is a symmetric matrix, A_i are symmetric matrices that pick coefficients, 
+    where X is a symmetric matrix, A_i are symmetric matrices that pick coefficients,
     and c_i are the coefficients of f(x).
 
     Parameters
@@ -58,15 +61,15 @@ def solve_unconstrained_polynomial_optimization_problem(polynomial: polynomial_g
 
     b = polynomial.values()
     b = list(b)
-    print('b:', b)
-    print('Length of b:', len(b))
+    print("b:", b)
+    print("Length of b:", len(b))
 
     A = []
     for monomial in distinct_monomials:
         A_i = monomials.pick_specific_monomial(monomial_matrix, monomial)
         # monomials.print_readable_matrix(A_i)
         A.append(A_i)
-    print('Length of A:', len(A))
+    print("Length of A:", len(A))
 
     with mf.Model("SDP") as M:
         # Variable X is a symmetric matrix of size (r.degree + n choose n)
@@ -75,17 +78,17 @@ def solve_unconstrained_polynomial_optimization_problem(polynomial: polynomial_g
 
         # Constraint: Inner product of A_i and X should be equal to b_i for all i
         for i in range(1, len(A)):
-            print('A[{}]:'.format(i))
+            print("A[{}]:".format(i))
             monomials.print_readable_matrix(A[i])
-            print('monmial: {}'.format(distinct_monomials[i]))
+            print("monmial: {}".format(distinct_monomials[i]))
             M.constraint(mf.Expr.dot(A[i], X), mf.Domain.equalsTo(b[i]))
 
         # Objective: Maximize a (scalar)
         a = M.variable()
         M.objective(mf.ObjectiveSense.Maximize, a)
-        print('A[0]:')
+        print("A[0]:")
         monomials.print_readable_matrix(A[0])
-        print('monmial: {}'.format(distinct_monomials[0]))
+        print("monmial: {}".format(distinct_monomials[0]))
 
         M.constraint(mf.Expr.sub(mf.Expr.dot(A[1], X), a), mf.Domain.equalsTo(b[1]))
 
@@ -101,13 +104,9 @@ def solve_unconstrained_polynomial_optimization_problem(polynomial: polynomial_g
 
     return a_sol, X_sol
 
+
 # Example usage:
 a_sol, X_sol = solve_unconstrained_polynomial_optimization_problem(random_polynomial, 2)
 
-print('Done')
-print('Solution:', a_sol)
-
-
-
-
-
+print("Done")
+print("Solution:", a_sol)

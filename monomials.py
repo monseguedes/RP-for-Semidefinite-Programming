@@ -5,7 +5,7 @@ This module contains functions related to monomials.
 
 import numpy as np
 import math
-import scipy.special
+import scipy
 
 
 def number_of_monomials(n, d):
@@ -141,6 +141,7 @@ def generate_monomials_up_to_degree(n, d):
 
 def generate_monomials_matrix(n, d):
     """
+    TODO: should depend on relaxation degree.
     Generates matrix of monomials from outer product of vector of monomials
     of degree d/2 and n variables.
 
@@ -308,6 +309,7 @@ def print_readable_matrix(monomials_matrix):
             print(monomials_matrix[i][j], end=" ")
         print()
 
+
 def generate_monomials_from_string(polynomial_string):
     """
     Generates a dictionary of monomials from a string representing a polynomial.
@@ -337,6 +339,7 @@ def generate_monomials_from_string(polynomial_string):
 
     return monomials
 
+
 def parse_monomial(monomial_string, n):
     """
     Parses a string to a monomial.
@@ -364,7 +367,11 @@ def parse_monomial(monomial_string, n):
 
     monomial = np.zeros(n)
     monomial_string_list = monomial_string.split("x")[1:]
-    coefficient = int(monomial_string.split("x")[0])
+    coefficient = monomial_string.split("x")[0]
+    if coefficient == "":
+        coefficient = 1
+    else:
+        coefficient = int(coefficient)
 
     for monomial_string in monomial_string_list:
         monomial_string = monomial_string.split("^")

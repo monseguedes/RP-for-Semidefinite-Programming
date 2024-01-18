@@ -8,7 +8,7 @@ import numpy as np
 
 
 class RandomProjector:
-    def __init__(self, k, type="sparse"):
+    def __init__(self, k, m, type="sparse"):
         """
         Initializes a random projector of dimension k.
 
@@ -39,8 +39,9 @@ class RandomProjector:
         """
 
         self.k = k
+        self.m = m
         self.type = type
-        self.projector = self.generate_random_projector(k, type)
+        self.projector = self.generate_random_projector()
 
     def generate_random_projector(self):
         """
@@ -78,11 +79,13 @@ class RandomProjector:
         """
 
         if self.type == "gaussian":
-            projector = np.random.randn(self.k, self, k)
+            projector = np.random.randn(self.k, self.m)
         elif self.type == "sparse":
             projector = np.random.choice(
-                [-1, 0, 1], size=(self.k, self.k), p=[1 / 6, 2 / 3, 1 / 6]
+                [-1, 0, 1], size=(self.k, self.m), p=[1 / 6, 2 / 3, 1 / 6]
             )
+        elif self.type == "identity":
+            projector = np.eye(self.m)
         else:
             raise ValueError("The type of random projector is not valid.")
         return projector
@@ -111,4 +114,4 @@ class RandomProjector:
 
         """
 
-        return self.projector @ matrix @ self.projector.T
+        return (self.projector @ matrix) @ self.projector.T

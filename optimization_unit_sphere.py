@@ -150,6 +150,78 @@ def solve_unit_sphere_polynomial_optimization_problem(
     return a_sol, X_sol
 
 
+def solve_dual_unit_sphere_polynomial_optimization_problem(
+    polynomial: polynomial_generation.Polynomial,
+):
+    """ """
+
+    # Get list of all the matrices for picking coefficients.
+    monomial_matrix = monomials.generate_monomials_matrix(polynomial.n, polynomial.d)
+    distinct_monomials = monomials.get_list_of_distinct_monomials(monomial_matrix)
+    sphere_polynomial = get_sphere_polynomial(polynomial.n, polynomial.d / 2)
+    A = {}
+    for monomial in distinct_monomials:
+        A[monomial] = monomials.pick_specific_monomial(monomial_matrix, monomial)
+
+    # Get the coefficients of the original polynomial
+    polynomial = polynomial.polynomial
+
+    with mf.Model("SDP") as M:
+        # Objective: minimize c^T * y
+        y = M.variable(len(distinct_monomials))
+        M.objective(
+            mf.ObjectiveSense.Minimize, mf.Expr.dot(list(polynomial.values()), y)
+        )
+
+        print(polynomial)
+        print(polynomial.values())
+
+        # Constraint: sum y_i * s_i = 1
+        M.constraint(
+            'sphere constraint',
+            mf.Expr.dot(list(sphere_polynomial.values()), y), mf.Domain.equalsTo(1)
+        )
+
+        print(sphere_polynomial)
+        print(sphere_polynomial.values())
+        print(list(sphere_polynomial.values()))
+
+        # Constraint: - sum A_i y_i is pd TODO fix psd to pd.
+        no_matrices = len(distinct_monomials)
+        M.constraint(
+            'psd constraint',
+            mf.Expr.sub(
+                0,
+                mf.Expr.add(
+                    [
+                        mf.Expr.mul(y.index(i), A[list(polynomial.keys())[i]])
+                        for i in range(no_matrices)
+                    ]
+                ),
+            ),
+            mf.Domain.inPSDCone(),
+        )
+
+        for i in range(no_matrices):
+            print("A[{}]:".format(i))
+            monomials.print_readable_matrix(A[list(polynomial.keys())[i]])
+            print(sphere_polynomial[list(polynomial.keys())[i]])
+            print(polynomial[list(polynomial.keys())[i]])
+
+        # Increase verbosity
+        M.setLogHandler(sys.stdout)
+        M.setSolverParam("infeasReportAuto", "on")
+
+        # Solve the problem
+        M.solve()
+
+        # Get the solution
+        y_sol = y.level()
+        obj_sol = M.primalObjValue()
+
+    return y_sol, obj_sol
+
+
 def solve_unprojected_unit_sphere(polynomial: polynomial_generation.Polynomial):
     """
     Solves the problem of optimizing a polynomial over the unit sphere

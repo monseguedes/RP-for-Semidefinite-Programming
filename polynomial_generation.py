@@ -10,16 +10,15 @@ import monomials
 
 
 class Polynomial:
-    def __init__(self, polynomial, n, d):
+    def __init__(self, polynomial, n, d, seed=0):
         """
         Initializes a polynomial from a list of coefficients and variables.
 
         Parameters
         ----------
-        coefficients : list
-            List of coefficients of the polynomial.
-        variables : list
-            List of variables of the polynomial.
+        polynomial : string
+            String representing a polynomial.
+        n : i
 
         Returns
         -------
@@ -32,9 +31,11 @@ class Polynomial:
         self.d = d
 
         if polynomial == "random":
-            self.polynomial = self.generate_random_polynomial(n, d)  # TODO fix input
+            self.polynomial = self.generate_random_polynomial(
+                n, d, seed
+            )  # TODO fix input
         elif polynomial == "normal_form":
-            self.polynomial = self.generate_normal_form(n, d)
+            self.polynomial = self.generate_normal_form(n, d, seed)
         elif "x" in polynomial:
             self.polynomial = self.parse_polynomial(polynomial, n, d)  # TODO fix input
         elif type(polynomial) == dict:

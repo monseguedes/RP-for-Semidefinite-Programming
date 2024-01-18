@@ -16,6 +16,7 @@ import monomials
 import polynomial_generation
 import random_projections
 import math
+import sys
 
 
 def get_sphere_polynomial(n, d):
@@ -55,7 +56,9 @@ def get_sphere_polynomial(n, d):
     # are given by d!/ (d_1! * ... * d_n!) where d_1 + ... + d_n = d
     # In our case, since all x are squared, we have d_1 + ... + d_n = 2d
     for monomial in polynomial.keys():
-        if sum([power for power in monomial]) == 2 * d:
+        if sum([power for power in monomial]) == 2 * d and all(
+            [bool(power % 2 == 0) for power in monomial if power != 0]
+        ):
             polynomial[monomial] = scipy.special.factorial(d) / math.prod(
                 [scipy.special.factorial(power / 2) for power in monomial]
             )
@@ -102,14 +105,16 @@ def solve_unit_sphere_polynomial_optimization_problem(
     # Get the coefficients of the original polynomial
     polynomial = polynomial.polynomial
 
-    b = list(polynomial.values())
-    print("b:", b)
-    print("Length of b:", len(b))
-    print("Length of A:", len(A))
+    # b = list(polynomial.values())
+    # print("b:", b)
+    # print("Length of b:", len(b))
+    # print("Length of A:", len(A))
 
     with mf.Model("SDP") as M:
         tuple_of_constant = tuple([0 for i in range(len(distinct_monomials[0]))])
         m = A[tuple_of_constant].shape[0]
+
+        # PSD variable X
         X = M.variable(mf.Domain.inPSDCone(m))
 
         # Objective: maximize a (scalar)
@@ -119,21 +124,21 @@ def solve_unit_sphere_polynomial_optimization_problem(
         # Constraint: A_i · X - a * s_i = c_i
         for i in range(len(A)):
             monomial = distinct_monomials[i]
-            print("A[{}]:".format(i))
-            monomials.print_readable_matrix(A[monomial])
-            print("monomial: {}".format(monomial))
-            print("sphere coefficient: {}".format(sphere_polynomial[monomial]))
-            print("polynomial coefficient: {}".format(polynomial[monomial]))
+            # print("A[{}]:".format(i))
+            # monomials.print_readable_matrix(A[monomial])
+            # print("monomial: {}".format(monomial))
+            # print("sphere coefficient: {}".format(sphere_polynomial[monomial]))
+            # print("polynomial coefficient: {}".format(polynomial[monomial]))
             M.constraint(
-                mf.Expr.sub(
+                mf.Expr.add(
                     mf.Expr.dot(A[monomial], X),
                     mf.Expr.mul(sphere_polynomial[monomial], a),
                 ),
                 mf.Domain.equalsTo(polynomial[monomial]),
             )
 
-        # Constraint: PSD constraint on X
-        M.constraint(X, mf.Domain.inPSDCone())
+        # Increase verbosity
+        M.setLogHandler(sys.stdout)
 
         # Solve the problem
         M.solve()
@@ -164,17 +169,15 @@ def solve_unprojected_unit_sphere(polynomial: polynomial_generation.Polynomial):
 
     """
 
-    monomial_matrix = monomials.generate_monomials_matrix(
-        form_polynomial.n, form_polynomial.d
-    )
+    monomial_matrix = monomials.generate_monomials_matrix(polynomial.n, polynomial.d)
     distinct_monomials = monomials.get_list_of_distinct_monomials(monomial_matrix)
     A = {}
     for monomial in distinct_monomials:
         A[monomial] = monomials.pick_specific_monomial(monomial_matrix, monomial)
 
-    a_sol, X_sol = solve_unit_sphere_polynomial_optimization_problem(form_polynomial, A)
+    a_sol, X_sol = solve_unit_sphere_polynomial_optimization_problem(polynomial, A)
 
-    return
+    return a_sol, X_sol
 
 
 def solve_projected_unit_sphere(
@@ -208,6 +211,9 @@ def solve_projected_unit_sphere(
     distinct_monomials = monomials.get_list_of_distinct_monomials(monomial_matrix)
     sphere_polynomial = get_sphere_polynomial(polynomial.n, polynomial.d / 2)
 
+    # Get the coefficients of the original polynomial
+    polynomial = polynomial.polynomial
+
     A = {}
     for monomial in distinct_monomials:
         A[monomial] = random_projector.apply_rp_map(
@@ -219,14 +225,14 @@ def solve_projected_unit_sphere(
         m = A[tuple_of_constant].shape[0]
         X = M.variable(mf.Domain.inPSDCone(m))
 
-        # Objective: (maximize) a + UP * sum(pv) - LB * sum(nv)
+        # Objective: (maximize) a + LB * sum(lbv) - UB * sum(ubv)
         a = M.variable()
-        negative_variables = []
-        positive_variables = []
-        for i in range(len(distinct_monomials)):
-            # Make one new variable for each monomial
-            negative_variables.append(M.variable())
-            positive_variables.append(M.variable())
+        lb_variables = M.variable(
+            "lb_variables", len(distinct_monomials), mf.Domain.greaterThan(0)
+        )
+        ub_variables = M.variable(
+            "ub_variables", len(distinct_monomials), mf.Domain.greaterThan(0)
+        )
 
         M.objective(
             mf.ObjectiveSense.Maximize,
@@ -234,22 +240,18 @@ def solve_projected_unit_sphere(
                 a,
                 mf.Expr.sub(
                     mf.Expr.mul(
-                        dual_upper_bound,
-                        mf.Expr.dot(
-                            positive_variables, np.ones(len(positive_variables))
-                        ),
+                        dual_lower_bound,
+                        mf.Expr.dot(lb_variables, np.ones(len(distinct_monomials))),
                     ),
                     mf.Expr.mul(
-                        dual_lower_bound,
-                        mf.Expr.dot(
-                            negative_variables, np.ones(len(positive_variables))
-                        ),
+                        dual_upper_bound,
+                        mf.Expr.dot(ub_variables, np.ones(len(distinct_monomials))),
                     ),
                 ),
             ),
         )
 
-        # Constraint: A_i · X - a * s_i + pv[i] - ng[i] = c_i
+        # Constraint: A_i · X - a * s_i + lbv[i] - ubv[i] = c_i
         for i in range(len(A)):
             monomial = distinct_monomials[i]
             print("A[{}]:".format(i))
@@ -259,17 +261,17 @@ def solve_projected_unit_sphere(
             print("polynomial coefficient: {}".format(polynomial[monomial]))
             M.constraint(
                 mf.Expr.add(
-                    mf.Expr.sub(
+                    mf.Expr.add(
                         mf.Expr.dot(A[monomial], X),
                         mf.Expr.mul(sphere_polynomial[monomial], a),
                     ),
-                    mf.Expr.sub(positive_variables[i], negative_variables[i]),
+                    mf.Expr.sub(lb_variables.index(i), ub_variables.index(i)),
                 ),
                 mf.Domain.equalsTo(polynomial[monomial]),
             )
 
-        # Constraint: PSD constraint on X
-        M.constraint(X, mf.Domain.inPSDCone())
+        # # Increase verbosity
+        # M.setLogHandler(sys.stdout)
 
         # Solve the problem
         M.solve()
@@ -277,22 +279,36 @@ def solve_projected_unit_sphere(
         # Get the solution
         X_sol = X.level()
         a_sol = a.level()
+        lb_sol = lb_variables.level()
+        ub_sol = ub_variables.level()
+        obj_sol = M.primalObjValue()
+
+    return a_sol, X_sol, lb_sol, ub_sol, obj_sol
 
 
 # Example usage:
-# polynomial = polynomial_generation.Polynomial("x1^2 + x2^2 + 2x1x2", 2, 2)
-# random_polynomial = polynomial_generation.Polynomial('random', 10, 4)
-form_polynomial = polynomial_generation.Polynomial("normal_form", 4, 2)
+polynomial = polynomial_generation.Polynomial("x1^2 + x2^2 + 2x1x2", 2, 2)
+# polynomial = polynomial_generation.Polynomial("normal_form", 10, 4, seed=0)
+matrix = monomials.generate_monomials_matrix(polynomial.n, polynomial.d)
+matrix_size = len(matrix[0])
 
-monomial_matrix = monomials.generate_monomials_matrix(
-    form_polynomial.n, form_polynomial.d
-)
-distinct_monomials = monomials.get_list_of_distinct_monomials(monomial_matrix)
-A = {}
-for monomial in distinct_monomials:
-    A[monomial] = monomials.pick_specific_monomial(monomial_matrix, monomial)
+a_sol, X_sol = solve_unprojected_unit_sphere(polynomial)
+print("Primal solution obj:", a_sol)
 
-a_sol, X_sol = solve_unit_sphere_polynomial_optimization_problem(form_polynomial, A)
+# y_sol, obj_sol = solve_dual_unit_sphere_polynomial_optimization_problem(polynomial)
+# print("Dual solution y :", y_sol)
+# print("Dual solution obj :", obj_sol)
 
-print("Done")
-print("Solution:", a_sol)
+
+# random_projector = random_projections.RandomProjector(
+#     round(matrix_size * 0.3), matrix_size, type="identity"
+# )
+
+# a_sol, X_sol, lb_sol, ub_sol, obj_sol = solve_projected_unit_sphere(
+#     polynomial, random_projector
+# )
+# print("Projected solution a :", a_sol)
+# print("Projected solution X :", X_sol)
+# print("Projected solution lb :", lb_sol)
+# print("Projected solution ub :", ub_sol)
+# print("Projected solution obj :", obj_sol)

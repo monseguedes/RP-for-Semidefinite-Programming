@@ -2,11 +2,12 @@
 
 import mosek
 import mosek.fusion
+import numpy as np
 
 def main():
 
     A = [
-        mosek.fusion.Matrix.dense(
+        np.array(
             [
                 [1, 0, 0],
                 [0, 0, 0],
@@ -51,6 +52,8 @@ def main():
     ]
     c = [0, 0, 0, 1, 2, 1]
 
+    a = [0, 0, 0, 1, 0, 1]
+
     with mosek.fusion.Model() as M:
         # Setting up the variables
         w_0 = M.variable("w_0")
@@ -64,23 +67,16 @@ def main():
             b,
         )
 
+        # Constraints:
+        # A_i · X + a[i] * w_0  = c_i
         for i in range(1,6):
-            if i in [3,5]:  
-                # A_i · X + w_0 = c_i
-                M.constraint(
+            M.constraint(
                     "c{}".format(i),
                     mosek.fusion.Expr.add(
-                        mosek.fusion.Expr.dot(A[i], X), w_0
+                        mosek.fusion.Expr.dot(A[i], X), mosek.fusion.Expr.mul(a[i], w_0)
                     ),
                     mosek.fusion.Domain.equalsTo(c[i]),
                 )  
-            else:
-                # A_i · X = c_i
-                M.constraint(
-                    "c{}".format(i),
-                    mosek.fusion.Expr.dot(A[i], X),
-                    mosek.fusion.Domain.equalsTo(c[i]),
-                )
 
         # A_0 · X - w_0 + b = c_0
         M.constraint(
@@ -97,7 +93,9 @@ def main():
         print(M.getProblemStatus())
         print("w_0 = {}".format(w_0.level()))
         print("b = {}".format(b.level()))
+        print("X = {}".format(X.level()))
         print("Objective = {:.10f}".format(M.primalObjValue()))
+        print("A_0 · X - w_0 + b = {}".format(np.dot(A[0].flatten(), X.level()) - w_0.level() + b.level()))
               
 
 def main_dual():

@@ -216,7 +216,7 @@ def outer_product_monomials(monomials_vector):
     return monomials_matrix
 
 
-def pick_specific_monomial(monomials_matrix, monomial):
+def pick_specific_monomial(monomials_matrix, monomial, vector=False):
     """
     Picks a specific monomial from the monomials matrix.
     Sets all entries to 0 except those corresponding to the monomial.
@@ -243,11 +243,18 @@ def pick_specific_monomial(monomials_matrix, monomial):
     ]
     """
 
-    monomial_matrix = np.zeros((len(monomials_matrix), len(monomials_matrix)))
-    for i in range(len(monomials_matrix)):
-        for j in range(len(monomials_matrix)):
-            if monomials_matrix[i][j] == monomial:
-                monomial_matrix[i][j] = 1
+    if vector:
+        monomial_matrix = np.zeros(len(monomials_matrix))
+        for i in range(len(monomials_matrix)):
+            if monomials_matrix[i] == monomial:
+                monomial_matrix[i] = 1
+
+    else:
+        monomial_matrix = np.zeros((len(monomials_matrix), len(monomials_matrix)))
+        for i in range(len(monomials_matrix)):
+            for j in range(len(monomials_matrix)):
+                if monomials_matrix[i][j] == monomial:
+                    monomial_matrix[i][j] = 1
 
     return monomial_matrix
 

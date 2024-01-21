@@ -8,7 +8,7 @@ import numpy as np
 
 
 class RandomProjector:
-    def __init__(self, k, m, type="sparse"):
+    def __init__(self, k, m, type="sparse", seed=0):
         """
         Initializes a random projector of dimension k.
 
@@ -41,6 +41,7 @@ class RandomProjector:
         self.k = k
         self.m = m
         self.type = type
+        np.random.seed(seed)
         self.projector = self.generate_random_projector()
 
     def generate_random_projector(self):
@@ -86,6 +87,10 @@ class RandomProjector:
             )
         elif self.type == "identity":
             projector = np.eye(self.m)
+        elif self.type == "debug":
+            projector = np.random.randint(
+                low=-10, high=10, size=(self.k, self.m)
+            )
         else:
             raise ValueError("The type of random projector is not valid.")
         return projector

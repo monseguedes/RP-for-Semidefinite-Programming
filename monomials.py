@@ -387,3 +387,29 @@ def parse_monomial(monomial_string, n):
         monomial[int(monomial_string[0]) - 1] = int(monomial_string[1])
 
     return tuple(monomial), coefficient
+
+def edge_to_monomial(edge, n):
+    """
+    Converts an edge to a monomial.
+
+    Parameters
+    ----------
+    edge : tuple
+        Edge of a graph.
+
+    Returns
+    -------
+    monomial : tuple
+        Monomial represented by the edge.
+
+    Examples
+    --------
+    >>> edge_to_monomial((1, 2))
+    (0, 1, 1)
+
+    """
+    monomial = np.zeros(n)
+    monomial[edge[0]] = 1
+    monomial[edge[1]] = 1
+
+    return tuple(monomial)

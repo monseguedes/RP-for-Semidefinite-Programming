@@ -18,7 +18,12 @@ class Polynomial:
         ----------
         polynomial : string
             String representing a polynomial.
-        n : i
+        n : int
+            Number of variables.
+        d : int
+            Degree of the polynomial.
+        seed : int
+            Seed for the random generator.
 
         Returns
         -------
@@ -170,9 +175,16 @@ class Polynomial:
                 monomials.generate_monomials_matrix(n, d)
             )
         }
+        print("n", n)
+        print("d", d)
+        print("polynomial", polynomial)
+        print("matrix:")
+        monomials.print_readable_matrix(monomials.generate_monomials_matrix(n, d))
         monomial_string_list = polynomial_string.split(" + ")
         for monomial_string in monomial_string_list:
             monomial, coefficient = monomials.parse_monomial(monomial_string, n)
+            print(monomial)
+            print(list(polynomial.keys()))
             if monomial not in polynomial.keys():
                 raise ValueError(
                     "The input polynomial does not match the indicated degree."

@@ -96,6 +96,7 @@ def main():
         print("X = {}".format(X.level()))
         print("Objective = {:.10f}".format(M.primalObjValue()))
         print("A_0 · X - w_0 + b = {}".format(np.dot(A[0].flatten(), X.level()) - w_0.level() + b.level()))
+        print("c_0 = {}".format(c[0]))
               
 
 def main_dual():

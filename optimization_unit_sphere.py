@@ -17,6 +17,8 @@ import polynomial_generation as poly
 import monomials
 import sys
 import mosek.fusion as mf
+import random_projections as rp
+import time
 
 
 def sum_tuples(t1, t2):
@@ -86,8 +88,8 @@ def sdp_relaxation(polynomial: poly.Polynomial, verbose=False):
     s.t. f(x) - a = SOS(x) + (x^T x - 1) * POLY(x)
 
     max  b
-    s.t. A_i · X + sum_(monomials in sphere) a_(monomial) · w - w_0 = c_i
-         A_0 · X - w_0 - b = c_0
+    s.t. A_i · X + sum_j a_ij · w - a_s · w_j = c_i
+         A_0 · X - w_0 + b = c_0
          X is psd
 
     where A_i is the coefficient picking of the i-th monomial in SOS(x)
@@ -102,6 +104,8 @@ def sdp_relaxation(polynomial: poly.Polynomial, verbose=False):
 
     Returns
     -------
+    dict
+        Dictionary with the solution of the SDP relaxation.
 
     """
 
@@ -134,6 +138,15 @@ def sdp_relaxation(polynomial: poly.Polynomial, verbose=False):
             for constraint_monomial in constraint_monomials
         }
 
+    a_standard = {
+        monomial: monomials.pick_specific_monomial(
+            monomials_free_polynomial,
+            monomial,
+            vector=True,
+        )
+        for monomial in distinct_monomials
+    }
+
     with mf.Model("SDP") as M:
         # PSD variable X
         X = M.variable(mf.Domain.inPSDCone(A[distinct_monomials[0]].shape[0]))
@@ -147,10 +160,9 @@ def sdp_relaxation(polynomial: poly.Polynomial, verbose=False):
 
         tuple_of_constant = tuple([0 for i in range(len(distinct_monomials[0]))])
 
-        # Constraint: A_i · X + sum_(monomials in sphere) a_(monomial) · w - w_0 = c_i
-        for i, monomial in enumerate(
-            [m for m in distinct_monomials if m != tuple_of_constant]
-        ):
+        # Constraints:
+        # A_i · X + sum_j a_j · w - a_standard w = c_i
+        for monomial in [m for m in distinct_monomials if m != tuple_of_constant]:
             if verbose:
                 print("A[{}]:".format(i + 1))
                 monomials.print_readable_matrix(A[monomial])
@@ -167,26 +179,37 @@ def sdp_relaxation(polynomial: poly.Polynomial, verbose=False):
                         mf.Expr.dot(A[monomial], X),
                         mf.Expr.add(
                             [
-                                mf.Expr.dot(a[monomial][constraint_monomial], w)
+                                mf.Expr.dot(
+                                    a[monomial][constraint_monomial],
+                                    w,
+                                )
                                 for constraint_monomial in constraint_monomials
                             ]
-                        )
+                        ),
                     ),
-                    w.index(0)
+                    mf.Expr.dot(
+                        a_standard[monomial],
+                        w,
+                    ),
                 ),
                 mf.Domain.equalsTo(polynomial.polynomial[monomial]),
             )
 
-        # Constraint: A_0 · X - w_0 - b = c_0
-        print("A[0]:")
-        monomials.print_readable_matrix(A[tuple_of_constant])
-        print("monomial: {}".format(tuple_of_constant))
-        print("polynomial coefficient: {}".format(polynomial.polynomial[tuple_of_constant]))
-    
+        # Constraint: A_0 · X - w_0 + b = c_0
+        if verbose:
+            print("A[0]:")
+            monomials.print_readable_matrix(A[tuple_of_constant])
+            print("monomial: {}".format(tuple_of_constant))
+            print(
+                "polynomial coefficient: {}".format(
+                    polynomial.polynomial[tuple_of_constant]
+                )
+            )
+
         M.constraint(
-            mf.Expr.sub(mf.Expr.sub(mf.Expr.dot(A[tuple_of_constant], X), 
-                                    w.index(0)), 
-                        b),
+            mf.Expr.add(
+                mf.Expr.sub(mf.Expr.dot(A[tuple_of_constant], X), w.index(0)), b
+            ),
             mf.Domain.equalsTo(polynomial.polynomial[tuple_of_constant]),
         )
 
@@ -194,16 +217,377 @@ def sdp_relaxation(polynomial: poly.Polynomial, verbose=False):
             # Increase verbosity
             M.setLogHandler(sys.stdout)
 
+        start_time = time.time()
         # Solve the problem
         M.solve()
+        end_time = time.time()
 
         # Get the solution
         X_sol = X.level()
-        a_sol = a.level()
+        b_sol = b.level()
+        w_sol = w.level()
+        computation_time = end_time - start_time
+
+        if verbose:
+            print("b_sol: {}".format(b_sol))
+            print("w_sol: {}".format(w_sol))
+            print("X_sol: {}".format(X_sol))
+
+            print(
+                "A_0 · X_sol = {}".format(np.dot(A[tuple_of_constant].flatten(), X_sol))
+            )
+            print("w_sol + b_sol = {}".format(w_sol + b_sol))
+            print(
+                "A_0 · X_sol - w_sol + b_sol = {}".format(
+                    (np.dot(A[tuple_of_constant].flatten(), X_sol) - w_sol[0]) + b_sol
+                )
+            )
+            print(
+                bool(
+                    np.dot(A[tuple_of_constant].flatten(), X_sol) - w_sol[0] - b_sol
+                    == polynomial.polynomial[tuple_of_constant]
+                )
+            )
+
+        solution = {
+            "X": X_sol,
+            "b": b_sol,
+            "w": w_sol,
+            "objective": M.primalObjValue(),
+            "computation_time": computation_time,
+        }
+
+        return solution
+
+
+def projected_sdp_relaxation(
+    polynomial: poly.Polynomial, random_projector: rp.RandomProjector, verbose=False
+):
+    """
+    Returns the SDP relaxation of the problem of optimizing a polynomial
+    function over the unit sphere.
+
+    max  b + LB * sum(lbv) - UB * sum(ubv)
+    s.t. PA_iP · X + sum_j a_ij · w - a_s · w_j + lbv[i] - ubv[i] = c_i
+         PA_0P · X - w_0 + b + lbv[0] - ubv[0] = c_0
+         X is psd
+        lbv[i] >= 0, ubv[i] >= 0
+
+    Parameters
+    ----------
+    polynomial : Polynomial
+        Polynomial to be optimized.
+    verbose : bool, optional
+
+    Returns
+    -------
+
+    """
+
+    monomial_matrix = monomials.generate_monomials_matrix(polynomial.n, polynomial.d)
+    distinct_monomials = monomials.get_list_of_distinct_monomials(monomial_matrix)
+
+    # Picking monomials from SOS polynomial
+    # A = {
+    #     monomial: monomials.pick_specific_monomial(monomial_matrix, monomial)
+    #     for monomial in distinct_monomials
+    # }
+
+    A = {}
+    for monomial in distinct_monomials:
+        A[monomial] = random_projector.apply_rp_map(
+            monomials.pick_specific_monomial(monomial_matrix, monomial)
+        )
+
+    # Picking monomials from the free polynomial (vector of coefficients)
+    monomials_free_polynomial = monomials.generate_monomials_up_to_degree(
+        polynomial.n, polynomial.d - 2
+    )
+
+    # Picking monomials from sphere constraint
+    constraint_monomials = [
+        tuple([0] * i + [2] + [0] * (polynomial.n - i - 1)) for i in range(polynomial.n)
+    ]
+    a = {}
+    for i, monomial in enumerate(distinct_monomials):
+        a[monomial] = {
+            constraint_monomial: monomials.pick_specific_monomial(
+                add_tuple_to_tuple_list(constraint_monomial, monomials_free_polynomial),
+                monomial,
+                vector=True,
+            )
+            for constraint_monomial in constraint_monomials
+        }
+
+    a_standard = {
+        monomial: monomials.pick_specific_monomial(
+            monomials_free_polynomial,
+            monomial,
+            vector=True,
+        )
+        for monomial in distinct_monomials
+    }
+
+    with mf.Model("SDP") as M:
+        # PSD variable X
+        X = M.variable(mf.Domain.inPSDCone(A[distinct_monomials[0]].shape[0]))
+
+        # Vector variable w
+        w = M.variable(len(monomials_free_polynomial))
+
+        # Lower and upper bounds
+        lb_variables = M.variable(len(distinct_monomials), mf.Domain.greaterThan(0))
+        ub_variables = M.variable(len(distinct_monomials), mf.Domain.greaterThan(0))
+
+        # Lower and upper bounds of the dual variables
+        epsilon = 0.00001
+        dual_lower_bound = -1 - epsilon
+        dual_upper_bound = 1 + epsilon
+
+        tuple_of_constant = tuple([0 for i in range(len(distinct_monomials[0]))])
+
+        # Objective: maximize b + LB * sum(lbv) - UB * sum(ubv)
+        b = M.variable()
+        M.objective(
+            mf.ObjectiveSense.Maximize,
+            mf.Expr.add(
+                b,
+                mf.Expr.sub(
+                    mf.Expr.mul(
+                        dual_lower_bound,
+                        mf.Expr.dot(lb_variables, np.ones(len(distinct_monomials))),
+                    ),
+                    mf.Expr.mul(
+                        dual_upper_bound,
+                        mf.Expr.dot(ub_variables, np.ones(len(distinct_monomials))),
+                    ),
+                ),
+            ),
+        )
+
+        # Constraints:
+        # A_i · X + sum_j a_j · w - a_standard w + lbv[i] - ubv[i] = c_i
+        for i, monomial in enumerate(
+            [m for m in distinct_monomials if m != tuple_of_constant]
+        ):
+            if verbose:
+                print("A[{}]:".format(i + 1))
+                monomials.print_readable_matrix(A[monomial])
+                print("monomial: {}".format(monomial))
+                print(
+                    "polynomial coefficient: {}".format(polynomial.polynomial[monomial])
+                )
+                print("a[{}]:".format(i + 1))
+                print(a[monomial])
+
+            # matrix_inner_product = np.dot(random_projector.apply_rp_map(A[monomial]), X)
+            matrix_inner_product = mf.Expr.dot(A[monomial], X)
+
+            difference_slacks = mf.Expr.sub(
+                lb_variables.index(i + 1),
+                ub_variables.index(i + 1),
+            )
+
+            M.constraint(
+                mf.Expr.add(
+                    mf.Expr.sub(
+                        mf.Expr.add(
+                            matrix_inner_product,
+                            mf.Expr.add(
+                                [
+                                    mf.Expr.dot(
+                                        a[monomial][constraint_monomial],
+                                        w,
+                                    )
+                                    for constraint_monomial in constraint_monomials
+                                ]
+                            ),
+                        ),
+                        mf.Expr.dot(
+                            a_standard[monomial],
+                            w,
+                        ),
+                    ),
+                    difference_slacks,
+                ),
+                mf.Domain.equalsTo(polynomial.polynomial[monomial]),
+            )
+
+        # Constraint: A_0 · X - w_0 + b + lbv[i] - ubv[i] = c_0
+        if verbose:
+            print("A[0]:")
+            monomials.print_readable_matrix(A[tuple_of_constant])
+            print("monomial: {}".format(tuple_of_constant))
+            print(
+                "polynomial coefficient: {}".format(
+                    polynomial.polynomial[tuple_of_constant]
+                )
+            )
+
+        # matrix_inner_product = np.dot(
+        #     random_projector.apply_rp_map(A[tuple_of_constant]), X
+        # )
+        matrix_inner_product = mf.Expr.dot(A[tuple_of_constant], X)
+        difference_slacks = mf.Expr.sub(lb_variables.index(0), ub_variables.index(0))
+
+        M.constraint(
+            mf.Expr.add(
+                mf.Expr.add(mf.Expr.sub(matrix_inner_product, w.index(0)), b),
+                difference_slacks,
+            ),
+            mf.Domain.equalsTo(polynomial.polynomial[tuple_of_constant]),
+        )
+
+        if verbose:
+            # Increase verbosity
+            M.setLogHandler(sys.stdout)
+
+        start_time = time.time()
+        # Solve the problem
+        M.solve()
+        end_time = time.time()
+
+        # Get the solution
+        X_sol = X.level()
+        b_sol = b.level()
+        w_sol = w.level()
+        lbv_sol = lb_variables.level()
+        ubv_sol = ub_variables.level()
+
+        computation_time = end_time - start_time
+
+        if verbose:
+            print("b_sol: {}".format(b_sol))
+            print("w_sol: {}".format(w_sol))
+            print("X_sol: {}".format(X_sol))
+            print("lbv_sol: {}".format(lbv_sol))
+            print("ubv_sol: {}".format(ubv_sol))
+
+            print(
+                "A_0 · X_sol = {}".format(np.dot(A[tuple_of_constant].flatten(), X_sol))
+            )
+            print("w_sol + b_sol = {}".format(w_sol + b_sol))
+            print(
+                "A_0 · X_sol - w_sol + b_sol = {}".format(
+                    (np.dot(A[tuple_of_constant].flatten(), X_sol) - w_sol[0]) + b_sol
+                )
+            )
+            print(
+                bool(
+                    np.dot(A[tuple_of_constant].flatten(), X_sol) - w_sol[0] - b_sol
+                    == polynomial.polynomial[tuple_of_constant]
+                )
+            )
+
+        solution = {
+            "X": X_sol,
+            "b": b_sol,
+            "w": w_sol,
+            "lbv": lbv_sol,
+            "ubv": ubv_sol,
+            "objective": M.primalObjValue(),
+            "computation_time": computation_time,
+        }
+
+        # print(
+        #         "A_0 · X_sol = {}".format(np.dot(A[tuple_of_constant].flatten(), X_sol))
+        #     )
+        # print(
+        #     "Size of X: {} x {}".format(
+        #         A[distinct_monomials[0]].shape[0], A[distinct_monomials[0]].shape[0]
+        #     )
+        # )
+        # print(
+        #     "Rank of X: {}".format(
+        #         np.linalg.matrix_rank(
+        #             X_sol.reshape(
+        #                 (
+        #                     A[distinct_monomials[0]].shape[0],
+        #                     A[distinct_monomials[0]].shape[0],
+        #                 )
+        #             )
+        #         )
+        #     )
+        # )
+        # print(
+        #     "Eigenvalues of X: {}".format(
+        #         np.linalg.eigvals(
+        #             X_sol.reshape(
+        #                 (
+        #                     A[distinct_monomials[0]].shape[0],
+        #                     A[distinct_monomials[0]].shape[0],
+        #                 )
+        #             )
+        #         )
+        #     )
+        # )
+
+    return solution
 
 
 if __name__ == "__main__":
-    polynomial = poly.Polynomial("normal_form", 4, 2, seed=0)
-    polynomial = poly.Polynomial("x1^2 + x2^2 + 2x1x2", 2, 2)
-    print(polynomial.polynomial)
-    sdp_relaxation(polynomial, verbose=True)
+    seed = 1
+
+    # Possible polynomials
+    # ----------------------------------------
+    # polynomial = polynomial_generation.Polynomial("x1^2 + x2^2 + 2x1x2", 2, 2)
+    polynomial = poly.Polynomial("normal_form", 6, 4, seed=seed)
+    # polynomial = poly.Polynomial("random", 4, 4, seed=seed)
+    # polynomial = poly.Polynomial("3x1^2x2x3 + x1^2x2^2 + 10x3^4 + 5x2^2x1x3", 3, 4, seed=seed)
+    matrix = monomials.generate_monomials_matrix(polynomial.n, polynomial.d)
+    matrix_size = len(matrix[0])
+
+    # Solve unprojected unit sphere
+    # ----------------------------------------
+    sdp_solution = sdp_relaxation(polynomial)
+    print(" ")
+    print(
+        "Results for a random normal norm of {} variables and degree {}".format(
+            polynomial.n, polynomial.d
+        )
+    )
+    print("-" * 50)
+    print("Original SDP:")
+    print("Value         Computation time")
+    print(
+        "{:.10f}     {:.10f}".format(
+            sdp_solution["objective"], sdp_solution["computation_time"]
+        )
+    )
+
+    # Solve projected unit sphere
+    # ----------------------------------------
+    id_random_projector = rp.RandomProjector(matrix_size, matrix_size, type="identity")
+    id_rp_solution = projected_sdp_relaxation(polynomial, id_random_projector)
+    print("Projected (id) SDP obj: {:.10f}".format(id_rp_solution["objective"]))
+    print("-" * 50)
+
+    print("Projected SDP obj:")
+    print("Size     Value          Difference         Computation time")
+    X_solutions = []
+    for rate in np.linspace(0.1, 1, 10):
+        random_projector = rp.RandomProjector(
+            round(matrix_size * rate), matrix_size, type="debug_not_full_ones", seed=seed
+        )
+
+        rp_solution = projected_sdp_relaxation(
+            polynomial, random_projector, verbose=False
+        )
+
+        increment = rp_solution["objective"] - sdp_solution["objective"]
+        # Print in table format with rate as column and then value and increment as other columns
+        print(
+            "{:>3.2f}     {:>10.5f}     {:>10.5f}          {:>5.3f}".format(
+                round(rate, 2),
+                rp_solution["objective"],
+                increment,
+                rp_solution["computation_time"],
+            )
+        )
+        X_solutions.append(rp_solution["X"])
+
+    print("-" * 50)
+    for i, X in enumerate(X_solutions):
+        print("Size of X_{}: {}".format(i, len(X)))
+        print("X_{}: {}".format(i, X[:5]))
+    print("-" * 50)

@@ -17,6 +17,7 @@ import polynomial_generation
 import random_projections
 import math
 import sys
+import time
 
 
 def get_sphere_polynomial(n, d):
@@ -157,7 +158,7 @@ def solve_dual_unit_sphere_polynomial_optimization_problem(
     polynomial: polynomial_generation.Polynomial,
     verbose: bool = False,
 ):
-    """ 
+    """
     Solves the dual problem of the polynomial optimization problem over the unit sphere.
 
     max c^T * y
@@ -178,7 +179,7 @@ def solve_dual_unit_sphere_polynomial_optimization_problem(
         Solution of the polynomial optimization problem.
     bound : float
         Lower bound of the polynomial optimization problem.
-    
+
     """
 
     # Get list of all the matrices for picking coefficients.
@@ -198,17 +199,18 @@ def solve_dual_unit_sphere_polynomial_optimization_problem(
         M.objective(
             mf.ObjectiveSense.Minimize, mf.Expr.dot(list(polynomial.values()), y)
         )
-        
+
         # Constraint: sum y_i * s_i = 1
         M.constraint(
-            'sphere constraint',
-            mf.Expr.dot(list(sphere_polynomial.values()), y), mf.Domain.equalsTo(1)
+            "sphere constraint",
+            mf.Expr.dot(list(sphere_polynomial.values()), y),
+            mf.Domain.equalsTo(1),
         )
 
         # Constraint: - sum A_i y_i is pd TODO fix psd to pd.
         no_matrices = len(distinct_monomials)
         M.constraint(
-            'psd constraint',
+            "psd constraint",
             mf.Expr.sub(
                 0,
                 mf.Expr.add(
@@ -303,8 +305,8 @@ def solve_projected_unit_sphere(
 
     """
 
-    epsilon = 0.0001
-    dual_lower_bound = 0 - epsilon
+    epsilon = 0.00001
+    dual_lower_bound = -1 - epsilon
     dual_upper_bound = 1 + epsilon
 
     # Get list of all the matrices for picking coefficients.
@@ -355,11 +357,12 @@ def solve_projected_unit_sphere(
         # Constraint: A_i · X - a * s_i + lbv[i] - ubv[i] = c_i
         for i in range(len(A)):
             monomial = distinct_monomials[i]
-            print("A[{}]:".format(i))
-            monomials.print_readable_matrix(A[monomial])
-            print("monomial: {}".format(monomial))
-            print("sphere coefficient: {}".format(sphere_polynomial[monomial]))
-            print("polynomial coefficient: {}".format(polynomial[monomial]))
+            if verbose:
+                print("A[{}]:".format(i))
+                monomials.print_readable_matrix(A[monomial])
+                print("monomial: {}".format(monomial))
+                print("sphere coefficient: {}".format(sphere_polynomial[monomial]))
+                print("polynomial coefficient: {}".format(polynomial[monomial]))
             M.constraint(
                 mf.Expr.add(
                     mf.Expr.add(
@@ -375,8 +378,10 @@ def solve_projected_unit_sphere(
             # Increase verbosity
             M.setLogHandler(sys.stdout)
 
+        start_time = time.time()
         # Solve the problem
         M.solve()
+        end_time = time.time()
 
         # Get the solution
         X_sol = X.level()
@@ -384,41 +389,60 @@ def solve_projected_unit_sphere(
         lb_sol = lb_variables.level()
         ub_sol = ub_variables.level()
         obj_sol = M.primalObjValue()
+        computation_time = end_time - start_time
 
-    return a_sol, X_sol, lb_sol, ub_sol, obj_sol
+        solution = {"a": a_sol, "X": X_sol, "lb": lb_sol, "ub": ub_sol, "objective": obj_sol, "computation_time": computation_time}
 
+    return solution
 
 
 if __name__ == "__main__":
+    seed = 1
     # Possible polynomials
     # ----------------------------------------
-    polynomial = polynomial_generation.Polynomial("x1^2 + x2^2 + 2x1x2", 2, 2)
-    polynomial = polynomial_generation.Polynomial("normal_form", 4, 2, seed=0)
+    # polynomial = polynomial_generation.Polynomial("x1^2 + x2^2 + 2x1x2", 2, 2)
+    polynomial = polynomial_generation.Polynomial("normal_form", 4, 4, seed=seed)
     matrix = monomials.generate_monomials_matrix(polynomial.n, polynomial.d)
     matrix_size = len(matrix[0])
 
     # Solve unprojected unit sphere
     # ----------------------------------------
-    a_sol, X_sol = solve_unprojected_unit_sphere(polynomial)
-    print("Primal solution obj:", a_sol)
+    a_sol, _ = solve_unprojected_unit_sphere(polynomial)
+    print(" ")
+    print("(CG paper approach)Results for a random normal norm of {} variables and degree {}".format(polynomial.n, polynomial.d))
+    print("-" * 50)
+    print("Original SDP obj:       {:.10f}".format(a_sol[0]))
 
-    # Solve dual unit sphere    
-    # ----------------------------------------
-    y_sol, obj_sol = solve_dual_unit_sphere_polynomial_optimization_problem(polynomial)
-    print("Dual solution y :", y_sol)
-    print("Dual solution obj :", obj_sol)
-
+    # # Solve dual unit sphere
+    # # ----------------------------------------
+    # y_sol, obj_sol = solve_dual_unit_sphere_polynomial_optimization_problem(polynomial)
+    # print("Dual solution y :", y_sol)
+    # print("Dual solution obj :", obj_sol)
 
     # Solve projected unit sphere
     # ----------------------------------------
-    # random_projector = random_projections.RandomProjector(
-    #     round(matrix_size * 0.3), matrix_size, type="identity"
-    # )
-    # a_sol, X_sol, lb_sol, ub_sol, obj_sol = solve_projected_unit_sphere(
-    #     polynomial, random_projector
-    # )
-    # print("Projected solution a :", a_sol)
-    # print("Projected solution X :", X_sol)
-    # print("Projected solution lb :", lb_sol)
-    # print("Projected solution ub :", ub_sol)
-    # print("Projected solution obj :", obj_sol)
+    random_projector = random_projections.RandomProjector(
+        round(matrix_size * 0.3), matrix_size, type="identity"
+    )
+    id_projected_solution = solve_projected_unit_sphere(polynomial, random_projector)
+    print("Projected (id) SDP obj: {:.10f}".format(id_projected_solution["objective"]))
+    print("-" * 50)
+
+    print("Projected SDP obj:")
+    print("Size     Value          Difference        Time")
+    for rate in np.linspace(0.1, 1, 10):
+        random_projector = random_projections.RandomProjector(
+            round(matrix_size * rate), matrix_size, type="debug_constant", seed=seed
+        )
+        
+        rp_solution = solve_projected_unit_sphere(
+            polynomial, random_projector, verbose=False
+        )
+    
+        increment = rp_solution["objective"] - a_sol[0] 
+        # Print in table format with rate as column and then value and increment as other columns
+        print("{:>3.2f}     {:>10.5f}     {:>10.5f}        {:>5.3f}".format(round(rate, 2), rp_solution["objective"], increment, rp_solution["computation_time"]))
+
+    # print("")
+    # print("Random projector used:")
+    # monomials.print_readable_matrix(random_projector.projector)

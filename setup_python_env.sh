@@ -23,6 +23,7 @@ pip install \
     gurobipy \
     isort \
     matplotlib \
+    networkx \
     numpy \
     Mosek \
     pandas \

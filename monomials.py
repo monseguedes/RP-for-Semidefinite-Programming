@@ -408,8 +408,34 @@ def edge_to_monomial(edge, n):
     (0, 1, 1)
 
     """
+    
     monomial = np.zeros(n)
     monomial[edge[0]] = 1
     monomial[edge[1]] = 1
 
     return tuple(monomial)
+
+def edges_to_monomials(edges, n):
+    """
+    Converts a list of edges to a list of monomials.
+
+    Parameters
+    ----------
+    edges : list
+        List of edges of a graph.
+
+    Returns
+    -------
+    monomials : list
+        List of monomials represented by the edges.
+
+    Examples
+    --------
+    >>> edges_to_monomials([(1, 2), (2, 3)], 3)
+    [(0, 1, 1), (0, 0, 1), (0, 0, 1)]
+
+    """
+
+    monomials = [edge_to_monomial(edge, n) for edge in edges]
+
+    return monomials

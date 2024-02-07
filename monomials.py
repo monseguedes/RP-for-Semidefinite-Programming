@@ -141,7 +141,6 @@ def generate_monomials_up_to_degree(n, d):
 
 def generate_monomials_matrix(n, d):
     """
-    TODO: should depend on relaxation degree.
     Generates matrix of monomials from outer product of vector of monomials
     of degree d/2 and n variables.
 
@@ -388,6 +387,7 @@ def parse_monomial(monomial_string, n):
 
     return tuple(monomial), coefficient
 
+
 def edge_to_monomial(edge, n):
     """
     Converts an edge to a monomial.
@@ -408,12 +408,13 @@ def edge_to_monomial(edge, n):
     (0, 1, 1)
 
     """
-    
+
     monomial = np.zeros(n)
     monomial[edge[0]] = 1
     monomial[edge[1]] = 1
 
     return tuple(monomial)
+
 
 def edges_to_monomials(edges, n):
     """

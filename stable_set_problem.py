@@ -508,3 +508,58 @@ def single_graph_results(graph, type="sparse", project='variables'):
     print()
 
 
+def combination_of_graphs_results(graphs_list):
+    """
+    Get the results for a combination of graphs.
+
+    Parameters
+    ----------
+    graphs_list : list
+        List of Graph objects.
+    projector : RandomProjector
+        Random projector.
+
+    """
+
+    rate = 0.7
+
+    # Solve unprojected stable set problem
+    # ----------------------------------------
+    print("\n" + "-" * 100)
+    print(
+        "Results for different graphs for a projector of dimension {}".format(
+            rate
+        ).center(100)
+    )
+    print("-" * 100)
+    print(
+        "\n{: <20} {: >10} {: >10} {: >10} {: >10} {: >10} {: >10}".format(
+            "Graph", "Vertices", "Edges", "SDP Value", "SDP Time", "RP Value", "RP Time"
+        )
+    )
+    print("-" * 100)
+
+    for graph in graphs_list:
+        # print(graph.filename.split("/")[-1])
+        sdp_solution = stable_set_problem_sdp(graph)
+        matrix_size = graph.graph.shape[0] + 1
+        projector = rp.RandomProjector(
+            round(matrix_size * rate), matrix_size, type="sparse"
+        )
+        rp_solution = projected_stable_set_problem_sdp(graph, projector)
+
+        print(
+            "{: <20} {: >10} {: >10} {: >10.2f} {: >10.2f}  {: >10.2f} {: >10.2f}".format(
+                graph.filename.split("/")[-1],
+                graph.n,
+                graph.num_edges,
+                sdp_solution["objective"],
+                sdp_solution["computation_time"],
+                rp_solution["objective"],
+                rp_solution["computation_time"],
+            )
+        )
+
+    print()
+
+

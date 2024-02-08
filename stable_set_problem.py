@@ -417,11 +417,204 @@ def projected_stable_set_problem_sdp(graph: Graph, verbose=False):
         b_sol = b.level()
         computation_time = end_time - start_time
 
+def random_constraint_aggregation_sdp(graph: Graph, projector, verbose=False):
+    """
+    TODO: ADD
+
+    Parameters
+    ----------
+    graph : Graph
+        Graph object.
+
+    Returns
+    -------
+    dict
+        Dictionary with the solutions of the sdp relaxation.
+
+    """
+
+
+    monomial_matrix = monomials.generate_monomials_matrix(graph.n, 2)
+
+    distinct_monomials = monomials.generate_monomials_up_to_degree(graph.n, 2)
+
+    degree_1_monomials = list(monomials.generate_monomials_exact_degree(graph.n, 1))
+
+    degree_2_monomials = [
+        monomial
+        for monomial in list(monomials.generate_monomials_exact_degree(graph.n, 2))
+        if any(n == 2 for n in monomial)
+    ]
+
+    edges = graph.edges
+
+    # rate = 0.7
+    # projector = rp.RandomProjector(round(rate * len(distinct_monomials)), len(distinct_monomials), type=type)
+
+    # Coefficients of objective
+    C = {monomial: -1 if sum(monomial) == 1 else 0 for monomial in distinct_monomials}
+    # Get new set of rhs by randomly combining previous ones
+    C_old = C
+    C = {
+        i: sum(
+            [
+                projector.projector[i, j] * C[monomial]
+                for j, monomial in enumerate(distinct_monomials)
+            ]
+        )
+        for i in range(projector.k)
+    }
+
+    A = graph.A
+    A_old = A
+    A = {
+        i : sum(
+            [
+                projector.projector[i, j] * A[monomial]
+                for j, monomial in enumerate(distinct_monomials)
+            ]
+        )
+        for i in range(projector.k)
+    }
+
+    E = graph.E
+    E = {
+        i : sum(
+            [
+                projector.projector[i, j] * E[monomial]
+                for j, monomial in enumerate(distinct_monomials)
+            ]
+        )
+        for i in range(projector.k)
+    }
+
+    # Picking monomials for POLY_v (x_v^2)
+    V_squared = {
+        monomial: monomials.pick_specific_monomial(
+            degree_2_monomials, monomial, vector=True
+        )
+        for monomial in distinct_monomials
+    }
+    V_squared = {
+        i : sum(
+            [
+                projector.projector[i, j] * V_squared[monomial]
+                for j, monomial in enumerate(distinct_monomials)
+            ]
+        )
+        for i in range(projector.k)
+    }
+
+    # Picking monomials for POLY_v (x_v)
+    V = {
+        monomial: monomials.pick_specific_monomial(
+            degree_1_monomials, monomial, vector=True
+        )
+        for monomial in distinct_monomials
+    }
+    V = {
+        i : sum(
+            [
+                projector.projector[i, j] * V[monomial]
+                for j, monomial in enumerate(distinct_monomials)
+            ]
+        )
+        for i in range(projector.k)
+    }
+
+    # print("Starting Mosek")
+    time_start = time.time()
+    with mf.Model("SDP") as M:
+        # PSD variable X
+        size_psd_variable = A_old[distinct_monomials[0]].shape[0]
+        X = M.variable(mf.Domain.inPSDCone(size_psd_variable))
+
+        # Constant for (x_v * x_u)
+        e = M.variable(len(graph.edges), mf.Domain.unbounded())
+
+        # Constant for (x_v^2 - x_v)
+        v = M.variable(graph.n, mf.Domain.unbounded())
+
+        # Objective: maximize a (scalar)
+        b = M.variable()
+        M.objective(mf.ObjectiveSense.Maximize, b)
+
+        tuple_of_constant = tuple([0 for i in range(len(distinct_monomials[0]))])
+
+        # Constraints:
+        # A_i · X + sum_e E · constant_e + V_squared · constant_v - V · constrant_v = c_i
+        for i in range(projector.k):
+            M.constraint(
+                mf.Expr.add(
+                    mf.Expr.dot(A[i], X),
+                    mf.Expr.add(
+                        mf.Expr.dot(E[i], e),
+                        mf.Expr.sub(
+                            mf.Expr.dot(V_squared[i], v),
+                            mf.Expr.dot(V[i], v),
+                        ),
+                    ),
+                ),
+                mf.Domain.equalsTo(C[i]),
+            )
+            # if i % 100 == 0:
+            #     print("Constraint {} of {}".format(i, len(distinct_monomials) - 1))
+
+        # Constraint:
+        # A_0 · X + b = c_0
+        M.constraint(
+            mf.Expr.add(mf.Expr.dot(A_old[tuple_of_constant], X), b),
+            mf.Domain.equalsTo(C_old[tuple_of_constant]),
+        )
+        time_end = time.time()
+        # print("Time to build Mosek model: {}".format(time_end - time_start))
+
+        if verbose:
+            # Increase verbosity
+            M.setLogHandler(sys.stdout)
+
+        start_time = time.time()
+        # Solve the problem
+        M.solve()
+        end_time = time.time()
+
+        # Get the solution
+        X_sol = X.level()
+        b_sol = b.level()
+        computation_time = end_time - start_time
+
+        no_linear_variables = len(graph.edges) + graph.n + 1
+        size_psd_variable = int(np.sqrt(X_sol.shape[0]))
+
+        # print("Number of distinct monomials: ", len(distinct_monomials))
+        # # Print rank of solution matrix
+        # print(
+        #     "Rank of solution matrix: ",
+        #     np.linalg.matrix_rank(X_sol.reshape(size_psd_variable, size_psd_variable)),
+        # )
+        # # Print the nuclear norm of the solution matrix
+        # print(
+        #     "Nuclear norm of solution matrix: ",
+        #     np.linalg.norm(
+        #         X_sol.reshape(size_psd_variable, size_psd_variable), ord="nuc"
+        #     ),
+        # )
+        # # Print the frobenious norm of the data matrices A.
+        # for i, monomial in enumerate(A.keys()):
+        #     print(
+        #         "Frobenious norm of A{}: {}".format(
+        #             i, np.linalg.norm(A[monomial], ord="fro")
+        #         )
+        #     )
+        #     print("Rank of A{}: {}".format(i, np.linalg.matrix_rank(A[monomial])))
+
         solution = {
             "X": X_sol,
             "b": b_sol,
             "objective": M.primalObjValue(),
             "computation_time": computation_time,
+            "no_linear_variables": no_linear_variables,
+            "size_psd_variable": size_psd_variable,
         }
 
         return solution

@@ -23,6 +23,10 @@ import monomials
 import sys
 import mosek.fusion as mf
 import time
+import random_projections as rp
+import pickle
+from process_DIMACS_data import Graph_File
+import os
 
 
 def get_list_of_edges(graph, full=False):
@@ -156,11 +160,14 @@ def stable_set_problem_sdp(graph: Graph, verbose=False):
     """
 
     monomial_matrix = monomials.generate_monomials_matrix(graph.n, 2)
-    distinct_monomials = monomials.get_list_of_distinct_monomials(monomial_matrix)
-    degree_1_monomials = monomials.generate_monomials_exact_degree(graph.n, 1)
+
+    distinct_monomials = monomials.generate_monomials_up_to_degree(graph.n, 2)
+
+    degree_1_monomials = list(monomials.generate_monomials_exact_degree(graph.n, 1))
+
     degree_2_monomials = [
         monomial
-        for monomial in monomials.generate_monomials_exact_degree(graph.n, 2)
+        for monomial in list(monomials.generate_monomials_exact_degree(graph.n, 2))
         if any(n == 2 for n in monomial)
     ]
 
@@ -169,19 +176,9 @@ def stable_set_problem_sdp(graph: Graph, verbose=False):
     # Coefficients of objective
     C = {monomial: -1 if sum(monomial) == 1 else 0 for monomial in distinct_monomials}
 
-    # Picking monomials from SOS polynomial
-    A = {
-        monomial: monomials.pick_specific_monomial(monomial_matrix, monomial)
-        for monomial in distinct_monomials
-    }
+    A = graph.A
 
-    # Picking monomials for POLY_(u,v) (x_u * x_v)
-    E = {
-        monomial: monomials.pick_specific_monomial(
-            monomials.edges_to_monomials(edges, graph.n), monomial, vector=True
-        )
-        for monomial in distinct_monomials
-    }
+    E = graph.E
 
     # Picking monomials for POLY_v (x_v^2)
     V_squared = {
@@ -199,9 +196,12 @@ def stable_set_problem_sdp(graph: Graph, verbose=False):
         for monomial in distinct_monomials
     }
 
+    # print("Starting Mosek")
+    time_start = time.time()
     with mf.Model("SDP") as M:
         # PSD variable X
-        X = M.variable(mf.Domain.inPSDCone(A[distinct_monomials[0]].shape[0]))
+        size_psd_variable = A[distinct_monomials[0]].shape[0]
+        X = M.variable(mf.Domain.inPSDCone(size_psd_variable))
 
         # Constant for (x_v * x_u)
         e = M.variable(len(graph.edges), mf.Domain.unbounded())
@@ -217,7 +217,9 @@ def stable_set_problem_sdp(graph: Graph, verbose=False):
 
         # Constraints:
         # A_i · X + sum_e E · constant_e + V_squared · constant_v - V · constrant_v = c_i
-        for monomial in [m for m in distinct_monomials if m != tuple_of_constant]:
+        for i, monomial in enumerate(
+            [m for m in distinct_monomials if m != tuple_of_constant]
+        ):
             M.constraint(
                 mf.Expr.add(
                     mf.Expr.dot(A[monomial], X),
@@ -231,6 +233,8 @@ def stable_set_problem_sdp(graph: Graph, verbose=False):
                 ),
                 mf.Domain.equalsTo(C[monomial]),
             )
+            # if i % 100 == 0:
+            #     print("Constraint {} of {}".format(i, len(distinct_monomials) - 1))
 
         # Constraint:
         # A_0 · X + b = c_0
@@ -238,6 +242,8 @@ def stable_set_problem_sdp(graph: Graph, verbose=False):
             mf.Expr.add(mf.Expr.dot(A[tuple_of_constant], X), b),
             mf.Domain.equalsTo(C[tuple_of_constant]),
         )
+        time_end = time.time()
+        # print("Time to build Mosek model: {}".format(time_end - time_start))
 
         if verbose:
             # Increase verbosity
@@ -253,24 +259,51 @@ def stable_set_problem_sdp(graph: Graph, verbose=False):
         b_sol = b.level()
         computation_time = end_time - start_time
 
+        no_linear_variables = len(graph.edges) + graph.n + 1
+        size_psd_variable = int(np.sqrt(X_sol.shape[0]))
+
+        print("Number of distinct monomials: ", len(distinct_monomials))
+        # Print rank of solution matrix
+        print(
+            "Rank of solution matrix: ",
+            np.linalg.matrix_rank(X_sol.reshape(size_psd_variable, size_psd_variable)),
+        )
+        # Print the nuclear norm of the solution matrix
+        print(
+            "Nuclear norm of solution matrix: ",
+            np.linalg.norm(
+                X_sol.reshape(size_psd_variable, size_psd_variable), ord="nuc"
+            ),
+        )
+        # Print the frobenious norm of the data matrices A.
+        for i, monomial in enumerate(A.keys()):
+            print(
+                "Frobenious norm of A{}: {}".format(
+                    i, np.linalg.norm(A[monomial], ord="fro")
+                )
+            )
+            print("Rank of A{}: {}".format(i, np.linalg.matrix_rank(A[monomial])))
+
         solution = {
             "X": X_sol,
             "b": b_sol,
             "objective": M.primalObjValue(),
             "computation_time": computation_time,
+            "no_linear_variables": no_linear_variables,
+            "size_psd_variable": size_psd_variable,
         }
 
         return solution
 
 
-def projected_stable_set_problem_sdp(graph: Graph, verbose=False):
+def projected_stable_set_problem_sdp(graph: Graph, random_projector, verbose=False):
     """
     Write the projected problem for the stable set problem.
 
     minimize    a
-    subject to  A_i · X + sum_e E · constant_e + V_squared · constant_v - V · constrant_v
+    subject to  PA_iP · X + sum_e E · constant_e + V_squared · constant_v - V · constrant_v
                 + lbv[i] - ubv[i] = c_i
-                A_0 · X + b + lbv[0] - ubv[0] = c_0
+                PA_0P · X + b + lbv[0] - ubv[0] = c_0
 
     where E is the set of edges and V is the set of vertices.
 
@@ -290,11 +323,14 @@ def projected_stable_set_problem_sdp(graph: Graph, verbose=False):
     """
 
     monomial_matrix = monomials.generate_monomials_matrix(graph.n, 2)
-    distinct_monomials = monomials.get_list_of_distinct_monomials(monomial_matrix)
-    degree_1_monomials = monomials.generate_monomials_exact_degree(graph.n, 1)
+
+    distinct_monomials = monomials.generate_monomials_up_to_degree(graph.n, 2)
+
+    degree_1_monomials = list(monomials.generate_monomials_exact_degree(graph.n, 1))
+
     degree_2_monomials = [
         monomial
-        for monomial in monomials.generate_monomials_exact_degree(graph.n, 2)
+        for monomial in list(monomials.generate_monomials_exact_degree(graph.n, 2))
         if any(n == 2 for n in monomial)
     ]
     edges = graph.edges
@@ -303,18 +339,12 @@ def projected_stable_set_problem_sdp(graph: Graph, verbose=False):
     C = {monomial: -1 if sum(monomial) == 1 else 0 for monomial in distinct_monomials}
 
     # Picking monomials from SOS polynomial
-    A = {
-        monomial: monomials.pick_specific_monomial(monomial_matrix, monomial)
-        for monomial in distinct_monomials
-    }
+    A = {}
+    for monomial in distinct_monomials:
+        A[monomial] = random_projector.apply_rp_map(graph.A[monomial])
 
     # Picking monomials for POLY_(u,v) (x_u * x_v)
-    E = {
-        monomial: monomials.pick_specific_monomial(
-            monomials.edges_to_monomials(edges, graph.n), monomial, vector=True
-        )
-        for monomial in distinct_monomials
-    }
+    E = graph.E
 
     # Picking monomials for POLY_v (x_v^2)
     V_squared = {
@@ -347,7 +377,7 @@ def projected_stable_set_problem_sdp(graph: Graph, verbose=False):
         ub_variables = M.variable(len(distinct_monomials), mf.Domain.greaterThan(0))
 
         # Lower and upper bounds of the dual variables
-        epsilon = 0.00001
+        epsilon = 0.00000001
         dual_lower_bound = 0 - epsilon
         dual_upper_bound = 1 + epsilon
 
@@ -373,7 +403,7 @@ def projected_stable_set_problem_sdp(graph: Graph, verbose=False):
         tuple_of_constant = tuple([0 for i in range(len(distinct_monomials[0]))])
 
         # Constraints:
-        # A_i · X + sum_e E · constant_e + V_squared · constant_v - V · constrant_v = c_i
+        # A_i · X + sum_e E · constant_e + V_squared · constant_v - V · constrant_v + lbv[i] - ubv[i] = c_i
         for i, monomial in enumerate(
             [m for m in distinct_monomials if m != tuple_of_constant]
         ):
@@ -384,22 +414,29 @@ def projected_stable_set_problem_sdp(graph: Graph, verbose=False):
             )
             M.constraint(
                 mf.Expr.add(
-                    matrix_inner_product,
                     mf.Expr.add(
-                        mf.Expr.dot(E[monomial], e),
-                        mf.Expr.sub(
-                            mf.Expr.dot(V_squared[monomial], v),
-                            mf.Expr.dot(V[monomial], v),
+                        matrix_inner_product,
+                        mf.Expr.add(
+                            mf.Expr.dot(E[monomial], e),
+                            mf.Expr.sub(
+                                mf.Expr.dot(V_squared[monomial], v),
+                                mf.Expr.dot(V[monomial], v),
+                            ),
                         ),
                     ),
+                    difference_slacks,
                 ),
                 mf.Domain.equalsTo(C[monomial]),
             )
+            if i % 100 == 0 and verbose:
+                print("Constraint {} of {}".format(i, len(distinct_monomials) - 1))
 
         # Constraint:
-        # A_0 · X + b = c_0
+        # A_0 · X + b + lbv[0] - ubv[0] = c_0
+        matrix_inner_product = mf.Expr.dot(A[tuple_of_constant], X)
+        difference_slacks = mf.Expr.sub(lb_variables.index(0), ub_variables.index(0))
         M.constraint(
-            mf.Expr.add(mf.Expr.dot(A[tuple_of_constant], X), b),
+            mf.Expr.add(mf.Expr.add(matrix_inner_product, difference_slacks), b),
             mf.Domain.equalsTo(C[tuple_of_constant]),
         )
 
@@ -416,6 +453,23 @@ def projected_stable_set_problem_sdp(graph: Graph, verbose=False):
         X_sol = X.level()
         b_sol = b.level()
         computation_time = end_time - start_time
+
+        no_linear_variables = (
+            len(graph.edges) + graph.n + 1 + 2 * len(distinct_monomials)
+        )
+        size_psd_variable = int(np.sqrt(X_sol.shape[0]))
+
+        solution = {
+            "X": X_sol,
+            "b": b_sol,
+            "objective": M.primalObjValue(),
+            "computation_time": computation_time,
+            "no_linear_variables": no_linear_variables,
+            "size_psd_variable": size_psd_variable,
+        }
+
+        return solution
+
 
 def random_constraint_aggregation_sdp(graph: Graph, projector, verbose=False):
     """

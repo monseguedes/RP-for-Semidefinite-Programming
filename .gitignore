@@ -15,5 +15,8 @@ vimquickrun.sh
 
 *.yaml
 
+*.clq
+*.pkl
+
 # ignore DS_Store
 .DS_Store

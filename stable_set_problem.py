@@ -563,3 +563,34 @@ def combination_of_graphs_results(graphs_list):
     print()
 
 
+if __name__ == "__main__":
+    seed = 2
+    # Possible graphs
+    # ----------------------------------------
+    # graph = Graph(100, 0.5)
+    # graph.plot_graph()
+
+    # Open graph from pickle
+    # ----------------------------------------
+    directory = "graphs/MANN_a9"
+    file_path = directory + "/graph.pkl"
+    with open(file_path, "rb") as file:
+        graph = pickle.load(file)
+
+    matrix_size = graph.graph.shape[0] + 1
+    print("Matrix size: {}".format(matrix_size))
+
+    # random_constraint_aggregation_sdp(graph, type="sparse")
+
+    single_graph_results(graph, type="sparse", project='constraints')
+
+    graphs_list = []
+    for i in [file for file in os.listdir("graphs") if file != ".DS_Store"]:
+        file_path = "graphs/" + i + "/graph.pkl"
+        print("File path: ", file_path)
+        with open(file_path, "rb") as file:
+            graph = pickle.load(file)
+            if graph.n < 200 and graph.filename.split("/")[-1] != "keller4.clq":
+                graphs_list.append(graph)
+
+    # combination_of_graphs_results(graphs_list)

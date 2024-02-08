@@ -427,7 +427,84 @@ def projected_stable_set_problem_sdp(graph: Graph, verbose=False):
         return solution
 
 
-graph = Graph(5, 0.5)
-graph.plot_graph()
-solution = stable_set_problem_sdp(graph)
-print(solution["objective"])
+def single_graph_results(graph, type="sparse", project='variables'):
+    """
+    Get the results for a single graph.
+
+    Parameters
+    ----------
+    graph : Graph
+        Graph object.
+    type : str
+        Type of random projector.
+
+    """
+
+    # Solve unprojected stable set problem
+    # ----------------------------------------
+    sdp_solution = stable_set_problem_sdp(graph)
+    print("\n" + "-" * 80)
+    print("Results for a graph with {} vertices".format(graph.n).center(80))
+    print("-" * 80)
+    print(
+        "\n{: <12} {: >10} {: >18} {: >8} {: >8}".format(
+            "Type", "Size X", "Linear variables", "Value", "Time"
+        )
+    )
+    print("-" * 80)
+
+    print(
+        "{: <12} {: >10} {: >18} {: >8.2f} {: >8.2f}".format(
+            "Original",
+            sdp_solution["size_psd_variable"],
+            sdp_solution["no_linear_variables"],
+            sdp_solution["objective"],
+            sdp_solution["computation_time"],
+        )
+    )
+
+    # Solve projected stable set problem
+    # ----------------------------------------
+    # id_random_projector = rp.RandomProjector(matrix_size, matrix_size, type="identity")
+    # id_rp_solution = projected_stable_set_problem_sdp(graph, id_random_projector)
+    # print(
+    #     "{: <12} {: >10} {: >18} {: >8.2f} {: >8.2f}".format(
+    #         "Identity",
+    #         id_rp_solution["size_psd_variable"],
+    #         id_rp_solution["no_linear_variables"],
+    #         id_rp_solution["objective"],
+    #         id_rp_solution["computation_time"],
+    #     )
+    # )
+
+    for rate in np.linspace(0.5, 1, 10):
+        if project == 'variables':
+            random_projector = rp.RandomProjector(
+            round(matrix_size * rate), matrix_size, type=type, seed=seed
+            )
+            rp_solution = projected_stable_set_problem_sdp(
+                graph, random_projector, verbose=False
+            )
+        elif project == 'constraints':
+            number_constraints = len(graph.A.keys())
+            random_projector = rp.RandomProjector(
+            round(number_constraints * rate), number_constraints, type=type, seed=seed
+            )
+            rp_solution = random_constraint_aggregation_sdp(graph, random_projector, verbose=False)
+
+        increment = rp_solution["objective"] - sdp_solution["objective"]
+        # Print in table format with rate as column and then value and increment as other columns
+
+        print(
+            "{: <12.2f} {: >10} {: >18} {: >8.2f} {: >8.2f}".format(
+                rate,
+                rp_solution["size_psd_variable"],
+                rp_solution["no_linear_variables"],
+                rp_solution["objective"],
+                rp_solution["computation_time"],
+            )
+        )
+
+    print()
+
+

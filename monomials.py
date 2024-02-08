@@ -6,6 +6,7 @@ This module contains functions related to monomials.
 import numpy as np
 import math
 import scipy
+import itertools
 
 
 def number_of_monomials(n, d):
@@ -93,19 +94,29 @@ def generate_monomials_exact_degree(n, d):
     [(2, 0, 0), (1, 1, 0), (1, 0, 1), (0, 2, 0), (0, 1, 1), (0, 0, 2)]
 
     """
-
-    monomials = []
-    if d == 0:
-        monomials.append(tuple(np.zeros(n)))
+    
+    if n == 1:
+        yield (d,)
     else:
-        for i in range(n):
-            for monomial in generate_monomials_exact_degree(n, d - 1):
-                monomial = list(monomial)
-                monomial[i] += 1
-                monomials.append(tuple(monomial))
+        for value in range(d + 1):
+            for permutation in generate_monomials_exact_degree(n - 1, d - value):
+                yield (value,) + permutation
+    
 
-    return monomials
+    
+    
+    # monomials = []
+    # if d == 0:
+    #     monomials.append(tuple(np.zeros(n)))
+    # else:
+    #     for i in range(n):
+    #         for monomial in generate_monomials_exact_degree(n, d - 1):
+    #             monomial = list(monomial)
+    #             monomial[i] += 1
+    #             monomials.append(tuple(monomial))
 
+    # return monomials
+    
 
 def generate_monomials_up_to_degree(n, d):
     """
@@ -135,7 +146,7 @@ def generate_monomials_up_to_degree(n, d):
 
     monomials = []
     for i in range(d + 1):
-        monomials += generate_monomials_exact_degree(n, i)
+        monomials += list(generate_monomials_exact_degree(n, i))
     return monomials
 
 

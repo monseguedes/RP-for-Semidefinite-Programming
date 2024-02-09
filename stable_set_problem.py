@@ -108,6 +108,10 @@ class Graph:
         self.p = p
         self.graph = generate_graph(self.n, self.p, seed)
         self.edges = get_list_of_edges(self.graph)
+        self.get_picking_SOS()
+        self.get_picking_edges()
+        self.filename = + str(self.n) + "_vertices_" + str(self.p) + "_probability"
+        self.store_graph(self.filename)
 
     def plot_graph(self):
         """
@@ -123,6 +127,69 @@ class Graph:
         G = nx.Graph(self.graph)
         nx.draw(G, with_labels=True, font_weight="bold")
         plt.show()
+
+    def get_picking_SOS(self):
+        """ 
+        Generates the matrices Ai for the SOS polynomial.
+
+        """
+
+        monomial_matrix = monomials.generate_monomials_matrix(self.n, 2)
+        distinct_monomials = monomials.generate_monomials_up_to_degree(
+            self.n, 2
+        )
+
+        # Picking monomials from SOS polynomial
+        A = {
+            monomial: monomials.pick_specific_monomial(monomial_matrix, monomial)
+            for monomial in distinct_monomials
+        }
+
+        self.A = A
+    
+    def get_picking_edges(self):
+        """
+        Generates the matrices Ei for the POLY_(u,v) (x_u * x_v) polynomial.
+        
+        """
+        distinct_monomials = monomials.generate_monomials_up_to_degree(
+            self.n, 2
+        )
+        # Picking monomials for POLY_(u,v) (x_u * x_v)
+        E = {
+            monomial: monomials.pick_specific_monomial(
+                monomials.edges_to_monomials(self.edges, self.n),
+                monomial,
+                vector=True,
+            )
+            for monomial in distinct_monomials
+        }
+
+        self.E = E
+
+    def store_graph(self, name):
+        """
+        Store the graph in a folder inside the 'graphs' folder.
+
+        The folder will be named after the graph file.
+
+        """
+
+        directory = "graphs/" + name
+
+        if not os.path.exists(directory):
+            os.mkdir(directory)
+
+        # Save class object with pickle
+        # File path where you want to save the object
+        file_path = directory + "/graph.pkl"
+
+        # Open the file in binary mode for writing
+        with open(file_path, "wb") as file:
+            # Serialize and save the object to the file
+            pickle.dump(self, file)
+
+        print("Graph stored in: ", file_path)
 
 
 def stable_set_mip(graph):

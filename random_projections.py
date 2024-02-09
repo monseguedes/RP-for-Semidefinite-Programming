@@ -88,18 +88,12 @@ class RandomProjector:
         elif self.type == "identity":
             projector = np.eye(self.m)
         elif self.type == "debug":
-            projector = np.random.randint(
-                low=-10, high=10, size=(self.k, self.m)
-            )
+            projector = np.random.randint(low=-10, high=10, size=(self.k, self.m))
         elif self.type == "debug_not_0_mean":
-            projector = np.random.randint(
-                low=-10, high=10, size=(self.k, self.m)
-            )
+            projector = np.random.randint(low=-10, high=10, size=(self.k, self.m))
             projector = projector - np.mean(projector)
         elif self.type == "debug_random_rows":
-            projector = np.random.randint(
-                low=-10, high=10, size=(self.k, self.m)
-            )
+            projector = np.random.randint(low=-10, high=10, size=(self.k, self.m))
             for i in range(self.k):
                 seed = np.random.seed(i)
                 lower = np.random.randint(low=-20, high=-1)
@@ -108,17 +102,15 @@ class RandomProjector:
                     low=lower, high=upper, size=(1, self.m)
                 )
         elif self.type == "debug_random_columns":
-            projector = np.random.randint(
-                low=-10, high=10, size=(self.k, self.m)
-            )
+            projector = np.random.randint(low=-10, high=10, size=(self.k, self.m))
             for i in range(self.m):
                 seed = np.random.seed(i)
                 lower = np.random.randint(low=-20, high=-1)
                 upper = np.random.randint(low=1, high=20)
                 projector[:, i] = np.random.randint(
                     low=lower, high=upper, size=(1, self.k)
-                ) - np.mean(projector[:, i-1])
-                
+                ) - np.mean(projector[:, i - 1])
+
         elif self.type == "debug_ones":
             projector = np.ones((self.k, self.m))
         elif self.type == "debug_zeros":
@@ -128,9 +120,7 @@ class RandomProjector:
             for i in range(self.k):
                 projector[i, i] = 1
         elif self.type == "debug_not_full_random":
-            projector = np.random.randint(
-                low=-10, high=10, size=(self.k, self.m)
-            )
+            projector = np.random.randint(low=-10, high=10, size=(self.k, self.m))
             for i in range(round(self.k * 0.3)):
                 projector[i, :] = 0
         else:
@@ -145,7 +135,7 @@ class RandomProjector:
         ----------
         matrix : numpy.ndarray
             Squared matrix to be projected.
-            
+
         Returns
         -------
         projected_matrix : numpy.ndarray
@@ -160,7 +150,7 @@ class RandomProjector:
         """
 
         return (self.projector @ matrix) @ self.projector.T
-    
+
     def make_random_squared_matrix(self, type="sparse"):
         """
         Generates a random squared matrix of a given dimension k.
@@ -181,9 +171,7 @@ class RandomProjector:
         elif type == "identity":
             matrix = np.eye(self.k)
         elif type == "debug":
-            matrix = np.random.randint(
-                low=-10, high=10, size=(self.k, self.k)
-            )
+            matrix = np.random.randint(low=-10, high=10, size=(self.k, self.k))
         elif type == "debug_constant":
             matrix = np.ones((self.k, self.k))
         elif type == "debug_zeros":

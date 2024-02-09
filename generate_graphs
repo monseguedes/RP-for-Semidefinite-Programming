@@ -1,0 +1,124 @@
+"""
+
+"""
+
+import monomials
+import os
+import pickle
+import numpy as np
+
+class Graph:
+    def __init__(self):
+        self.n = None
+        self.edges = []
+        self.graph = None
+        self.A = None
+        self.E = None
+        self.A_L2 = None
+        self.E_L2 = None
+        self.V_L2 = None
+        self.V2_L2 = None
+    
+    def get_picking_SOS(self):
+        """ 
+        
+        """
+
+        monomial_matrix = monomials.generate_monomials_matrix(self.n, 2)
+        distinct_monomials = monomials.generate_monomials_up_to_degree(
+            self.n, 2
+        )
+
+        # Picking monomials from SOS polynomial
+        A = {
+            monomial: monomials.pick_specific_monomial(monomial_matrix, monomial)
+            for monomial in distinct_monomials
+        }
+
+        self.A = A
+
+    
+    def get_picking_edges(self):
+        """
+        
+        """
+        distinct_monomials = monomials.generate_monomials_up_to_degree(
+            self.n, 2
+        )
+        # Picking monomials for POLY_(u,v) (x_u * x_v)
+        E = {
+            monomial: monomials.pick_specific_monomial(
+                monomials.edges_to_monomials(self.edges, self.n),
+                monomial,
+                vector=True,
+            )
+            for monomial in distinct_monomials
+        }
+
+        self.E = E
+
+    def store_graph(self, name):
+        """
+        Store the graph in a folder inside the 'graphs' folder.
+
+        The folder will be named after the graph file.
+
+        """
+
+        directory = "graphs/" + name
+
+        if not os.path.exists(directory):
+            os.mkdir(directory)
+
+        # Save class object with pickle
+        # File path where you want to save the object
+        file_path = directory + "/graph.pkl"
+
+        # Open the file in binary mode for writing
+        with open(file_path, "wb") as file:
+            # Serialize and save the object to the file
+            pickle.dump(self, file)
+
+        print("Graph stored in: ", file_path)
+
+
+def generate_pentagon():
+    """
+    Generate a pentagon graph.
+    """
+    pentagon = Graph()
+    pentagon.n = 5
+    pentagon.edges = [(0, 1), (1, 2), (2, 3), (3, 4), (4, 0)]
+    # Get namtrix representation of the graph
+    pentagon.graph = np.array([[0 for i in range(pentagon.n)] for j in range(pentagon.n)])
+    for i, j in pentagon.edges:
+        pentagon.graph[i][j] = 1
+        pentagon.graph[j][i] = 1
+    pentagon.get_picking_SOS()
+    pentagon.get_picking_edges()
+    pentagon.store_graph("pentagon")
+
+def generate_pentagon_with_legs():
+    """
+    Generate a pentagon graph with legs.
+    """
+    pentagon = Graph()
+    pentagon.n = 10
+    pentagon.edges = [(0, 1), (1, 2), (2, 3), (3, 4), (4, 0), (0, 5), (1, 6), (2, 7), (3, 8), (4, 9)]
+    # Get namtrix representation of the graph
+    pentagon.graph = np.array([[0 for i in range(pentagon.n)] for j in range(pentagon.n)])
+    for i, j in pentagon.edges:
+        pentagon.graph[i][j] = 1
+        pentagon.graph[j][i] = 1
+    pentagon.get_picking_SOS()
+    pentagon.get_picking_edges()
+    pentagon.store_graph("pentagon_with_legs")
+
+if __name__ == "__main__":
+    generate_pentagon()
+    generate_pentagon_with_legs()
+    
+
+
+
+    

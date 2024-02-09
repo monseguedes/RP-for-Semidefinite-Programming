@@ -487,7 +487,6 @@ def random_constraint_aggregation_sdp(graph: Graph, projector, verbose=False):
 
     """
 
-
     monomial_matrix = monomials.generate_monomials_matrix(graph.n, 2)
 
     distinct_monomials = monomials.generate_monomials_up_to_degree(graph.n, 2)
@@ -522,7 +521,7 @@ def random_constraint_aggregation_sdp(graph: Graph, projector, verbose=False):
     A = graph.A
     A_old = A
     A = {
-        i : sum(
+        i: sum(
             [
                 projector.projector[i, j] * A[monomial]
                 for j, monomial in enumerate(distinct_monomials)
@@ -533,7 +532,7 @@ def random_constraint_aggregation_sdp(graph: Graph, projector, verbose=False):
 
     E = graph.E
     E = {
-        i : sum(
+        i: sum(
             [
                 projector.projector[i, j] * E[monomial]
                 for j, monomial in enumerate(distinct_monomials)
@@ -550,7 +549,7 @@ def random_constraint_aggregation_sdp(graph: Graph, projector, verbose=False):
         for monomial in distinct_monomials
     }
     V_squared = {
-        i : sum(
+        i: sum(
             [
                 projector.projector[i, j] * V_squared[monomial]
                 for j, monomial in enumerate(distinct_monomials)
@@ -567,7 +566,7 @@ def random_constraint_aggregation_sdp(graph: Graph, projector, verbose=False):
         for monomial in distinct_monomials
     }
     V = {
-        i : sum(
+        i: sum(
             [
                 projector.projector[i, j] * V[monomial]
                 for j, monomial in enumerate(distinct_monomials)
@@ -674,7 +673,7 @@ def random_constraint_aggregation_sdp(graph: Graph, projector, verbose=False):
         return solution
 
 
-def single_graph_results(graph, type="sparse", project='variables'):
+def single_graph_results(graph, type="sparse", project="variables"):
     """
     Get the results for a single graph.
 
@@ -725,19 +724,24 @@ def single_graph_results(graph, type="sparse", project='variables'):
     # )
 
     for rate in np.linspace(0.5, 1, 10):
-        if project == 'variables':
+        if project == "variables":
             random_projector = rp.RandomProjector(
-            round(matrix_size * rate), matrix_size, type=type, seed=seed
+                round(matrix_size * rate), matrix_size, type=type, seed=seed
             )
             rp_solution = projected_stable_set_problem_sdp(
                 graph, random_projector, verbose=False
             )
-        elif project == 'constraints':
+        elif project == "constraints":
             number_constraints = len(graph.A.keys())
             random_projector = rp.RandomProjector(
-            round(number_constraints * rate), number_constraints, type=type, seed=seed
+                round(number_constraints * rate),
+                number_constraints,
+                type=type,
+                seed=seed,
             )
-            rp_solution = random_constraint_aggregation_sdp(graph, random_projector, verbose=False)
+            rp_solution = random_constraint_aggregation_sdp(
+                graph, random_projector, verbose=False
+            )
 
         increment = rp_solution["objective"] - sdp_solution["objective"]
         # Print in table format with rate as column and then value and increment as other columns
@@ -819,7 +823,7 @@ if __name__ == "__main__":
 
     # Open graph from pickle
     # ----------------------------------------
-    directory = "graphs/MANN_a9"
+    directory = "graphs/pentagon_with_legs"
     file_path = directory + "/graph.pkl"
     with open(file_path, "rb") as file:
         graph = pickle.load(file)
@@ -829,7 +833,7 @@ if __name__ == "__main__":
 
     # random_constraint_aggregation_sdp(graph, type="sparse")
 
-    single_graph_results(graph, type="sparse", project='constraints')
+    single_graph_results(graph, type="sparse")
 
     graphs_list = []
     for i in [file for file in os.listdir("graphs") if file != ".DS_Store"]:
@@ -837,7 +841,7 @@ if __name__ == "__main__":
         print("File path: ", file_path)
         with open(file_path, "rb") as file:
             graph = pickle.load(file)
-            if graph.n < 200 and graph.filename.split("/")[-1] != "keller4.clq":
+            if graph.n < 20 and graph.filename.split("/")[-1] != "keller4.clq":
                 graphs_list.append(graph)
 
-    # combination_of_graphs_results(graphs_list)
+    combination_of_graphs_results(graphs_list)

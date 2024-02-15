@@ -196,7 +196,7 @@ def stable_set_mip(graph):
     raise NotImplementedError
 
 
-def stable_set_problem_sdp(graph: Graph, verbose=False):
+def stable_set_problem_sdp(graph, verbose=False):
     """
     Write the polynomial optimization problem for the stable set problem.
 
@@ -229,6 +229,12 @@ def stable_set_problem_sdp(graph: Graph, verbose=False):
     monomial_matrix = monomials.generate_monomials_matrix(graph.n, 2)
 
     distinct_monomials = monomials.generate_monomials_up_to_degree(graph.n, 2)
+    new_vector = []
+    for monomial in distinct_monomials:
+        new_vector.append(tuple(1 if x == 2 else x for x in monomial))
+    # Remove repeated tuples
+    unique_tuples = list(set(new_vector))
+    distinct_monomials = unique_tuples
 
     degree_1_monomials = list(monomials.generate_monomials_exact_degree(graph.n, 1))
 
@@ -250,7 +256,7 @@ def stable_set_problem_sdp(graph: Graph, verbose=False):
     # Picking monomials for POLY_v (x_v^2)
     V_squared = {
         monomial: monomials.pick_specific_monomial(
-            degree_2_monomials, monomial, vector=True
+            degree_1_monomials, monomial, vector=True
         )
         for monomial in distinct_monomials
     }
@@ -329,27 +335,27 @@ def stable_set_problem_sdp(graph: Graph, verbose=False):
         no_linear_variables = len(graph.edges) + graph.n + 1
         size_psd_variable = int(np.sqrt(X_sol.shape[0]))
 
-        print("Number of distinct monomials: ", len(distinct_monomials))
-        # Print rank of solution matrix
-        print(
-            "Rank of solution matrix: ",
-            np.linalg.matrix_rank(X_sol.reshape(size_psd_variable, size_psd_variable)),
-        )
-        # Print the nuclear norm of the solution matrix
-        print(
-            "Nuclear norm of solution matrix: ",
-            np.linalg.norm(
-                X_sol.reshape(size_psd_variable, size_psd_variable), ord="nuc"
-            ),
-        )
-        # Print the frobenious norm of the data matrices A.
-        for i, monomial in enumerate(A.keys()):
-            print(
-                "Frobenious norm of A{}: {}".format(
-                    i, np.linalg.norm(A[monomial], ord="fro")
-                )
-            )
-            print("Rank of A{}: {}".format(i, np.linalg.matrix_rank(A[monomial])))
+        # print("Number of distinct monomials: ", len(distinct_monomials))
+        # # Print rank of solution matrix
+        # print(
+        #     "Rank of solution matrix: ",
+        #     np.linalg.matrix_rank(X_sol.reshape(size_psd_variable, size_psd_variable)),
+        # )
+        # # Print the nuclear norm of the solution matrix
+        # print(
+        #     "Nuclear norm of solution matrix: ",
+        #     np.linalg.norm(
+        #         X_sol.reshape(size_psd_variable, size_psd_variable), ord="nuc"
+        #     ),
+        # )
+        # # Print the frobenious norm of the data matrices A.
+        # for i, monomial in enumerate(A.keys()):
+        #     print(
+        #         "Frobenious norm of A{}: {}".format(
+        #             i, np.linalg.norm(A[monomial], ord="fro")
+        #         )
+        #     )
+        #     print("Rank of A{}: {}".format(i, np.linalg.matrix_rank(A[monomial])))
 
         solution = {
             "X": X_sol,
@@ -367,7 +373,7 @@ def projected_stable_set_problem_sdp(graph: Graph, random_projector, verbose=Fal
     """
     Write the projected problem for the stable set problem.
 
-    minimize    a
+    maximise    a - UB sum lbv[i] + LB sum ubv[i]
     subject to  PA_iP · X + sum_e E · constant_e + V_squared · constant_v - V · constrant_v
                 + lbv[i] - ubv[i] = c_i
                 PA_0P · X + b + lbv[0] - ubv[0] = c_0
@@ -392,6 +398,13 @@ def projected_stable_set_problem_sdp(graph: Graph, random_projector, verbose=Fal
     monomial_matrix = monomials.generate_monomials_matrix(graph.n, 2)
 
     distinct_monomials = monomials.generate_monomials_up_to_degree(graph.n, 2)
+    new_vector = []
+    for monomial in distinct_monomials:
+        new_vector.append(tuple(1 if x == 2 else x for x in monomial))
+    # Remove repeated tuples
+    unique_tuples = list(set(new_vector))
+    
+    distinct_monomials = unique_tuples
 
     degree_1_monomials = list(monomials.generate_monomials_exact_degree(graph.n, 1))
 
@@ -416,7 +429,7 @@ def projected_stable_set_problem_sdp(graph: Graph, random_projector, verbose=Fal
     # Picking monomials for POLY_v (x_v^2)
     V_squared = {
         monomial: monomials.pick_specific_monomial(
-            degree_2_monomials, monomial, vector=True
+            degree_1_monomials, monomial, vector=True
         )
         for monomial in distinct_monomials
     }
@@ -448,6 +461,9 @@ def projected_stable_set_problem_sdp(graph: Graph, random_projector, verbose=Fal
         dual_lower_bound = 0 - epsilon
         dual_upper_bound = 1 + epsilon
 
+        ones_vector = np.ones(len(distinct_monomials))
+        ones_vector[0] = 0
+
         # Objective: maximize a (scalar)
         b = M.variable()
         M.objective(
@@ -457,15 +473,16 @@ def projected_stable_set_problem_sdp(graph: Graph, random_projector, verbose=Fal
                 mf.Expr.sub(
                     mf.Expr.mul(
                         dual_lower_bound,
-                        mf.Expr.dot(lb_variables, np.ones(len(distinct_monomials))),
+                        mf.Expr.dot(lb_variables, ones_vector),
                     ),
                     mf.Expr.mul(
                         dual_upper_bound,
-                        mf.Expr.dot(ub_variables, np.ones(len(distinct_monomials))),
+                        mf.Expr.dot(ub_variables, ones_vector),
                     ),
                 ),
             ),
         )
+        # M.objective(mf.ObjectiveSense.Maximize, b)
 
         tuple_of_constant = tuple([0 for i in range(len(distinct_monomials[0]))])
 
@@ -479,6 +496,7 @@ def projected_stable_set_problem_sdp(graph: Graph, random_projector, verbose=Fal
                 lb_variables.index(i + 1),
                 ub_variables.index(i + 1),
             )
+            # difference_slacks = 0
             M.constraint(
                 mf.Expr.add(
                     mf.Expr.add(
@@ -499,11 +517,10 @@ def projected_stable_set_problem_sdp(graph: Graph, random_projector, verbose=Fal
                 print("Constraint {} of {}".format(i, len(distinct_monomials) - 1))
 
         # Constraint:
-        # A_0 · X + b + lbv[0] - ubv[0] = c_0
+        # A_0 · X + b = c_0
         matrix_inner_product = mf.Expr.dot(A[tuple_of_constant], X)
-        difference_slacks = mf.Expr.sub(lb_variables.index(0), ub_variables.index(0))
         M.constraint(
-            mf.Expr.add(mf.Expr.add(matrix_inner_product, difference_slacks), b),
+            mf.Expr.add(matrix_inner_product, b),
             mf.Domain.equalsTo(C[tuple_of_constant]),
         )
 
@@ -790,6 +807,8 @@ def single_graph_results(graph, type="sparse", project="variables"):
     #     )
     # )
 
+    matrix_size = graph.graph.shape[0] + 1
+
     for rate in np.linspace(0.5, 1, 10):
         if project == "variables":
             random_projector = rp.RandomProjector(
@@ -890,7 +909,7 @@ if __name__ == "__main__":
 
     # Open graph from pickle
     # ----------------------------------------
-    directory = "graphs/pentagon_with_legs"
+    directory = "graphs/6_wheel"
     file_path = directory + "/graph.pkl"
     with open(file_path, "rb") as file:
         graph = pickle.load(file)
@@ -912,3 +931,4 @@ if __name__ == "__main__":
                 graphs_list.append(graph)
 
     combination_of_graphs_results(graphs_list)
+

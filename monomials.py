@@ -451,3 +451,66 @@ def edges_to_monomials(edges, n):
     monomials = [edge_to_monomial(edge, n) for edge in edges]
 
     return monomials
+
+def second_level_monomial_matrix(edges, n):
+    """
+    Generates the second level monomial matrix for a specific graph.
+
+    Main things are that powers of variables are replaced by 1.
+
+    Parameters
+    ----------
+    edges : list
+        List of edges of a graph.
+    n : int
+        Number of variables.
+
+    Returns
+    -------
+    monomial_matrix : numpy.ndarray
+        Matrix of monomials.
+
+    """
+    monomial_matrix = generate_monomials_matrix(n, 4)
+    new_matrix = []
+    for row in monomial_matrix:
+        new_row = []
+        for tup in row:
+            new_tup = tuple(1 if x in [2,3,4] else x for x in tup)
+            new_row.append(new_tup)
+        new_matrix.append(new_row)   
+    
+    monomial_matrix = new_matrix  
+
+    return monomial_matrix  
+
+def second_level_distinct_monomials(edges, n):
+    """
+    Generates the second level distinct monomials for a specific graph.
+
+    Main things are that powers of variables are not needed, same with 
+    monomials involving edges.
+
+    Parameters
+    ----------
+    edges : list
+        List of edges of a graph.
+    n : int
+        Number of variables.
+
+    Returns
+    -------
+    list_of_distinct_monomials : list
+        List of distinct monomials.
+
+    """
+
+    distinct_monomials = generate_monomials_up_to_degree(self.n, 4)
+    new_vector = []
+    for monomial in distinct_monomials:
+        new_vector.append(tuple(1 if x in [2,3,4] else x for x in monomial))
+    # Remove repeated tuples
+    unique_tuples = list(set(new_vector))
+    distinct_monomials = unique_tuples
+    
+    return distinct_monomials

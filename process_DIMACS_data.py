@@ -11,6 +11,7 @@ import os
 import numpy as np
 import pickle
 import monomials
+import optimization_unit_sphere as ous
 
 
 class Graph_File:
@@ -170,6 +171,82 @@ class Graph_File:
 
         self.E = E
 
+    def picking_for_level_two(self):
+        """
+        Get the picking dictionaries for the second level of the polynomial optimization problem.
+        """
+
+        monomial_matrix = monomials.generate_monomials_matrix(self.n, 4)
+        distinct_monomials = monomials.generate_monomials_up_to_degree(self.n, 4)
+
+        monomials_free_polynomials = monomials.generate_monomials_up_to_degree(
+            self.n, 2
+        )
+
+        A_L2 = {
+            monomial: monomials.pick_specific_monomial(monomial_matrix, monomial)
+            for monomial in distinct_monomials
+        }
+
+        self.A_L2 = A_L2
+
+        # Picking monomials for POLY_(u,v) (x_u * x_v)
+        E_L2 = {
+            monomial: [
+                monomials.pick_specific_monomial(
+                    ous.add_tuple_to_tuple_list(
+                        monomials.edge_to_monomial(edge, self.n),
+                        monomials_free_polynomials,
+                    ),
+                    monomial,
+                    vector=True,
+                )
+                for edge in self.edges
+            ]
+            for monomial in distinct_monomials
+        }
+        self.E_L2 = E_L2
+
+        single_monomials = list(monomials.generate_monomials_exact_degree(self.n, 1))
+        squared_monomials = [
+            monomial
+            for monomial in list(monomials.generate_monomials_exact_degree(self.n, 2))
+            if any(n == 2 for n in monomial)
+        ]
+
+        # Picking monomials for POLY_v (x_v^2)
+        V_squared = {
+            monomial: [
+                monomials.pick_specific_monomial(
+                    ous.add_tuple_to_tuple_list(
+                        squared_monomials[variable], monomials_free_polynomials
+                    ),
+                    monomial,
+                    vector=True,
+                )
+                for variable in range(self.n)
+            ]
+            for monomial in distinct_monomials
+        }
+
+        # Picking monomials for POLY_v (x_v)
+        V = {
+            monomial: [
+                monomials.pick_specific_monomial(
+                    ous.add_tuple_to_tuple_list(
+                        single_monomials[variable], monomials_free_polynomials
+                    ),
+                    monomial,
+                    vector=True,
+                )
+                for variable in range(self.n)
+            ]
+            for monomial in distinct_monomials
+        }
+
+        self.V_L2 = V
+        self.V_squared_L2 = V_squared
+
 
 if __name__ == "__main__":
     files_folder = "DIMACS_all_ascii"
@@ -177,10 +254,13 @@ if __name__ == "__main__":
         print("File: ", file)
         graph = Graph_File(files_folder + "/" + file)
 
-        if graph.n < 200:
+        if graph.n < 50:
+            print("*" * 50)
             print("Graph is suitable for our program.")
+            print("*" * 50)
             graph.edges_complement_graph()
             graph.get_picking_SOS()
             graph.get_picking_edges()
+            graph.picking_for_level_two()
             graph.store_graph()
 

@@ -43,12 +43,12 @@ def second_level_stable_set_problem_sdp(graph, verbose=False):
 
     # Picking SOS monomials
     A = graph.A_L2
-    # Picking monomials for POLY_v (x_v * x_u)
-    E = graph.E_L2
-    # Picking monomials for POLY_v (x_v^2)
-    V_squared = graph.V_squared_L2
-    # Picking monomials for POLY_v (x_v)
-    V = graph.V_L2
+    # # Picking monomials for POLY_v (x_v * x_u)
+    # E = graph.E_L2
+    # # Picking monomials for POLY_v (x_v^2)
+    # V_squared = graph.V_squared_L2
+    # # Picking monomials for POLY_v (x_v)
+    # V = graph.V_L2
 
     # print("Starting Mosek")
     time_start = time.time()
@@ -57,15 +57,15 @@ def second_level_stable_set_problem_sdp(graph, verbose=False):
         size_psd_variable = A[distinct_monomials[0]].shape[0]
         X = M.variable(mf.Domain.inPSDCone(size_psd_variable))
 
-        # Polynomials for (x_v * x_u)
-        e = []
-        for i, edge in enumerate(edges):
-            e.append(M.variable(len(monomials_free_polynomials), mf.Domain.unbounded()))
+        # # Polynomials for (x_v * x_u)
+        # e = []
+        # for i, edge in enumerate(edges):
+        #     e.append(M.variable(len(monomials_free_polynomials), mf.Domain.unbounded()))
 
-        # Polynomials for (x_v^2 - x_v)
-        v = []
-        for i in range(graph.n):
-            v.append(M.variable(len(monomials_free_polynomials), mf.Domain.unbounded()))
+        # # Polynomials for (x_v^2 - x_v)
+        # v = []
+        # for i in range(graph.n):
+        #     v.append(M.variable(len(monomials_free_polynomials), mf.Domain.unbounded()))
 
         # Objective: maximize a (scalar)
         b = M.variable()
@@ -81,22 +81,23 @@ def second_level_stable_set_problem_sdp(graph, verbose=False):
         ):
             SOS_dot_X = mf.Expr.dot(A[monomial], X)
 
-            POLY_edge = 0
-            for j, edge in enumerate(edges):
-                POLY_edge = mf.Expr.add(POLY_edge, mf.Expr.dot(E[monomial][j], e[j]))
+            # POLY_edge = 0
+            # for j, edge in enumerate(edges):
+            #     POLY_edge = mf.Expr.add(POLY_edge, mf.Expr.dot(E[monomial][j], e[j]))
 
-            POLY_v_squared = 0
-            POLY_v = 0
-            for i in range(graph.n):
-                POLY_v_squared = mf.Expr.add(
-                    POLY_v_squared, mf.Expr.dot(V_squared[monomial][i], v[i])
-                )
-                POLY_v = mf.Expr.add(POLY_v, mf.Expr.dot(V[monomial][i], v[i]))
+            # POLY_v_squared = 0
+            # POLY_v = 0
+            # for i in range(graph.n):
+            #     POLY_v_squared = mf.Expr.add(
+            #         POLY_v_squared, mf.Expr.dot(V_squared[monomial][i], v[i])
+            #     )
+            #     POLY_v = mf.Expr.add(POLY_v, mf.Expr.dot(V[monomial][i], v[i]))
 
-            V_squared_minus_V = mf.Expr.sub(POLY_v_squared, POLY_v)
+            # V_squared_minus_V = mf.Expr.sub(POLY_v_squared, POLY_v)
 
             constraint = M.constraint(
-                mf.Expr.add(mf.Expr.add(SOS_dot_X, POLY_edge), V_squared_minus_V),
+                # mf.Expr.add(mf.Expr.add(SOS_dot_X, POLY_edge), V_squared_minus_V),
+                SOS_dot_X,
                 mf.Domain.equalsTo(C[monomial]),
             )
             constraints.append(constraint)
@@ -154,14 +155,15 @@ def second_level_stable_set_problem_sdp(graph, verbose=False):
                 X_sol.reshape(size_psd_variable, size_psd_variable), ord="fro"
             ),
         )
+        print("Number of constraints: ", len(constraints) + 1)
 
-        print("Monomials of constraints: {}".format([m for m in distinct_monomials if m != tuple_of_constant]))
-        print("Dual variables of constraints: {}".format([np.round(c.dual().item(), 2) for c in constraints]))
-        print("Dual variable of constraint c0: {}".format(np.round(c0.dual().item(), 2)))
+        # print("Monomials of constraints: {}".format([m for m in distinct_monomials if m != tuple_of_constant]))
+        # print("Dual variables of constraints: {}".format([np.round(c.dual().item(), 2) for c in constraints]))
+        # print("Dual variable of constraint c0: {}".format(np.round(c0.dual().item(), 2)))
 
-        # Make a dictionary matching monomial and dual
-        duals = {m: np.round(c.dual().item(), 2) for m, c in zip([m for m in distinct_monomials if m != tuple_of_constant], constraints) if np.round(c.dual().item(), 2) > 1}
-        print("Duals: ", duals)
+        # # Make a dictionary matching monomial and dual
+        # duals = {m: np.round(c.dual().item(), 2) for m, c in zip([m for m in distinct_monomials if m != tuple_of_constant], constraints)}# if np.round(c.dual().item(), 2) > 0.1}
+        # print("Duals: ", duals)
 
         solution = {
             "X": X_sol,
@@ -169,7 +171,7 @@ def second_level_stable_set_problem_sdp(graph, verbose=False):
             "objective": M.primalObjValue(),
             "computation_time": computation_time,
             "size_psd_variable": size_psd_variable,
-            "no_linear_variables": "TBC",
+            "no_linear_variables": 1,
         }
 
         return solution
@@ -178,27 +180,8 @@ def second_level_stable_set_problem_sdp(graph, verbose=False):
 def projected_second_level_stable_set_problem_sdp(graph, projector, verbose=False):
     """ """
 
-    distinct_monomials = monomials.generate_monomials_up_to_degree(graph.n, 4)
-    new_vector = []
-    for monomial in distinct_monomials:
-        new_vector.append(tuple(1 if x in [2,3,4] else x for x in monomial if x not in graph.edges))
-    # Remove repeated tuples
-    unique_tuples = list(set(new_vector))
-    distinct_monomials = unique_tuples
-    print(distinct_monomials)
-
-    raise SystemExit
-
-    monomials_free_polynomials = monomials.generate_monomials_up_to_degree(
-        graph.n, 2
-    )
-    new_vector = []
-    for monomial in monomials_free_polynomials:
-        new_vector.append(tuple(1 if x in [2,3,4] else x for x in monomial))
-    # Remove repeated tuples
-    unique_tuples = list(set(new_vector))
-    monomials_free_polynomials = unique_tuples
-
+    distinct_monomials = graph.distinct_monomials_L2
+    monomials_free_polynomials = graph.monomials_free_polynomials
     edges = graph.edges
 
     # Coefficients of objective
@@ -207,14 +190,14 @@ def projected_second_level_stable_set_problem_sdp(graph, projector, verbose=Fals
     A = graph.A_L2
     A = {monomial: projector.apply_rp_map(A[monomial]) for monomial in A.keys()}
 
-    # Picking monomials for POLY_v (x_v * x_u)
-    E = graph.E_L2
+    # # Picking monomials for POLY_v (x_v * x_u)
+    # E = graph.E_L2
 
-    # Picking monomials for POLY_v (x_v^2)
-    V_squared = graph.V_squared_L2
+    # # Picking monomials for POLY_v (x_v^2)
+    # V_squared = graph.V_squared_L2
 
-    # Picking monomials for POLY_v (x_v)
-    V = graph.V_L2
+    # # Picking monomials for POLY_v (x_v)
+    # V = graph.V_L2
 
     # print("Starting Mosek")
     time_start = time.time()
@@ -223,15 +206,15 @@ def projected_second_level_stable_set_problem_sdp(graph, projector, verbose=Fals
         size_psd_variable = A[distinct_monomials[0]].shape[0]
         X = M.variable(mf.Domain.inPSDCone(size_psd_variable))
 
-        # Polynomials for (x_v * x_u)
-        e = []
-        for i, edge in enumerate(edges):
-            e.append(M.variable(len(monomials_free_polynomials), mf.Domain.unbounded()))
+        # # Polynomials for (x_v * x_u)
+        # e = []
+        # for i, edge in enumerate(edges):
+        #     e.append(M.variable(len(monomials_free_polynomials), mf.Domain.unbounded()))
 
-        # Polynomials for (x_v^2 - x_v)
-        v = []
-        for i in range(graph.n):
-            v.append(M.variable(len(monomials_free_polynomials), mf.Domain.unbounded()))
+        # # Polynomials for (x_v^2 - x_v)
+        # v = []
+        # for i in range(graph.n):
+        #     v.append(M.variable(len(monomials_free_polynomials), mf.Domain.unbounded()))
 
         # Lower and upper bounds
         lb_variables = M.variable(len(distinct_monomials), mf.Domain.greaterThan(0))
@@ -275,19 +258,19 @@ def projected_second_level_stable_set_problem_sdp(graph, projector, verbose=Fals
         ):
             SOS_dot_X = mf.Expr.dot(A[monomial], X)
 
-            POLY_edge = 0
-            for j, edge in enumerate(edges):
-                POLY_edge = mf.Expr.add(POLY_edge, mf.Expr.dot(E[monomial][j], e[j]))
+            # POLY_edge = 0
+            # for j, edge in enumerate(edges):
+            #     POLY_edge = mf.Expr.add(POLY_edge, mf.Expr.dot(E[monomial][j], e[j]))
 
-            POLY_v_squared = 0
-            POLY_v = 0
-            for i in range(graph.n):
-                POLY_v_squared = mf.Expr.add(
-                    POLY_v_squared, mf.Expr.dot(V_squared[monomial][i], v[i])
-                )
-                POLY_v = mf.Expr.add(POLY_v, mf.Expr.dot(V[monomial][i], v[i]))
+            # POLY_v_squared = 0
+            # POLY_v = 0
+            # for i in range(graph.n):
+            #     POLY_v_squared = mf.Expr.add(
+            #         POLY_v_squared, mf.Expr.dot(V_squared[monomial][i], v[i])
+            #     )
+            #     POLY_v = mf.Expr.add(POLY_v, mf.Expr.dot(V[monomial][i], v[i]))
 
-            V_squared_minus_V = mf.Expr.sub(POLY_v_squared, POLY_v)
+            # V_squared_minus_V = mf.Expr.sub(POLY_v_squared, POLY_v)
 
             difference_slacks = mf.Expr.sub(
                 lb_variables.index(i + 1),
@@ -297,7 +280,8 @@ def projected_second_level_stable_set_problem_sdp(graph, projector, verbose=Fals
 
             c = M.constraint(
                 mf.Expr.add(
-                    mf.Expr.add(mf.Expr.add(SOS_dot_X, POLY_edge), V_squared_minus_V),
+                    # mf.Expr.add(mf.Expr.add(SOS_dot_X, POLY_edge), V_squared_minus_V),
+                    SOS_dot_X,
                     difference_slacks,
                 ),
                 mf.Domain.equalsTo(C[monomial]),
@@ -333,12 +317,15 @@ def projected_second_level_stable_set_problem_sdp(graph, projector, verbose=Fals
             "objective": M.primalObjValue(),
             "computation_time": computation_time,
             "size_psd_variable": size_psd_variable,
-            "no_linear_variables": "TBC",
+            "no_linear_variables": 2 * len(constraints) + 1,
         }
 
-        print("Dual variables of constraints: {}".format([np.round(c.dual().item(), 2) for c in constraints]))
-        print("Dual variable of constraint c0: {}".format(np.round(c0.dual().item(), 2)))
+        # print("Dual variables of constraints: {}".format([np.round(c.dual().item(), 2) for c in constraints]))
+        # print("Dual variable of constraint c0: {}".format(np.round(c0.dual().item(), 2)))
 
+        # # Make a dictionary matching monomial and dual
+        # duals = {m: np.round(c.dual().item(), 2) for m, c in zip([m for m in distinct_monomials if m != tuple_of_constant], constraints)}# if np.round(c.dual().item(), 2) > 0.1}
+        # print("Duals: ", duals)
     
         return solution
 
@@ -390,15 +377,13 @@ def single_graph_results(graph, type="sparse"):
         )
     )
 
-    
-
     matrix_size = monomials.number_of_monomials_up_to_degree(graph.n, 2)
 
     # Solve projected stable set problem
     # ----------------------------------------
     id_random_projector = rp.RandomProjector(matrix_size, matrix_size, type="identity")
     id_rp_solution = projected_second_level_stable_set_problem_sdp(
-        graph, id_random_projector, verbose=True
+        graph, id_random_projector, verbose=False
     )
     print(
         "{: <12} {: >10} {: >18} {: >8.2f} {: >8.2f}".format(
@@ -410,7 +395,7 @@ def single_graph_results(graph, type="sparse"):
         )
     )
 
-    for rate in np.linspace(0.5, 1, 10):
+    for rate in np.linspace(0.3, 1, 10):
         random_projector = rp.RandomProjector(
             round(matrix_size * rate), matrix_size, type=type
         )
@@ -448,7 +433,7 @@ def projected_dimension(epsilon, probability, ranks_Ai, rank_solution):
 
 
 if __name__ == "__main__":
-    directory = "graphs/6_wheel"
+    directory = "graphs/generalised_petersen_9_2"
     file_path = directory + "/graph.pkl"
     with open(file_path, "rb") as file:
         graph = pickle.load(file)
@@ -456,7 +441,7 @@ if __name__ == "__main__":
     first_level = ssp.stable_set_problem_sdp(graph, verbose=False)
     print("First level objective: ")
     print(first_level["objective"])
-    solution = second_level_stable_set_problem_sdp(graph, verbose=True)
+    solution = second_level_stable_set_problem_sdp(graph, verbose=False)
     print("Second level objective: ")
     print(solution["objective"])
 

@@ -85,6 +85,11 @@ class RandomProjector:
             projector = np.random.choice(
                 [-1, 0, 1], size=(self.k, self.m), p=[1 / 6, 2 / 3, 1 / 6]
             )
+        elif self.type == "sparser":
+            projector = np.random.choice(
+                [-1, 0, 1], size=(self.k, self.m), p=[2.5 / 100, 95 / 100, 2.5 / 100]
+            )
+
         elif self.type == "identity":
             projector = np.eye(self.m)
         elif self.type == "debug":

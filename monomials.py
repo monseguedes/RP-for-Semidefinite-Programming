@@ -8,6 +8,33 @@ import math
 import scipy
 import itertools
 
+def sum_tuples(t1, t2):
+    """
+    Sums two tuples element-wise.
+
+    Parameters
+    ----------
+    t1 : tuple
+        First tuple.
+    t2 : tuple
+        Second tuple.
+
+    Returns
+    -------
+    tuple
+        Sum of the two tuples.
+
+    Examples
+    --------
+    >>> sum_tuples((1, 2, 3), (4, 5, 6))
+    (5, 7, 9)
+
+    >>> sum_tuples((1, 2, 3), (4, 5, 6, 7))
+    (5, 7, 9, 7)
+
+    """
+
+    return tuple([t1[i] + t2[i] for i in range(min(len(t1), len(t2)))])
 
 def number_of_monomials(n, d):
     """
@@ -452,7 +479,7 @@ def edges_to_monomials(edges, n):
 
     return monomials
 
-def second_level_monomial_matrix(edges, n):
+def stable_set_monomial_matrix(edges, n, level=1):
     """
     Generates the second level monomial matrix for a specific graph.
 
@@ -471,20 +498,21 @@ def second_level_monomial_matrix(edges, n):
         Matrix of monomials.
 
     """
-    monomial_matrix = generate_monomials_matrix(n, 4)
+    monomial_matrix = generate_monomials_matrix(n, 2 * level)
     new_matrix = []
     for row in monomial_matrix:
         new_row = []
         for tup in row:
-            new_tup = tuple(1 if x in [2,3,4] else x for x in tup)
+            new_tup = tuple(1 if x in list(range(1, n)) else x for x in tup)
             new_row.append(new_tup)
         new_matrix.append(new_row)   
     
     monomial_matrix = new_matrix  
 
-    return monomial_matrix  
+    return monomial_matrix 
 
-def second_level_distinct_monomials(edges, n):
+
+def stable_set_distinct_monomials(edges, n, level=1):
     """
     Generates the second level distinct monomials for a specific graph.
 
@@ -505,10 +533,21 @@ def second_level_distinct_monomials(edges, n):
 
     """
 
-    distinct_monomials = generate_monomials_up_to_degree(self.n, 4)
+    distinct_monomials = generate_monomials_up_to_degree(n, 2 * level)
     new_vector = []
+
     for monomial in distinct_monomials:
-        new_vector.append(tuple(1 if x in [2,3,4] else x for x in monomial))
+        print('Filtering monomial {} out of {}'.format(monomial, len(distinct_monomials)))
+        monomial_tuple = tuple(1 if x in list(range(1,n)) else x for x in monomial)
+        contains_edge = False
+        for edge in edges:
+            tuple_edge = sum_tuples(monomial_tuple, edge_to_monomial(edge, n))
+            if sum(x > 1 for x in tuple_edge) >= 2:
+                contains_edge = True
+                break 
+        if not contains_edge:
+            new_vector.append(monomial_tuple)
+    
     # Remove repeated tuples
     unique_tuples = list(set(new_vector))
     distinct_monomials = unique_tuples

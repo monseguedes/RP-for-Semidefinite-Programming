@@ -138,115 +138,110 @@ class Graph_File:
         print("Graph stored in: ", file_path)
 
     
-    def get_picking_SOS(self):
+    def get_picking_SOS(self, verbose=False):
         """ """
 
-        monomial_matrix = monomials.generate_monomials_matrix(self.n, 2)
-        distinct_monomials = monomials.generate_monomials_up_to_degree(
-            self.n, 2
-        )
+        monomial_matrix = monomials.stable_set_monomial_matrix(self.edges, self.n, level=1)
 
+        distinct_monomials = monomials.stable_set_distinct_monomials(self.edges, self.n, level=1)
+        self.distinct_monomials_L1 = distinct_monomials
+
+        if verbose:
+            print("Building Ai matrices for level 1")
         # Picking monomials from SOS polynomial
         A = {
             monomial: monomials.pick_specific_monomial(monomial_matrix, monomial)
             for monomial in distinct_monomials
         }
+        if verbose:
+            print("Done building Ai matrices for level 1")
 
         self.A = A
 
     
-    def get_picking_edges(self):
-        distinct_monomials = monomials.generate_monomials_up_to_degree(
-            self.n, 2
-        )
-        # Picking monomials for POLY_(u,v) (x_u * x_v)
-        E = {
-            monomial: monomials.pick_specific_monomial(
-                monomials.edges_to_monomials(self.edges, graph.n),
-                monomial,
-                vector=True,
-            )
-            for monomial in distinct_monomials
-        }
-
-        self.E = E
-
-    def picking_for_level_two(self):
+    def picking_for_level_two(self, verbose=False):
         """
         Get the picking dictionaries for the second level of the polynomial optimization problem.
         """
+        if verbose:
+            print("Building monomial matrix for level 2")
+        monomial_matrix = monomials.stable_set_monomial_matrix(self.edges, self.n, level=2) 
+        if verbose:
+            print('SIZE OF MONOMIAL MATRIX:', len(monomial_matrix))
+            print("Done building monomial matrix for level 2")
+            print("Building distinct monomials for level 2")
+        self.distinct_monomials_L2 = monomials.stable_set_distinct_monomials(self.edges, self.n, level=2)
+        if verbose:
+            print("Done building distinct monomials for level 2")
 
-        monomial_matrix = monomials.generate_monomials_matrix(self.n, 4)
-        distinct_monomials = monomials.generate_monomials_up_to_degree(self.n, 4)
+        # # Picking monomials of degree 2 or less
+        # monomials_free_polynomials = [monomial for monomial in self.distinct_monomials_L2 if sum(monomial) <= 2]
+        # self.monomials_free_polynomials = monomials_free_polynomials
 
-        monomials_free_polynomials = monomials.generate_monomials_up_to_degree(
-            self.n, 2
-        )
+        if verbose:
+            print("Building Ai matrices for level 2")
+        # Picking SOS monomials
+        self.A_L2 = {}
+        for i, monomial in enumerate(self.distinct_monomials_L2):
+            if verbose:
+                print("Picking monomial: {} out of {}".format(i, len(self.distinct_monomials_L2)))
+            self.A_L2[monomial] = monomials.pick_specific_monomial(monomial_matrix, monomial)
+           
+        if verbose:
+            print("Done building Ai matrices for level 2")
 
-        A_L2 = {
-            monomial: monomials.pick_specific_monomial(monomial_matrix, monomial)
-            for monomial in distinct_monomials
-        }
+        # # Picking monomials for POLY_(u,v) (x_u * x_v)
+        # self.E_L2 = {
+        #     monomial: [
+        #         monomials.pick_specific_monomial(
+        #             tuple(1 if x in [2,3,4] else x for x in 
+        #             ous.add_tuple_to_tuple_list(
+        #                 monomials.edge_to_monomial(edge, self.n),
+        #                 monomials_free_polynomials,
+        #             )),
+        #             monomial,
+        #             vector=True,
+        #         )
+        #         for edge in self.edges
+        #     ]
+        #     for monomial in self.distinct_monomials_L2
+        # }
 
-        self.A_L2 = A_L2
+        # single_monomials = list(monomials.generate_monomials_exact_degree(self.n, 1))
 
-        # Picking monomials for POLY_(u,v) (x_u * x_v)
-        E_L2 = {
-            monomial: [
-                monomials.pick_specific_monomial(
-                    ous.add_tuple_to_tuple_list(
-                        monomials.edge_to_monomial(edge, self.n),
-                        monomials_free_polynomials,
-                    ),
-                    monomial,
-                    vector=True,
-                )
-                for edge in self.edges
-            ]
-            for monomial in distinct_monomials
-        }
-        self.E_L2 = E_L2
+        # # Picking monomials for POLY_v (x_v^2)
+        # self.V_squared_L2 = {
+        #     monomial: [
+        #         monomials.pick_specific_monomial(
+        #             tuple(1 if x in [2,3,4] else x for x in 
+        #             ous.add_tuple_to_tuple_list(
+        #                 single_monomials[variable], monomials_free_polynomials
+        #             )),
+        #             monomial,
+        #             vector=True,
+        #         )
+        #         for variable in range(self.n)
+        #     ]
+        #     for monomial in self.distinct_monomials_L2
+        # }
 
-        single_monomials = list(monomials.generate_monomials_exact_degree(self.n, 1))
-        squared_monomials = [
-            monomial
-            for monomial in list(monomials.generate_monomials_exact_degree(self.n, 2))
-            if any(n == 2 for n in monomial)
-        ]
+        # # Picking monomials for POLY_v (x_v)
+        # self.V_L2 = {
+        #     monomial: [
+        #         monomials.pick_specific_monomial(
+        #             tuple(1 if x in [2,3,4] else x for x in
+        #             ous.add_tuple_to_tuple_list(
+        #                 single_monomials[variable], monomials_free_polynomials
+        #             )),
+        #             monomial,
+        #             vector=True,
+        #         )
+        #         for variable in range(self.n)
+        #     ]
+        #     for monomial in self.distinct_monomials_L2
+        # }
 
-        # Picking monomials for POLY_v (x_v^2)
-        V_squared = {
-            monomial: [
-                monomials.pick_specific_monomial(
-                    ous.add_tuple_to_tuple_list(
-                        squared_monomials[variable], monomials_free_polynomials
-                    ),
-                    monomial,
-                    vector=True,
-                )
-                for variable in range(self.n)
-            ]
-            for monomial in distinct_monomials
-        }
-
-        # Picking monomials for POLY_v (x_v)
-        V = {
-            monomial: [
-                monomials.pick_specific_monomial(
-                    ous.add_tuple_to_tuple_list(
-                        single_monomials[variable], monomials_free_polynomials
-                    ),
-                    monomial,
-                    vector=True,
-                )
-                for variable in range(self.n)
-            ]
-            for monomial in distinct_monomials
-        }
-
-        self.V_L2 = V
-        self.V_squared_L2 = V_squared
-
+    
 
 if __name__ == "__main__":
     files_folder = "DIMACS_all_ascii"
@@ -254,13 +249,22 @@ if __name__ == "__main__":
         print("File: ", file)
         graph = Graph_File(files_folder + "/" + file)
 
-        if graph.n < 50:
+        valid_graphs = []
+        if graph.n > 100 and graph.n < 200:
             print("*" * 50)
             print("Graph is suitable for our program.")
             print("*" * 50)
-            graph.edges_complement_graph()
-            graph.get_picking_SOS()
-            graph.get_picking_edges()
-            graph.picking_for_level_two()
+            graph_description = {
+                "filename": graph.filename,
+                "num_edges": graph.num_edges,
+                "num_vertices": graph.n
+            }
+            valid_graphs.append(graph_description)
+            print(valid_graphs)
+            # graph.edges_complement_graph()
+            graph.get_picking_SOS(verbose=True)
+            # graph.picking_for_level_two(verbose=True)
             graph.store_graph()
+
+    print("Valid graphs: ", valid_graphs)
 

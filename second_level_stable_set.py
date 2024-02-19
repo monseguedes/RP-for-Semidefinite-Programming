@@ -9,6 +9,7 @@ import mosek.fusion as mf
 import monomials
 import pickle
 from generate_graphs import Graph
+from process_DIMACS_data import Graph_File
 import stable_set_problem as ssp
 import random_projections as rp
 
@@ -35,7 +36,6 @@ def second_level_stable_set_problem_sdp(graph, verbose=False):
     """
 
     distinct_monomials = graph.distinct_monomials_L2
-    monomials_free_polynomials = graph.monomials_free_polynomials
     edges = graph.edges
 
     # Coefficients of objective
@@ -43,12 +43,6 @@ def second_level_stable_set_problem_sdp(graph, verbose=False):
 
     # Picking SOS monomials
     A = graph.A_L2
-    # # Picking monomials for POLY_v (x_v * x_u)
-    # E = graph.E_L2
-    # # Picking monomials for POLY_v (x_v^2)
-    # V_squared = graph.V_squared_L2
-    # # Picking monomials for POLY_v (x_v)
-    # V = graph.V_L2
 
     # print("Starting Mosek")
     time_start = time.time()
@@ -57,16 +51,6 @@ def second_level_stable_set_problem_sdp(graph, verbose=False):
         size_psd_variable = A[distinct_monomials[0]].shape[0]
         X = M.variable(mf.Domain.inPSDCone(size_psd_variable))
 
-        # # Polynomials for (x_v * x_u)
-        # e = []
-        # for i, edge in enumerate(edges):
-        #     e.append(M.variable(len(monomials_free_polynomials), mf.Domain.unbounded()))
-
-        # # Polynomials for (x_v^2 - x_v)
-        # v = []
-        # for i in range(graph.n):
-        #     v.append(M.variable(len(monomials_free_polynomials), mf.Domain.unbounded()))
-
         # Objective: maximize a (scalar)
         b = M.variable()
         M.objective(mf.ObjectiveSense.Maximize, b)
@@ -74,29 +58,15 @@ def second_level_stable_set_problem_sdp(graph, verbose=False):
         tuple_of_constant = tuple([0 for i in range(len(distinct_monomials[0]))])
 
         # Constraints:
-        # A_i · X + sum_j Eij · POLY_j + sum_v V_squared_iv · POLY_v - sum_v V_iv · POLY_v = c_i
+        # A_i · X  = c_i
         constraints = []
         for i, monomial in enumerate(
             [m for m in distinct_monomials if m != tuple_of_constant]
         ):
+            # print("Building constraint for monomial {} out of {}".format(i, len(distinct_monomials)))
             SOS_dot_X = mf.Expr.dot(A[monomial], X)
 
-            # POLY_edge = 0
-            # for j, edge in enumerate(edges):
-            #     POLY_edge = mf.Expr.add(POLY_edge, mf.Expr.dot(E[monomial][j], e[j]))
-
-            # POLY_v_squared = 0
-            # POLY_v = 0
-            # for i in range(graph.n):
-            #     POLY_v_squared = mf.Expr.add(
-            #         POLY_v_squared, mf.Expr.dot(V_squared[monomial][i], v[i])
-            #     )
-            #     POLY_v = mf.Expr.add(POLY_v, mf.Expr.dot(V[monomial][i], v[i]))
-
-            # V_squared_minus_V = mf.Expr.sub(POLY_v_squared, POLY_v)
-
             constraint = M.constraint(
-                # mf.Expr.add(mf.Expr.add(SOS_dot_X, POLY_edge), V_squared_minus_V),
                 SOS_dot_X,
                 mf.Domain.equalsTo(C[monomial]),
             )
@@ -134,6 +104,7 @@ def second_level_stable_set_problem_sdp(graph, verbose=False):
             )
             print("Rank of A{}: {}".format(i, np.linalg.matrix_rank(A[monomial])))
             print("Nuclear norm of A{}: {}".format(i, np.linalg.norm(A[monomial], ord="nuc")))
+            print("Sparsity of A{}: {}".format(i, np.count_nonzero(A[monomial]) / A[monomial].size))
 
         print("Number of distinct monomials: ", len(distinct_monomials))
         # Print rank of solution matrix
@@ -157,31 +128,22 @@ def second_level_stable_set_problem_sdp(graph, verbose=False):
         )
         print("Number of constraints: ", len(constraints) + 1)
 
-        # print("Monomials of constraints: {}".format([m for m in distinct_monomials if m != tuple_of_constant]))
-        # print("Dual variables of constraints: {}".format([np.round(c.dual().item(), 2) for c in constraints]))
-        # print("Dual variable of constraint c0: {}".format(np.round(c0.dual().item(), 2)))
-
-        # # Make a dictionary matching monomial and dual
-        # duals = {m: np.round(c.dual().item(), 2) for m, c in zip([m for m in distinct_monomials if m != tuple_of_constant], constraints)}# if np.round(c.dual().item(), 2) > 0.1}
-        # print("Duals: ", duals)
-
         solution = {
             "X": X_sol,
             "b": b_sol,
             "objective": M.primalObjValue(),
             "computation_time": computation_time,
             "size_psd_variable": size_psd_variable,
-            "no_linear_variables": 1,
+            "no_linear_variables": "TBC",
         }
 
         return solution
 
 
-def projected_second_level_stable_set_problem_sdp(graph, projector, verbose=False):
+def projected_second_level_stable_set_problem_sdp(graph, projector, verbose=False, slack=True):
     """ """
 
     distinct_monomials = graph.distinct_monomials_L2
-    monomials_free_polynomials = graph.monomials_free_polynomials
     edges = graph.edges
 
     # Coefficients of objective
@@ -190,15 +152,6 @@ def projected_second_level_stable_set_problem_sdp(graph, projector, verbose=Fals
     A = graph.A_L2
     A = {monomial: projector.apply_rp_map(A[monomial]) for monomial in A.keys()}
 
-    # # Picking monomials for POLY_v (x_v * x_u)
-    # E = graph.E_L2
-
-    # # Picking monomials for POLY_v (x_v^2)
-    # V_squared = graph.V_squared_L2
-
-    # # Picking monomials for POLY_v (x_v)
-    # V = graph.V_L2
-
     # print("Starting Mosek")
     time_start = time.time()
     with mf.Model("SDP") as M:
@@ -206,81 +159,62 @@ def projected_second_level_stable_set_problem_sdp(graph, projector, verbose=Fals
         size_psd_variable = A[distinct_monomials[0]].shape[0]
         X = M.variable(mf.Domain.inPSDCone(size_psd_variable))
 
-        # # Polynomials for (x_v * x_u)
-        # e = []
-        # for i, edge in enumerate(edges):
-        #     e.append(M.variable(len(monomials_free_polynomials), mf.Domain.unbounded()))
-
-        # # Polynomials for (x_v^2 - x_v)
-        # v = []
-        # for i in range(graph.n):
-        #     v.append(M.variable(len(monomials_free_polynomials), mf.Domain.unbounded()))
-
         # Lower and upper bounds
-        lb_variables = M.variable(len(distinct_monomials), mf.Domain.greaterThan(0))
-        ub_variables = M.variable(len(distinct_monomials), mf.Domain.greaterThan(0))
+        if slack:
+            lb_variables = M.variable(len(distinct_monomials), mf.Domain.greaterThan(0))
+            ub_variables = M.variable(len(distinct_monomials), mf.Domain.greaterThan(0))
 
-        # Lower and upper bounds of the dual variables
-        epsilon = 0.00001
-        dual_lower_bound = 0 - epsilon
-        dual_upper_bound = 1 + epsilon
+            # Lower and upper bounds of the dual variables
+            epsilon = 0.00001
+            dual_lower_bound = 0 - epsilon
+            dual_upper_bound = 1 + epsilon
 
         ones_vector = np.ones(len(distinct_monomials))
         ones_vector[0] = 0
 
         # Objective: maximize a (scalar)
         b = M.variable()
-        # M.objective(mf.ObjectiveSense.Maximize, b)
-        M.objective(
-            mf.ObjectiveSense.Maximize,
-            mf.Expr.add(
-                b,
-                mf.Expr.sub(
-                    mf.Expr.mul(
-                        dual_lower_bound,
-                        mf.Expr.dot(lb_variables, ones_vector),
-                    ),
-                    mf.Expr.mul(
-                        dual_upper_bound,
-                        mf.Expr.dot(ub_variables, ones_vector),
+        if slack:
+            M.objective(
+                mf.ObjectiveSense.Maximize,
+                mf.Expr.add(
+                    b,
+                    mf.Expr.sub(
+                        mf.Expr.mul(
+                            dual_lower_bound,
+                            mf.Expr.dot(lb_variables, ones_vector),
+                        ),
+                        mf.Expr.mul(
+                            dual_upper_bound,
+                            mf.Expr.dot(ub_variables, ones_vector),
+                        ),
                     ),
                 ),
-            ),
-        )
+            )
+        else:
+            M.objective(mf.ObjectiveSense.Maximize, b)
 
         tuple_of_constant = tuple([0 for i in range(len(distinct_monomials[0]))])
 
         # Constraints:
-        # A_i · X + sum_j Eij · POLY_j + sum_v V_squared_iv · POLY_v - sum_v V_iv · POLY_v + lbv[i] - ubv[i] = c_i
+        # A_i · X + lbv[i] - ubv[i] = c_i
         constraints = []
         for i, monomial in enumerate(
             [m for m in distinct_monomials if m != tuple_of_constant]
         ):
+            # print("Building constraint for monomial {} out of {}".format(i, len(distinct_monomials)))
             SOS_dot_X = mf.Expr.dot(A[monomial], X)
 
-            # POLY_edge = 0
-            # for j, edge in enumerate(edges):
-            #     POLY_edge = mf.Expr.add(POLY_edge, mf.Expr.dot(E[monomial][j], e[j]))
-
-            # POLY_v_squared = 0
-            # POLY_v = 0
-            # for i in range(graph.n):
-            #     POLY_v_squared = mf.Expr.add(
-            #         POLY_v_squared, mf.Expr.dot(V_squared[monomial][i], v[i])
-            #     )
-            #     POLY_v = mf.Expr.add(POLY_v, mf.Expr.dot(V[monomial][i], v[i]))
-
-            # V_squared_minus_V = mf.Expr.sub(POLY_v_squared, POLY_v)
-
-            difference_slacks = mf.Expr.sub(
-                lb_variables.index(i + 1),
-                ub_variables.index(i + 1),
-            )
-            # difference_slacks = 0
+            if slack:
+                difference_slacks = mf.Expr.sub(
+                    lb_variables.index(i + 1),
+                    ub_variables.index(i + 1),
+                )
+            else:
+                difference_slacks = 0
 
             c = M.constraint(
                 mf.Expr.add(
-                    # mf.Expr.add(mf.Expr.add(SOS_dot_X, POLY_edge), V_squared_minus_V),
                     SOS_dot_X,
                     difference_slacks,
                 ),
@@ -311,21 +245,19 @@ def projected_second_level_stable_set_problem_sdp(graph, projector, verbose=Fals
         b_sol = b.level()
         computation_time = end_time - start_time
 
+        if slack:
+            linear_variables = 2 * len(constraints) + 1
+        else:
+            linear_variables = 1
+
         solution = {
             "X": X_sol,
             "b": b_sol,
             "objective": M.primalObjValue(),
             "computation_time": computation_time,
             "size_psd_variable": size_psd_variable,
-            "no_linear_variables": 2 * len(constraints) + 1,
+            "no_linear_variables": "TBC",
         }
-
-        # print("Dual variables of constraints: {}".format([np.round(c.dual().item(), 2) for c in constraints]))
-        # print("Dual variable of constraint c0: {}".format(np.round(c0.dual().item(), 2)))
-
-        # # Make a dictionary matching monomial and dual
-        # duals = {m: np.round(c.dual().item(), 2) for m, c in zip([m for m in distinct_monomials if m != tuple_of_constant], constraints)}# if np.round(c.dual().item(), 2) > 0.1}
-        # print("Duals: ", duals)
     
         return solution
 
@@ -383,7 +315,7 @@ def single_graph_results(graph, type="sparse"):
     # ----------------------------------------
     id_random_projector = rp.RandomProjector(matrix_size, matrix_size, type="identity")
     id_rp_solution = projected_second_level_stable_set_problem_sdp(
-        graph, id_random_projector, verbose=False
+        graph, id_random_projector, verbose=False, slack=False
     )
     print(
         "{: <12} {: >10} {: >18} {: >8.2f} {: >8.2f}".format(
@@ -395,12 +327,15 @@ def single_graph_results(graph, type="sparse"):
         )
     )
 
-    for rate in np.linspace(0.3, 1, 10):
+    for rate in np.linspace(0.1, 0.6, 10):
+        slack = True
+        if rate > 0.5:
+            slack = True
         random_projector = rp.RandomProjector(
             round(matrix_size * rate), matrix_size, type=type
         )
         rp_solution = projected_second_level_stable_set_problem_sdp(
-            graph, random_projector, verbose=False
+            graph, random_projector, verbose=False, slack=slack
         )
 
         increment = rp_solution["objective"] - sdp_solution["objective"]
@@ -433,17 +368,10 @@ def projected_dimension(epsilon, probability, ranks_Ai, rank_solution):
 
 
 if __name__ == "__main__":
-    directory = "graphs/generalised_petersen_9_2"
+    directory = "graphs/generalised_petersen_10_2_complement"
     file_path = directory + "/graph.pkl"
     with open(file_path, "rb") as file:
         graph = pickle.load(file)
-
-    first_level = ssp.stable_set_problem_sdp(graph, verbose=False)
-    print("First level objective: ")
-    print(first_level["objective"])
-    solution = second_level_stable_set_problem_sdp(graph, verbose=False)
-    print("Second level objective: ")
-    print(solution["objective"])
 
     projected_dimension(0.05, 0.8, [6 for i in range(500)], 66)
 

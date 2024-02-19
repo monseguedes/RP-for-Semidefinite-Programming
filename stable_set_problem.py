@@ -226,23 +226,7 @@ def stable_set_problem_sdp(graph, verbose=False):
 
     """
 
-    monomial_matrix = monomials.generate_monomials_matrix(graph.n, 2)
-
-    distinct_monomials = monomials.generate_monomials_up_to_degree(graph.n, 2)
-    new_vector = []
-    for monomial in distinct_monomials:
-        new_vector.append(tuple(1 if x == 2 else x for x in monomial))
-    # Remove repeated tuples
-    unique_tuples = list(set(new_vector))
-    distinct_monomials = unique_tuples
-
-    degree_1_monomials = list(monomials.generate_monomials_exact_degree(graph.n, 1))
-
-    degree_2_monomials = [
-        monomial
-        for monomial in list(monomials.generate_monomials_exact_degree(graph.n, 2))
-        if any(n == 2 for n in monomial)
-    ]
+    distinct_monomials = graph.distinct_monomials_L1
 
     edges = graph.edges
 
@@ -251,36 +235,12 @@ def stable_set_problem_sdp(graph, verbose=False):
 
     A = graph.A
 
-    E = graph.E
-
-    # Picking monomials for POLY_v (x_v^2)
-    V_squared = {
-        monomial: monomials.pick_specific_monomial(
-            degree_1_monomials, monomial, vector=True
-        )
-        for monomial in distinct_monomials
-    }
-
-    # Picking monomials for POLY_v (x_v)
-    V = {
-        monomial: monomials.pick_specific_monomial(
-            degree_1_monomials, monomial, vector=True
-        )
-        for monomial in distinct_monomials
-    }
-
     # print("Starting Mosek")
     time_start = time.time()
     with mf.Model("SDP") as M:
         # PSD variable X
         size_psd_variable = A[distinct_monomials[0]].shape[0]
         X = M.variable(mf.Domain.inPSDCone(size_psd_variable))
-
-        # Constant for (x_v * x_u)
-        e = M.variable(len(graph.edges), mf.Domain.unbounded())
-
-        # Constant for (x_v^2 - x_v)
-        v = M.variable(graph.n, mf.Domain.unbounded())
 
         # Objective: maximize a (scalar)
         b = M.variable()
@@ -289,21 +249,14 @@ def stable_set_problem_sdp(graph, verbose=False):
         tuple_of_constant = tuple([0 for i in range(len(distinct_monomials[0]))])
 
         # Constraints:
-        # A_i · X + sum_e E · constant_e + V_squared · constant_v - V · constrant_v = c_i
+        # A_i · X = c_i
+        constraints = []
         for i, monomial in enumerate(
             [m for m in distinct_monomials if m != tuple_of_constant]
         ):
+            SOS_dot_X = mf.Expr.dot(A[monomial], X)
             M.constraint(
-                mf.Expr.add(
-                    mf.Expr.dot(A[monomial], X),
-                    mf.Expr.add(
-                        mf.Expr.dot(E[monomial], e),
-                        mf.Expr.sub(
-                            mf.Expr.dot(V_squared[monomial], v),
-                            mf.Expr.dot(V[monomial], v),
-                        ),
-                    ),
-                ),
+                SOS_dot_X,
                 mf.Domain.equalsTo(C[monomial]),
             )
             # if i % 100 == 0:
@@ -394,25 +347,9 @@ def projected_stable_set_problem_sdp(graph: Graph, random_projector, verbose=Fal
         Dictionary with the solutions of the sdp relaxation.
 
     """
-
-    monomial_matrix = monomials.generate_monomials_matrix(graph.n, 2)
-
-    distinct_monomials = monomials.generate_monomials_up_to_degree(graph.n, 2)
-    new_vector = []
-    for monomial in distinct_monomials:
-        new_vector.append(tuple(1 if x == 2 else x for x in monomial))
-    # Remove repeated tuples
-    unique_tuples = list(set(new_vector))
     
-    distinct_monomials = unique_tuples
+    distinct_monomials = graph.distinct_monomials_L1
 
-    degree_1_monomials = list(monomials.generate_monomials_exact_degree(graph.n, 1))
-
-    degree_2_monomials = [
-        monomial
-        for monomial in list(monomials.generate_monomials_exact_degree(graph.n, 2))
-        if any(n == 2 for n in monomial)
-    ]
     edges = graph.edges
 
     # Coefficients of objective
@@ -423,24 +360,6 @@ def projected_stable_set_problem_sdp(graph: Graph, random_projector, verbose=Fal
     for monomial in distinct_monomials:
         A[monomial] = random_projector.apply_rp_map(graph.A[monomial])
 
-    # Picking monomials for POLY_(u,v) (x_u * x_v)
-    E = graph.E
-
-    # Picking monomials for POLY_v (x_v^2)
-    V_squared = {
-        monomial: monomials.pick_specific_monomial(
-            degree_1_monomials, monomial, vector=True
-        )
-        for monomial in distinct_monomials
-    }
-
-    # Picking monomials for POLY_v (x_v)
-    V = {
-        monomial: monomials.pick_specific_monomial(
-            degree_1_monomials, monomial, vector=True
-        )
-        for monomial in distinct_monomials
-    }
 
     with mf.Model("SDP") as M:
         # PSD variable X
@@ -487,7 +406,7 @@ def projected_stable_set_problem_sdp(graph: Graph, random_projector, verbose=Fal
         tuple_of_constant = tuple([0 for i in range(len(distinct_monomials[0]))])
 
         # Constraints:
-        # A_i · X + sum_e E · constant_e + V_squared · constant_v - V · constrant_v + lbv[i] - ubv[i] = c_i
+        # A_i · X + lbv[i] - ubv[i] = c_i
         for i, monomial in enumerate(
             [m for m in distinct_monomials if m != tuple_of_constant]
         ):
@@ -499,17 +418,8 @@ def projected_stable_set_problem_sdp(graph: Graph, random_projector, verbose=Fal
             # difference_slacks = 0
             M.constraint(
                 mf.Expr.add(
-                    mf.Expr.add(
-                        matrix_inner_product,
-                        mf.Expr.add(
-                            mf.Expr.dot(E[monomial], e),
-                            mf.Expr.sub(
-                                mf.Expr.dot(V_squared[monomial], v),
-                                mf.Expr.dot(V[monomial], v),
-                            ),
-                        ),
-                    ),
-                    difference_slacks,
+                    matrix_inner_product,
+                    difference_slacks
                 ),
                 mf.Domain.equalsTo(C[monomial]),
             )
@@ -909,7 +819,7 @@ if __name__ == "__main__":
 
     # Open graph from pickle
     # ----------------------------------------
-    directory = "graphs/6_wheel"
+    directory = "graphs/generalised_petersen_10_2"
     file_path = directory + "/graph.pkl"
     with open(file_path, "rb") as file:
         graph = pickle.load(file)
@@ -921,14 +831,14 @@ if __name__ == "__main__":
 
     single_graph_results(graph, type="sparse")
 
-    graphs_list = []
-    for i in [file for file in os.listdir("graphs") if file != ".DS_Store"]:
-        file_path = "graphs/" + i + "/graph.pkl"
-        print("File path: ", file_path)
-        with open(file_path, "rb") as file:
-            graph = pickle.load(file)
-            if graph.n < 20 and graph.filename.split("/")[-1] != "keller4.clq":
-                graphs_list.append(graph)
+    # graphs_list = []
+    # for i in [file for file in os.listdir("graphs") if file != ".DS_Store"]:
+    #     file_path = "graphs/" + i + "/graph.pkl"
+    #     print("File path: ", file_path)
+    #     with open(file_path, "rb") as file:
+    #         graph = pickle.load(file)
+    #         if graph.n < 20 and graph.filename.split("/")[-1] != "keller4.clq":
+    #             graphs_list.append(graph)
 
-    combination_of_graphs_results(graphs_list)
+    # combination_of_graphs_results(graphs_list)
 

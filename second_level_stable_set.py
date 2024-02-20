@@ -94,7 +94,7 @@ def second_level_stable_set_problem_sdp(graph, verbose=False):
         X_sol = X.level()
         b_sol = b.level()
         computation_time = end_time - start_time
-    
+
         # Print the frobenious norm of the data matrices A.
         for i, monomial in enumerate(A.keys()):
             print(
@@ -103,8 +103,16 @@ def second_level_stable_set_problem_sdp(graph, verbose=False):
                 )
             )
             print("Rank of A{}: {}".format(i, np.linalg.matrix_rank(A[monomial])))
-            print("Nuclear norm of A{}: {}".format(i, np.linalg.norm(A[monomial], ord="nuc")))
-            print("Sparsity of A{}: {}".format(i, np.count_nonzero(A[monomial]) / A[monomial].size))
+            print(
+                "Nuclear norm of A{}: {}".format(
+                    i, np.linalg.norm(A[monomial], ord="nuc")
+                )
+            )
+            print(
+                "Sparsity of A{}: {}".format(
+                    i, np.count_nonzero(A[monomial]) / A[monomial].size
+                )
+            )
 
         print("Number of distinct monomials: ", len(distinct_monomials))
         # Print rank of solution matrix
@@ -140,7 +148,9 @@ def second_level_stable_set_problem_sdp(graph, verbose=False):
         return solution
 
 
-def projected_second_level_stable_set_problem_sdp(graph, projector, verbose=False, slack=True):
+def projected_second_level_stable_set_problem_sdp(
+    graph, projector, verbose=False, slack=True
+):
     """ """
 
     distinct_monomials = graph.distinct_monomials_L2
@@ -225,7 +235,7 @@ def projected_second_level_stable_set_problem_sdp(graph, projector, verbose=Fals
         # Constraint:
         # A_0 · X + b  = c_0
         c0 = M.constraint(
-                mf.Expr.add(mf.Expr.dot(A[tuple_of_constant], X), b), 
+            mf.Expr.add(mf.Expr.dot(A[tuple_of_constant], X), b),
             mf.Domain.equalsTo(C[tuple_of_constant]),
         )
         time_end = time.time()
@@ -258,7 +268,7 @@ def projected_second_level_stable_set_problem_sdp(graph, projector, verbose=Fals
             "size_psd_variable": size_psd_variable,
             "no_linear_variables": "TBC",
         }
-    
+
         return solution
 
 
@@ -311,22 +321,7 @@ def single_graph_results(graph, type="sparse"):
 
     matrix_size = monomials.number_of_monomials_up_to_degree(graph.n, 2)
 
-    # Solve projected stable set problem
-    # ----------------------------------------
-    id_random_projector = rp.RandomProjector(matrix_size, matrix_size, type="identity")
-    id_rp_solution = projected_second_level_stable_set_problem_sdp(
-        graph, id_random_projector, verbose=False, slack=False
-    )
-    print(
-        "{: <12} {: >10} {: >18} {: >8.2f} {: >8.2f}".format(
-            "Identity",
-            id_rp_solution["size_psd_variable"],
-            id_rp_solution["no_linear_variables"],
-            id_rp_solution["objective"],
-            id_rp_solution["computation_time"],
-        )
-    )
-
+    
     for rate in np.linspace(0.1, 0.6, 10):
         slack = True
         if rate > 0.5:
@@ -351,16 +346,31 @@ def single_graph_results(graph, type="sparse"):
             )
         )
 
+    # Solve projected stable set problem
+    # ----------------------------------------
+    id_random_projector = rp.RandomProjector(matrix_size, matrix_size, type="identity")
+    id_rp_solution = projected_second_level_stable_set_problem_sdp(
+        graph, id_random_projector, verbose=False, slack=False
+    )
+    print(
+        "{: <12} {: >10} {: >18} {: >8.2f} {: >8.2f}".format(
+            "Identity",
+            id_rp_solution["size_psd_variable"],
+            id_rp_solution["no_linear_variables"],
+            id_rp_solution["objective"],
+            id_rp_solution["computation_time"],
+        )
+    )
+
     print()
 
 
 def projected_dimension(epsilon, probability, ranks_Ai, rank_solution):
-    """
-    """
+    """ """
 
     sum_ranks = 8 * rank_solution + sum(ranks_Ai)
 
-    epsilon_part = np.exp(2 * (epsilon ** 2 / 2 - epsilon ** 3 / 3))
+    epsilon_part = np.exp(2 * (epsilon**2 / 2 - epsilon**3 / 3))
 
     d = np.log(sum_ranks / probability) * epsilon_part
 
@@ -368,11 +378,11 @@ def projected_dimension(epsilon, probability, ranks_Ai, rank_solution):
 
 
 if __name__ == "__main__":
-    directory = "graphs/generalised_petersen_10_2_complement"
+    directory = "graphs/generalised_petersen_10_2"
     file_path = directory + "/graph.pkl"
     with open(file_path, "rb") as file:
         graph = pickle.load(file)
 
-    projected_dimension(0.05, 0.8, [6 for i in range(500)], 66)
+    projected_dimension(0.0005, 0.9, [6 for i in range(500)], 66)
 
     single_graph_results(graph, type="sparse")

@@ -378,7 +378,7 @@ def projected_dimension(epsilon, probability, ranks_Ai, rank_solution):
 
 
 if __name__ == "__main__":
-    directory = "graphs/generalised_petersen_10_2"
+    directory = "graphs/generalised_petersen_10_2_complement"
     file_path = directory + "/graph.pkl"
     with open(file_path, "rb") as file:
         graph = pickle.load(file)

@@ -41,14 +41,21 @@ class Graph:
     def get_picking_SOS(self, verbose=False):
         """ """
 
+        if verbose:
+            print("Building monomial matrix for level 1")
         monomial_matrix = monomials.stable_set_monomial_matrix(
             self.edges, self.n, level=1
         )
-
+        if verbose:
+            print("SIZE OF MONOMIAL MATRIX:", len(monomial_matrix))
+            print("Done building monomial matrix for level 1")
+            print("Building distinct monomials for level 1")
         distinct_monomials = monomials.stable_set_distinct_monomials(
             self.edges, self.n, level=1
         )
         self.distinct_monomials_L1 = distinct_monomials
+        if verbose:
+            print("Done building distinct monomials for level 1")
 
         if verbose:
             print("Building Ai matrices for level 1")
@@ -474,7 +481,7 @@ def generate_probability_graph(n, p, seed=0):
     prob.get_edges_from_matrix()
     prob.plot_graph()
     prob.get_picking_SOS(verbose=True)
-    prob.picking_for_level_two(verbose=True)
+    # prob.picking_for_level_two(verbose=True)
     prob.store_graph("{}_vertices_{}_probability".format(n, p))
 
 
@@ -551,8 +558,8 @@ if __name__ == "__main__":
     # generate_triangle()
     # generate_petersen_graph()
     # generate_6_wheel_graph()
-    generate_generalised_petersen(30, 2, complement=True)
+    # generate_generalised_petersen(10, 2, complement=True)
     # generate_cordones(5, complement=False)
     # more_connected_cordones(5, complement=False)
-    # generate_probability_graph(30, 0.6, seed=0)
+    generate_probability_graph(200, 0.6, seed=0)
     # generate_connected_imperfect_graph(5, 0.4)

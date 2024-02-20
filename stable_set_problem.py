@@ -110,7 +110,7 @@ class Graph:
         self.edges = get_list_of_edges(self.graph)
         self.get_picking_SOS()
         self.get_picking_edges()
-        self.filename = + str(self.n) + "_vertices_" + str(self.p) + "_probability"
+        self.filename = +str(self.n) + "_vertices_" + str(self.p) + "_probability"
         self.store_graph(self.filename)
 
     def plot_graph(self):
@@ -129,15 +129,13 @@ class Graph:
         plt.show()
 
     def get_picking_SOS(self):
-        """ 
+        """
         Generates the matrices Ai for the SOS polynomial.
 
         """
 
         monomial_matrix = monomials.generate_monomials_matrix(self.n, 2)
-        distinct_monomials = monomials.generate_monomials_up_to_degree(
-            self.n, 2
-        )
+        distinct_monomials = monomials.generate_monomials_up_to_degree(self.n, 2)
 
         # Picking monomials from SOS polynomial
         A = {
@@ -146,15 +144,13 @@ class Graph:
         }
 
         self.A = A
-    
+
     def get_picking_edges(self):
         """
         Generates the matrices Ei for the POLY_(u,v) (x_u * x_v) polynomial.
-        
+
         """
-        distinct_monomials = monomials.generate_monomials_up_to_degree(
-            self.n, 2
-        )
+        distinct_monomials = monomials.generate_monomials_up_to_degree(self.n, 2)
         # Picking monomials for POLY_(u,v) (x_u * x_v)
         E = {
             monomial: monomials.pick_specific_monomial(
@@ -347,7 +343,7 @@ def projected_stable_set_problem_sdp(graph: Graph, random_projector, verbose=Fal
         Dictionary with the solutions of the sdp relaxation.
 
     """
-    
+
     distinct_monomials = graph.distinct_monomials_L1
 
     edges = graph.edges
@@ -359,7 +355,6 @@ def projected_stable_set_problem_sdp(graph: Graph, random_projector, verbose=Fal
     A = {}
     for monomial in distinct_monomials:
         A[monomial] = random_projector.apply_rp_map(graph.A[monomial])
-
 
     with mf.Model("SDP") as M:
         # PSD variable X
@@ -417,10 +412,7 @@ def projected_stable_set_problem_sdp(graph: Graph, random_projector, verbose=Fal
             )
             # difference_slacks = 0
             M.constraint(
-                mf.Expr.add(
-                    matrix_inner_product,
-                    difference_slacks
-                ),
+                mf.Expr.add(matrix_inner_product, difference_slacks),
                 mf.Domain.equalsTo(C[monomial]),
             )
             if i % 100 == 0 and verbose:
@@ -819,7 +811,7 @@ if __name__ == "__main__":
 
     # Open graph from pickle
     # ----------------------------------------
-    directory = "graphs/generalised_petersen_10_2"
+    directory = "graphs/pentagon"
     file_path = directory + "/graph.pkl"
     with open(file_path, "rb") as file:
         graph = pickle.load(file)
@@ -841,4 +833,3 @@ if __name__ == "__main__":
     #             graphs_list.append(graph)
 
     # combination_of_graphs_results(graphs_list)
-

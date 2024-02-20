@@ -57,13 +57,12 @@ class Graph_File:
 
         return edges
 
-
     def edges_complement_graph(self):
         """
         Get the complement of the graph.
 
         """
-            
+
         complement = []
 
         for i in range(self.n):
@@ -72,9 +71,8 @@ class Graph_File:
                     complement.append((i, j))
 
         self.edges = complement
-        
+
         return complement
-    
 
     def make_matrix(self, edges, num_vertices):
         """
@@ -90,7 +88,6 @@ class Graph_File:
 
         return graph
 
-    
     def get_num_vertices(self):
         """
         Get the number of vertices from the file.
@@ -109,7 +106,6 @@ class Graph_File:
                     else:
                         self.n = int(line[3])
                     return self.n
-
 
     def store_graph(self):
         """
@@ -137,13 +133,16 @@ class Graph_File:
 
         print("Graph stored in: ", file_path)
 
-    
     def get_picking_SOS(self, verbose=False):
         """ """
 
-        monomial_matrix = monomials.stable_set_monomial_matrix(self.edges, self.n, level=1)
+        monomial_matrix = monomials.stable_set_monomial_matrix(
+            self.edges, self.n, level=1
+        )
 
-        distinct_monomials = monomials.stable_set_distinct_monomials(self.edges, self.n, level=1)
+        distinct_monomials = monomials.stable_set_distinct_monomials(
+            self.edges, self.n, level=1
+        )
         self.distinct_monomials_L1 = distinct_monomials
 
         if verbose:
@@ -158,19 +157,22 @@ class Graph_File:
 
         self.A = A
 
-    
     def picking_for_level_two(self, verbose=False):
         """
         Get the picking dictionaries for the second level of the polynomial optimization problem.
         """
         if verbose:
             print("Building monomial matrix for level 2")
-        monomial_matrix = monomials.stable_set_monomial_matrix(self.edges, self.n, level=2) 
+        monomial_matrix = monomials.stable_set_monomial_matrix(
+            self.edges, self.n, level=2
+        )
         if verbose:
-            print('SIZE OF MONOMIAL MATRIX:', len(monomial_matrix))
+            print("SIZE OF MONOMIAL MATRIX:", len(monomial_matrix))
             print("Done building monomial matrix for level 2")
             print("Building distinct monomials for level 2")
-        self.distinct_monomials_L2 = monomials.stable_set_distinct_monomials(self.edges, self.n, level=2)
+        self.distinct_monomials_L2 = monomials.stable_set_distinct_monomials(
+            self.edges, self.n, level=2
+        )
         if verbose:
             print("Done building distinct monomials for level 2")
 
@@ -184,9 +186,15 @@ class Graph_File:
         self.A_L2 = {}
         for i, monomial in enumerate(self.distinct_monomials_L2):
             if verbose:
-                print("Picking monomial: {} out of {}".format(i, len(self.distinct_monomials_L2)))
-            self.A_L2[monomial] = monomials.pick_specific_monomial(monomial_matrix, monomial)
-           
+                print(
+                    "Picking monomial: {} out of {}".format(
+                        i, len(self.distinct_monomials_L2)
+                    )
+                )
+            self.A_L2[monomial] = monomials.pick_specific_monomial(
+                monomial_matrix, monomial
+            )
+
         if verbose:
             print("Done building Ai matrices for level 2")
 
@@ -194,7 +202,7 @@ class Graph_File:
         # self.E_L2 = {
         #     monomial: [
         #         monomials.pick_specific_monomial(
-        #             tuple(1 if x in [2,3,4] else x for x in 
+        #             tuple(1 if x in [2,3,4] else x for x in
         #             ous.add_tuple_to_tuple_list(
         #                 monomials.edge_to_monomial(edge, self.n),
         #                 monomials_free_polynomials,
@@ -213,7 +221,7 @@ class Graph_File:
         # self.V_squared_L2 = {
         #     monomial: [
         #         monomials.pick_specific_monomial(
-        #             tuple(1 if x in [2,3,4] else x for x in 
+        #             tuple(1 if x in [2,3,4] else x for x in
         #             ous.add_tuple_to_tuple_list(
         #                 single_monomials[variable], monomials_free_polynomials
         #             )),
@@ -241,7 +249,6 @@ class Graph_File:
         #     for monomial in self.distinct_monomials_L2
         # }
 
-    
 
 if __name__ == "__main__":
     files_folder = "DIMACS_all_ascii"
@@ -257,7 +264,7 @@ if __name__ == "__main__":
             graph_description = {
                 "filename": graph.filename,
                 "num_edges": graph.num_edges,
-                "num_vertices": graph.n
+                "num_vertices": graph.n,
             }
             valid_graphs.append(graph_description)
             print(valid_graphs)
@@ -267,4 +274,3 @@ if __name__ == "__main__":
             graph.store_graph()
 
     print("Valid graphs: ", valid_graphs)
-

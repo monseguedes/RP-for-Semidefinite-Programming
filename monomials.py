@@ -608,13 +608,31 @@ def stable_set_distinct_monomials(edges, n, level=1):
 
     if level == 1:
         distinct_monomials = []
+        print("Generating distinct monomials level 1 degree 1...")
         degree_1 = generate_binary_monomials_exact_degree(n, 1)
+        print("Generating distinct monomials level 1 degree 2...")
         degree_2 = generate_binary_monomials_exact_degree(n, 2)
+        print("Filtering distinct monomials level 1 degree 2...")
         # Filter those in edges
-        degree_2 = [x for x in degree_2 if x not in edges_to_monomials(edges, n)]
-        distinct_monomials = list(
-            set(list(degree_1) + degree_2 + [tuple(0 for _ in range(n))])
-        )
+        filtered_degree_2 = []
+        for i, monomial in enumerate(list(degree_2)):
+            print("Filtering monomial {} out of {}".format(i, len(list(degree_2))))
+            if not any(
+                sum(1 for x, y in zip(monomial, edge) if x == 1 and y == 1) >= 2
+                for edge in edges_to_monomials(edges, n)
+            ):
+                filtered_degree_2.append(monomial)
+
+        # degree_2 = [
+        #     monomial
+        #     for monomial in degree_2
+        #     if not any(
+        #         sum(1 for x, y in zip(monomial, edge) if x == 1 and y == 1) >= 2
+        #         for edge in edges_to_monomials(edges, n)
+        #     )
+        # ]
+                
+        distinct_monomials = list(set(list(degree_1) + filtered_degree_2 + [tuple(0 for _ in range(n))]))
 
     if level == 2:
         # #OLD METHOD

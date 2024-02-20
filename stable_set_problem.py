@@ -27,169 +27,7 @@ import random_projections as rp
 import pickle
 from process_DIMACS_data import Graph_File
 import os
-
-
-def get_list_of_edges(graph, full=False):
-    """
-    Get the list of edges of the graph.
-
-    Parameters
-    ----------
-    graph : matrix
-        Adjacency matrix of the graph.
-
-    Returns
-    -------
-    list
-        List of edges of the graph.
-    """
-
-    n = graph.shape[0]
-    edges = []
-
-    for i in range(n):
-        for j in range(i + 1, n):
-            if graph[i, j] == 1:
-                edges.append((i, j))
-
-    if full:
-        edges_dict = {}
-        for i in range(n):
-            for j in range(i + 1, n):
-                edges_dict[(i, j)] = 0
-        for edge in edges:
-            edges_dict[edge] = 1
-
-        return edges_dict
-
-    return edges
-
-
-def generate_graph(n, p, seed=0):
-    """
-    Generate a random graph with n vertices and edge probability p.
-
-    Parameters
-    ----------
-    n : int
-        Number of vertices.
-    p : float
-        Probability of an edge between any two vertices.
-    seed : int
-        Seed for the random number generator.
-
-    Returns
-    -------
-    matrix
-        Adjacency matrix of the graph.
-    """
-
-    # Set the random seed
-    np.random.seed(seed)
-
-    # Generate random values for edges
-    edges = np.random.rand(n, n)
-
-    # Create a mask for edges based on probability
-    graph = (edges < p).astype(int)
-
-    # Make sure the diagonal is zero (no self-loops)
-    np.fill_diagonal(graph, 0)
-
-    # Make the matrix symmetric
-    graph = np.triu(graph) + np.triu(graph, 1).T
-
-    return graph
-
-
-class Graph:
-    def __init__(self, n, p, seed=0):
-        self.n = n
-        self.p = p
-        self.graph = generate_graph(self.n, self.p, seed)
-        self.edges = get_list_of_edges(self.graph)
-        self.get_picking_SOS()
-        self.get_picking_edges()
-        self.filename = +str(self.n) + "_vertices_" + str(self.p) + "_probability"
-        self.store_graph(self.filename)
-
-    def plot_graph(self):
-        """
-        Plot the graph.
-
-        Parameters
-        ----------
-        graph : matrix
-            Adjacency matrix of the graph.
-
-        """
-
-        G = nx.Graph(self.graph)
-        nx.draw(G, with_labels=True, font_weight="bold")
-        plt.show()
-
-    def get_picking_SOS(self):
-        """
-        Generates the matrices Ai for the SOS polynomial.
-
-        """
-
-        monomial_matrix = monomials.generate_monomials_matrix(self.n, 2)
-        distinct_monomials = monomials.generate_monomials_up_to_degree(self.n, 2)
-
-        # Picking monomials from SOS polynomial
-        A = {
-            monomial: monomials.pick_specific_monomial(monomial_matrix, monomial)
-            for monomial in distinct_monomials
-        }
-
-        self.A = A
-
-    def get_picking_edges(self):
-        """
-        Generates the matrices Ei for the POLY_(u,v) (x_u * x_v) polynomial.
-
-        """
-        distinct_monomials = monomials.generate_monomials_up_to_degree(self.n, 2)
-        # Picking monomials for POLY_(u,v) (x_u * x_v)
-        E = {
-            monomial: monomials.pick_specific_monomial(
-                monomials.edges_to_monomials(self.edges, self.n),
-                monomial,
-                vector=True,
-            )
-            for monomial in distinct_monomials
-        }
-
-        self.E = E
-
-    def store_graph(self, name):
-        """
-        Store the graph in a folder inside the 'graphs' folder.
-
-        The folder will be named after the graph file.
-
-        """
-
-        directory = "graphs/" + name
-
-        if not os.path.exists(directory):
-            os.mkdir(directory)
-
-        # Save class object with pickle
-        # File path where you want to save the object
-        file_path = directory + "/graph.pkl"
-
-        # Open the file in binary mode for writing
-        with open(file_path, "wb") as file:
-            # Serialize and save the object to the file
-            pickle.dump(self, file)
-
-        print("Graph stored in: ", file_path)
-
-
-def stable_set_mip(graph):
-    raise NotImplementedError
+from generate_graphs import Graph
 
 
 def stable_set_problem_sdp(graph, verbose=False):
@@ -202,18 +40,18 @@ def stable_set_problem_sdp(graph, verbose=False):
     which can be written as
 
     minimize    a
-    subject to  A_i · X + sum_j∈E B_ij · POL_j(x_u * x_v) + sum_v∈V C_iv · POL_v(x_v2) - D_iv · POLv(x_v) = c_i
-                A_0 · X + sumj∈E B_0j · POL_j(x_u * x_v) + sum_v∈V C_0v · POL_v(x_v2) - D_0v · POLv(x_v) = c_0
+    subject to  A_i · X  = c_i
+                A_0 · X  = c_0
 
-    where E is the set of edges and V is the set of vertices.
-
-    NOTE: WE ARE ONLY SOLVING THE FIRST LEVEL OF THE HIERARCHY, WHICH MEANS THAT
-    ALL POL CAN BE AT MOST DEGREE 1.
+    where powers of monomials are replaced in A_i and contraints for
+    edges are removed. 
 
     Parameters
     ----------
     graph : Graph
         Graph object.
+    verbose : bool
+        If True, print the log of the Mosek solver.
 
     Returns
     -------
@@ -223,15 +61,12 @@ def stable_set_problem_sdp(graph, verbose=False):
     """
 
     distinct_monomials = graph.distinct_monomials_L1
-
     edges = graph.edges
+    A = graph.A
 
     # Coefficients of objective
     C = {monomial: -1 if sum(monomial) == 1 else 0 for monomial in distinct_monomials}
 
-    A = graph.A
-
-    # print("Starting Mosek")
     time_start = time.time()
     with mf.Model("SDP") as M:
         # PSD variable X
@@ -255,18 +90,14 @@ def stable_set_problem_sdp(graph, verbose=False):
                 SOS_dot_X,
                 mf.Domain.equalsTo(C[monomial]),
             )
-            # if i % 100 == 0:
-            #     print("Constraint {} of {}".format(i, len(distinct_monomials) - 1))
-
+            
         # Constraint:
         # A_0 · X + b = c_0
         M.constraint(
             mf.Expr.add(mf.Expr.dot(A[tuple_of_constant], X), b),
             mf.Domain.equalsTo(C[tuple_of_constant]),
         )
-        time_end = time.time()
-        # print("Time to build Mosek model: {}".format(time_end - time_start))
-
+        
         if verbose:
             # Increase verbosity
             M.setLogHandler(sys.stdout)
@@ -281,61 +112,58 @@ def stable_set_problem_sdp(graph, verbose=False):
         b_sol = b.level()
         computation_time = end_time - start_time
 
-        no_linear_variables = len(graph.edges) + graph.n + 1
-        size_psd_variable = int(np.sqrt(X_sol.shape[0]))
-
-        # print("Number of distinct monomials: ", len(distinct_monomials))
-        # # Print rank of solution matrix
-        # print(
-        #     "Rank of solution matrix: ",
-        #     np.linalg.matrix_rank(X_sol.reshape(size_psd_variable, size_psd_variable)),
-        # )
-        # # Print the nuclear norm of the solution matrix
-        # print(
-        #     "Nuclear norm of solution matrix: ",
-        #     np.linalg.norm(
-        #         X_sol.reshape(size_psd_variable, size_psd_variable), ord="nuc"
-        #     ),
-        # )
-        # # Print the frobenious norm of the data matrices A.
-        # for i, monomial in enumerate(A.keys()):
-        #     print(
-        #         "Frobenious norm of A{}: {}".format(
-        #             i, np.linalg.norm(A[monomial], ord="fro")
-        #         )
-        #     )
-        #     print("Rank of A{}: {}".format(i, np.linalg.matrix_rank(A[monomial])))
+        # PRINTING RANKS AND NORMS----------------------------------------------
+        # ----------------------------------------------------------------------
+        for i, monomial in enumerate(A.keys()):
+            print(
+                "Frobenious norm of A{}: {}".format(
+                    i, np.linalg.norm(A[monomial], ord="fro")
+                )
+            )
+            print("Rank of A{}: {}".format(i, np.linalg.matrix_rank(A[monomial])))
+        print("Number of distinct monomials: ", len(distinct_monomials))
+        print(
+            "Rank of solution matrix: ",
+            np.linalg.matrix_rank(X_sol.reshape(size_psd_variable, size_psd_variable)),
+        )
+        print(
+            "Nuclear norm of solution matrix: ",
+            np.linalg.norm(
+                X_sol.reshape(size_psd_variable, size_psd_variable), ord="nuc"
+            ),
+        )
+        # ----------------------------------------------------------------------
+        # ----------------------------------------------------------------------
 
         solution = {
             "X": X_sol,
             "b": b_sol,
             "objective": M.primalObjValue(),
             "computation_time": computation_time,
-            "no_linear_variables": no_linear_variables,
             "size_psd_variable": size_psd_variable,
         }
 
         return solution
 
 
-def projected_stable_set_problem_sdp(graph: Graph, random_projector, verbose=False):
+def projected_stable_set_problem_sdp(graph, random_projector, verbose=False):
     """
     Write the projected problem for the stable set problem.
 
     maximise    a - UB sum lbv[i] + LB sum ubv[i]
-    subject to  PA_iP · X + sum_e E · constant_e + V_squared · constant_v - V · constrant_v
-                + lbv[i] - ubv[i] = c_i
-                PA_0P · X + b + lbv[0] - ubv[0] = c_0
+    subject to  PA_iP · X + lbv[i] - ubv[i] = c_i
+                PA_0P · X + b = c_0
 
     where E is the set of edges and V is the set of vertices.
-
-    NOTE: WE ARE ONLY SOLVING THE FIRST LEVEL OF THE HIERARCHY, WHICH MEANS THAT
-    ALL POL CAN BE AT MOST DEGREE 1.
 
     Parameters
     ----------
     graph : matrix or list
         Adjacency matrix of the graph or list of edges.
+    random_projector : RandomProjector
+        Random projector.
+    verbose : bool
+        If True, print the log of the Mosek solver.
 
     Returns
     -------
@@ -345,26 +173,20 @@ def projected_stable_set_problem_sdp(graph: Graph, random_projector, verbose=Fal
     """
 
     distinct_monomials = graph.distinct_monomials_L1
-
     edges = graph.edges
 
     # Coefficients of objective
     C = {monomial: -1 if sum(monomial) == 1 else 0 for monomial in distinct_monomials}
 
-    # Picking monomials from SOS polynomial
+    # Projecting the data matrices
     A = {}
     for monomial in distinct_monomials:
         A[monomial] = random_projector.apply_rp_map(graph.A[monomial])
 
     with mf.Model("SDP") as M:
         # PSD variable X
+        size_psd_variable = A[distinct_monomials[0]].shape[0]
         X = M.variable(mf.Domain.inPSDCone(A[distinct_monomials[0]].shape[0]))
-
-        # Constant for (x_v * x_u)
-        e = M.variable(len(graph.edges), mf.Domain.unbounded())
-
-        # Constant for (x_v^2 - x_v)
-        v = M.variable(graph.n, mf.Domain.unbounded())
 
         # Lower and upper bounds
         lb_variables = M.variable(len(distinct_monomials), mf.Domain.greaterThan(0))
@@ -378,7 +200,7 @@ def projected_stable_set_problem_sdp(graph: Graph, random_projector, verbose=Fal
         ones_vector = np.ones(len(distinct_monomials))
         ones_vector[0] = 0
 
-        # Objective: maximize a (scalar)
+        # Objective
         b = M.variable()
         M.objective(
             mf.ObjectiveSense.Maximize,
@@ -415,9 +237,7 @@ def projected_stable_set_problem_sdp(graph: Graph, random_projector, verbose=Fal
                 mf.Expr.add(matrix_inner_product, difference_slacks),
                 mf.Domain.equalsTo(C[monomial]),
             )
-            if i % 100 == 0 and verbose:
-                print("Constraint {} of {}".format(i, len(distinct_monomials) - 1))
-
+           
         # Constraint:
         # A_0 · X + b = c_0
         matrix_inner_product = mf.Expr.dot(A[tuple_of_constant], X)
@@ -440,24 +260,18 @@ def projected_stable_set_problem_sdp(graph: Graph, random_projector, verbose=Fal
         b_sol = b.level()
         computation_time = end_time - start_time
 
-        no_linear_variables = (
-            len(graph.edges) + graph.n + 1 + 2 * len(distinct_monomials)
-        )
-        size_psd_variable = int(np.sqrt(X_sol.shape[0]))
-
         solution = {
             "X": X_sol,
             "b": b_sol,
             "objective": M.primalObjValue(),
             "computation_time": computation_time,
-            "no_linear_variables": no_linear_variables,
             "size_psd_variable": size_psd_variable,
         }
 
         return solution
 
 
-def random_constraint_aggregation_sdp(graph: Graph, projector, verbose=False):
+def random_constraint_aggregation_sdp(graph, projector, verbose=False):
     """
     TODO: ADD
 
@@ -472,6 +286,8 @@ def random_constraint_aggregation_sdp(graph: Graph, projector, verbose=False):
         Dictionary with the solutions of the sdp relaxation.
 
     """
+
+    raise NotImplementedError("This function is not implemented yet.")
 
     monomial_matrix = monomials.generate_monomials_matrix(graph.n, 2)
 
@@ -659,7 +475,7 @@ def random_constraint_aggregation_sdp(graph: Graph, projector, verbose=False):
         return solution
 
 
-def single_graph_results(graph, type="sparse", project="variables"):
+def single_graph_results(graph, type="sparse", project="variables", range=(0.4, 0.8), iterations=5):
     """
     Get the results for a single graph.
 
@@ -679,8 +495,8 @@ def single_graph_results(graph, type="sparse", project="variables"):
     print("Results for a graph with {} vertices".format(graph.n).center(80))
     print("-" * 80)
     print(
-        "\n{: <12} {: >10} {: >18} {: >8} {: >8}".format(
-            "Type", "Size X", "Linear variables", "Value", "Time"
+        "\n{: <12} {: >10} {: >8} {: >8}".format(
+            "Type", "Size X", "Value", "Time"
         )
     )
     print("-" * 80)
@@ -689,50 +505,19 @@ def single_graph_results(graph, type="sparse", project="variables"):
         "{: <12} {: >10} {: >18} {: >8.2f} {: >8.2f}".format(
             "Original",
             sdp_solution["size_psd_variable"],
-            sdp_solution["no_linear_variables"],
             sdp_solution["objective"],
             sdp_solution["computation_time"],
         )
     )
 
-    # Solve projected stable set problem
-    # ----------------------------------------
-    # id_random_projector = rp.RandomProjector(matrix_size, matrix_size, type="identity")
-    # id_rp_solution = projected_stable_set_problem_sdp(graph, id_random_projector)
-    # print(
-    #     "{: <12} {: >10} {: >18} {: >8.2f} {: >8.2f}".format(
-    #         "Identity",
-    #         id_rp_solution["size_psd_variable"],
-    #         id_rp_solution["no_linear_variables"],
-    #         id_rp_solution["objective"],
-    #         id_rp_solution["computation_time"],
-    #     )
-    # )
-
     matrix_size = graph.graph.shape[0] + 1
-
-    for rate in np.linspace(0.5, 1, 10):
-        if project == "variables":
-            random_projector = rp.RandomProjector(
-                round(matrix_size * rate), matrix_size, type=type, seed=seed
-            )
-            rp_solution = projected_stable_set_problem_sdp(
-                graph, random_projector, verbose=False
-            )
-        elif project == "constraints":
-            number_constraints = len(graph.A.keys())
-            random_projector = rp.RandomProjector(
-                round(number_constraints * rate),
-                number_constraints,
-                type=type,
-                seed=seed,
-            )
-            rp_solution = random_constraint_aggregation_sdp(
-                graph, random_projector, verbose=False
-            )
-
-        increment = rp_solution["objective"] - sdp_solution["objective"]
-        # Print in table format with rate as column and then value and increment as other columns
+    for rate in np.linspace(range[0], range[1], iterations):
+        random_projector = rp.RandomProjector(
+            round(matrix_size * rate), matrix_size, type=type, seed=seed
+        )
+        rp_solution = projected_stable_set_problem_sdp(
+            graph, random_projector, verbose=False
+        )
 
         print(
             "{: <12.2f} {: >10} {: >18} {: >8.2f} {: >8.2f}".format(
@@ -747,7 +532,7 @@ def single_graph_results(graph, type="sparse", project="variables"):
     print()
 
 
-def combination_of_graphs_results(graphs_list):
+def combination_of_graphs_results(graphs_list, rate=0.7, type="sparse"):
     """
     Get the results for a combination of graphs.
 
@@ -760,13 +545,11 @@ def combination_of_graphs_results(graphs_list):
 
     """
 
-    rate = 0.7
-
     # Solve unprojected stable set problem
     # ----------------------------------------
     print("\n" + "-" * 100)
     print(
-        "Results for different graphs for a projector of dimension {}".format(
+        "Results for different graphs for a projector of rate {}".format(
             rate
         ).center(100)
     )
@@ -804,22 +587,15 @@ def combination_of_graphs_results(graphs_list):
 
 if __name__ == "__main__":
     seed = 2
-    # Possible graphs
-    # ----------------------------------------
-    # graph = Graph(100, 0.5)
-    # graph.plot_graph()
-
     # Open graph from pickle
     # ----------------------------------------
-    directory = "graphs/pentagon"
+    directory = "graphs/200_vertices_0.6_probability"
     file_path = directory + "/graph.pkl"
     with open(file_path, "rb") as file:
         graph = pickle.load(file)
 
     matrix_size = graph.graph.shape[0] + 1
     print("Matrix size: {}".format(matrix_size))
-
-    # random_constraint_aggregation_sdp(graph, type="sparse")
 
     single_graph_results(graph, type="sparse")
 

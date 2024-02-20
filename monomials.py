@@ -132,18 +132,6 @@ def generate_monomials_exact_degree(n, d):
             for permutation in generate_monomials_exact_degree(n - 1, d - value):
                 yield (value,) + permutation
 
-    # monomials = []
-    # if d == 0:
-    #     monomials.append(tuple(np.zeros(n)))
-    # else:
-    #     for i in range(n):
-    #         for monomial in generate_monomials_exact_degree(n, d - 1):
-    #             monomial = list(monomial)
-    #             monomial[i] += 1
-    #             monomials.append(tuple(monomial))
-
-    # return monomials
-
 
 def generate_monomials_up_to_degree(n, d):
     """

@@ -432,7 +432,7 @@ if __name__ == "__main__":
     print("Size     Value          Difference        Time")
     for rate in np.linspace(0.1, 1, 10):
         random_projector = random_projections.RandomProjector(
-            round(matrix_size * rate), matrix_size, type="debug_constant", seed=seed
+            round(matrix_size * rate), matrix_size, type="sparse", seed=seed
         )
         
         rp_solution = solve_projected_unit_sphere(

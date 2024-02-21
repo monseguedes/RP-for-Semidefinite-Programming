@@ -336,8 +336,8 @@ def projected_sdp_relaxation(
         w = M.variable(len(monomials_free_polynomial))
 
         # Lower and upper bounds
-        lb_variables = M.variable(len(distinct_monomials), mf.Domain.greaterThan(0))
-        ub_variables = M.variable(len(distinct_monomials), mf.Domain.greaterThan(0))
+        lb_variables = M.variable(len(distinct_monomials) - 1, mf.Domain.greaterThan(0))
+        ub_variables = M.variable(len(distinct_monomials) - 1, mf.Domain.greaterThan(0))
 
         # Lower and upper bounds of the dual variables
         epsilon = 0.00001
@@ -355,11 +355,11 @@ def projected_sdp_relaxation(
                 mf.Expr.sub(
                     mf.Expr.mul(
                         dual_lower_bound,
-                        mf.Expr.dot(lb_variables, np.ones(len(distinct_monomials))),
+                        mf.Expr.dot(lb_variables, np.ones(len(distinct_monomials)-1)),
                     ),
                     mf.Expr.mul(
                         dual_upper_bound,
-                        mf.Expr.dot(ub_variables, np.ones(len(distinct_monomials))),
+                        mf.Expr.dot(ub_variables, np.ones(len(distinct_monomials)-1)),
                     ),
                 ),
             ),
@@ -384,8 +384,8 @@ def projected_sdp_relaxation(
             matrix_inner_product = mf.Expr.dot(A[monomial], X)
 
             difference_slacks = mf.Expr.sub(
-                lb_variables.index(i + 1),
-                ub_variables.index(i + 1),
+                lb_variables.index(i),
+                ub_variables.index(i),
             )
 
             M.constraint(
@@ -413,7 +413,7 @@ def projected_sdp_relaxation(
                 mf.Domain.equalsTo(polynomial.polynomial[monomial]),
             )
 
-        # Constraint: A_0 · X - w_0 + b + lbv[i] - ubv[i] = c_0
+        # Constraint: A_0 · X - w_0 + b = c_0
         if verbose:
             print("A[0]:")
             monomials.print_readable_matrix(A[tuple_of_constant])
@@ -424,17 +424,9 @@ def projected_sdp_relaxation(
                 )
             )
 
-        # matrix_inner_product = np.dot(
-        #     random_projector.apply_rp_map(A[tuple_of_constant]), X
-        # )
         matrix_inner_product = mf.Expr.dot(A[tuple_of_constant], X)
-        difference_slacks = mf.Expr.sub(lb_variables.index(0), ub_variables.index(0))
-
         M.constraint(
-            mf.Expr.add(
                 mf.Expr.add(mf.Expr.sub(matrix_inner_product, w.index(0)), b),
-                difference_slacks,
-            ),
             mf.Domain.equalsTo(polynomial.polynomial[tuple_of_constant]),
         )
 
@@ -531,7 +523,7 @@ if __name__ == "__main__":
     # Possible polynomials
     # ----------------------------------------
     # polynomial = polynomial_generation.Polynomial("x1^2 + x2^2 + 2x1x2", 2, 2)
-    polynomial = poly.Polynomial("normal_form", 6, 4, seed=seed)
+    polynomial = poly.Polynomial("normal_form", 4, 4, seed=seed)
     # polynomial = poly.Polynomial("random", 4, 4, seed=seed)
     # polynomial = poly.Polynomial("3x1^2x2x3 + x1^2x2^2 + 10x3^4 + 5x2^2x1x3", 3, 4, seed=seed)
     matrix = monomials.generate_monomials_matrix(polynomial.n, polynomial.d)
@@ -567,7 +559,7 @@ if __name__ == "__main__":
     X_solutions = []
     for rate in np.linspace(0.1, 1, 10):
         random_projector = rp.RandomProjector(
-            round(matrix_size * rate), matrix_size, type="debug_not_full_ones", seed=seed
+            round(matrix_size * rate), matrix_size, type="sparse", seed=seed
         )
 
         rp_solution = projected_sdp_relaxation(

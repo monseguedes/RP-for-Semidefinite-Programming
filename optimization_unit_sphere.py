@@ -107,7 +107,7 @@ def sdp_relaxation(polynomial: poly.Polynomial, verbose=False):
     dict
         Dictionary with the solution of the SDP relaxation.
 
-    """
+    """  
 
     monomial_matrix = monomials.generate_monomials_matrix(polynomial.n, polynomial.d)
     distinct_monomials = monomials.get_list_of_distinct_monomials(monomial_matrix)
@@ -284,8 +284,23 @@ def projected_sdp_relaxation(
 
     """
 
-    monomial_matrix = monomials.generate_monomials_matrix(polynomial.n, polynomial.d)
+    old_monomial_matrix = monomials.generate_monomials_matrix(polynomial.n, polynomial.d, old=True)
+
+    raise SystemExit
+
+    new_monomial_matrix = monomials.generate_monomials_matrix(polynomial.n, polynomial.d, old=False)
+
+    if not np.array_equal(old_monomial_matrix, new_monomial_matrix):
+        print("The monomials matrix is different")
+        print("old_monomial_matrix: {}".format(old_monomial_matrix))
+        print("new_monomial_matrix: {}".format(new_monomial_matrix))
+        print("The differences are:")
+        print(np.setdiff1d(old_monomial_matrix, new_monomial_matrix))
+
+    
+
     distinct_monomials = monomials.get_list_of_distinct_monomials(monomial_matrix)
+    # print("distinct_monomials: {}".format(distinct_monomials))
 
     # Picking monomials from SOS polynomial
     # A = {
@@ -370,6 +385,7 @@ def projected_sdp_relaxation(
         for i, monomial in enumerate(
             [m for m in distinct_monomials if m != tuple_of_constant]
         ):
+            print("monomial: {}".format(monomial))
             if verbose:
                 print("A[{}]:".format(i + 1))
                 monomials.print_readable_matrix(A[monomial])
@@ -557,7 +573,7 @@ if __name__ == "__main__":
     print("Projected SDP obj:")
     print("Size     Value          Difference         Computation time")
     X_solutions = []
-    for rate in np.linspace(0.1, 1, 10):
+    for rate in np.linspace(0.6, 1, 5):
         random_projector = rp.RandomProjector(
             round(matrix_size * rate), matrix_size, type="sparse", seed=seed
         )
@@ -577,6 +593,8 @@ if __name__ == "__main__":
             )
         )
         X_solutions.append(rp_solution["X"])
+
+        raise SystemExit
 
     print("-" * 50)
     for i, X in enumerate(X_solutions):

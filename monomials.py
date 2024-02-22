@@ -66,7 +66,7 @@ def number_of_monomials_up_to_degree(n, d):
     return scipy.special.comb(d + n, n, exact=True)
 
 
-def generate_monomials_exact_degree(n, d):
+def generate_monomials_exact_degree(n, d, old = False):
     """
     Generates all monomials of a given degree and dimension.
 
@@ -94,20 +94,37 @@ def generate_monomials_exact_degree(n, d):
 
     """
 
-    monomials = []
-    if d == 0:
-        monomials.append(tuple(np.zeros(n)))
+    if old:
+        monomials = []
+        if d == 0:
+            monomials.append(tuple(np.zeros(n, dtype=int)))
+            return monomials
+        else:
+            for i in range(n):
+                for monomial in generate_monomials_exact_degree(n, d - 1):
+                    print("DEBUG")
+                    print(monomial)
+                    monomial = list(monomial)
+                    monomial[i] += 1
+                    monomials.append(tuple([int(i) for i in monomial]))
+                    print(monomials)
+
+            return monomials
+        
     else:
-        for i in range(n):
-            for monomial in generate_monomials_exact_degree(n, d - 1):
-                monomial = list(monomial)
-                monomial[i] += 1
-                monomials.append(tuple(monomial))
+        print("There is something wrong with the new implementation")
+        raise SystemExit
 
-    return monomials
+    # else:
+    #     if n == 1:
+    #         yield (d,)
+    #     else:
+    #         for value in range(d + 1):
+    #             for permutation in generate_monomials_exact_degree(n - 1, d - value):
+    #                 yield permutation + (value,) 
 
 
-def generate_monomials_up_to_degree(n, d):
+def generate_monomials_up_to_degree(n, d, old = False):
     """
     Generates all monomials up to a given degree and dimension.
 
@@ -135,11 +152,18 @@ def generate_monomials_up_to_degree(n, d):
 
     monomials = []
     for i in range(d + 1):
-        monomials += generate_monomials_exact_degree(n, i)
+        # print("Monomials of degree", i, "are:")
+        # print(list(generate_monomials_exact_degree(n, i)))
+        print("Monomials of degree", i, "are:")
+        print(old)
+        print(list(generate_monomials_exact_degree(n, i, old = old)))
+        monomials += list(generate_monomials_exact_degree(n, i, old = old))
+        print("Monomials list adding each degree")
+        print(monomials)
     return monomials
 
 
-def generate_monomials_matrix(n, d):
+def generate_monomials_matrix(n, d, old):
     """
     TODO: should depend on relaxation degree.
     Generates matrix of monomials from outer product of vector of monomials
@@ -168,8 +192,10 @@ def generate_monomials_matrix(n, d):
 
     """
 
-    monomials_vector = generate_monomials_up_to_degree(n, math.floor(d / 2))
+    print(old)
+    monomials_vector = generate_monomials_up_to_degree(n, math.floor(d / 2), old = old)
     monomials_matrix = outer_product_monomials(monomials_vector)
+    print(monomials_matrix)
 
     return monomials_matrix
 

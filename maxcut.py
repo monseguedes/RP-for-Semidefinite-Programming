@@ -68,9 +68,7 @@ def sdp_relaxation(graph):
         # Constraints:
         constraints = []
         for i in range(n):
-            constraints.append(
-                M.constraint(X.index(i, i), mf.Domain.equalsTo(1))
-                )
+            constraints.append(M.constraint(X.index(i, i), mf.Domain.equalsTo(1)))
 
         start_time = time.time()
         # Solve the problem
@@ -83,14 +81,17 @@ def sdp_relaxation(graph):
 
         computation_time = end_time - start_time
 
-        solution = {"X_sol": X_sol, "computation_time": computation_time, "objective": M.primalObjValue(), "size_psd_variable": n}
+        solution = {
+            "X_sol": X_sol,
+            "computation_time": computation_time,
+            "objective": M.primalObjValue(),
+            "size_psd_variable": n,
+        }
 
         return solution
-    
-    
-def projected_sdp_relaxation(
-    graph, projector, verbose=False, slack=True
-):
+
+
+def projected_sdp_relaxation(graph, projector, verbose=False, slack=True):
     """ """
 
     L = laplacian_matrix(graph)
@@ -105,7 +106,7 @@ def projected_sdp_relaxation(
         A_matrix[i, i] = 1
         A[i] = A_matrix
 
-    projected_A = {i : projector.apply_rp_map(A[i]) for i in range(original_dimension)}
+    projected_A = {i: projector.apply_rp_map(A[i]) for i in range(original_dimension)}
 
     with mf.Model("SDP") as M:
         # PSD variable X
@@ -123,36 +124,35 @@ def projected_sdp_relaxation(
         # Objective:
         # M.objective(mf.ObjectiveSense.Maximize, mf.Expr.mul(1 / 4, mf.Expr.dot(L, X)))
         M.objective(
-                mf.ObjectiveSense.Maximize,
-                mf.Expr.add(
-                     mf.Expr.mul(1 / 4, mf.Expr.dot(L, X)),
-                    mf.Expr.sub(
-                        mf.Expr.mul(
-                            dual_lower_bound,
-                            mf.Expr.dot(lb_variables, ones_vector),
-                        ),
-                        mf.Expr.mul(
-                            dual_upper_bound,
-                            mf.Expr.dot(ub_variables, ones_vector),
-                        ),
+            mf.ObjectiveSense.Maximize,
+            mf.Expr.add(
+                mf.Expr.mul(1 / 4, mf.Expr.dot(L, X)),
+                mf.Expr.sub(
+                    mf.Expr.mul(
+                        dual_lower_bound,
+                        mf.Expr.dot(lb_variables, ones_vector),
+                    ),
+                    mf.Expr.mul(
+                        dual_upper_bound,
+                        mf.Expr.dot(ub_variables, ones_vector),
                     ),
                 ),
-            )
+            ),
+        )
 
         # Constraints:
         constraints = []
         for i in range(original_dimension):
             difference_slacks = mf.Expr.sub(
-                    lb_variables.index(i),
-                    ub_variables.index(i),
-                )
+                lb_variables.index(i),
+                ub_variables.index(i),
+            )
             constraints.append(
                 M.constraint(
-                    mf.Expr.add(
-                    mf.Expr.dot(projected_A[i], X),
-                    difference_slacks),
-                    mf.Domain.equalsTo(1)
-                ))
+                    mf.Expr.add(mf.Expr.dot(projected_A[i], X), difference_slacks),
+                    mf.Domain.equalsTo(1),
+                )
+            )
 
         start_time = time.time()
         # Solve the problem
@@ -165,9 +165,15 @@ def projected_sdp_relaxation(
 
         X_sol = X_sol.reshape((n, n))
 
-        solution = {"X_sol": X_sol, "computation_time": computation_time, "objective": M.primalObjValue(), "size_psd_variable": n}
+        solution = {
+            "X_sol": X_sol,
+            "computation_time": computation_time,
+            "objective": M.primalObjValue(),
+            "size_psd_variable": n,
+        }
 
         return solution
+
 
 def retrieve_solution(solution_matrix, edges):
     """
@@ -223,22 +229,21 @@ def single_graph_results(graph: Graph, type="sparse", range=(0.1, 0.5), iteratio
         )
     )
     print("-" * 80)
-    
+
     sdp_solution = sdp_relaxation(graph)
-    _ , cut = retrieve_solution(sdp_solution["X_sol"], graph.edges)
+    _, cut = retrieve_solution(sdp_solution["X_sol"], graph.edges)
     print(
         "{: <18} {: >10} {: >8.2f} {: >8.2f} {: >8}".format(
             "SDP Relaxation",
             sdp_solution["size_psd_variable"],
             sdp_solution["objective"],
             sdp_solution["computation_time"],
-            cut
+            cut,
         )
     )
 
     matrix_size = sdp_solution["size_psd_variable"]
 
-    
     for rate in np.linspace(range[0], range[1], iterations):
         slack = True
         if rate > 0.5:
@@ -251,7 +256,7 @@ def single_graph_results(graph: Graph, type="sparse", range=(0.1, 0.5), iteratio
         )
         # Lift up solution
         lifted_solution = random_projector.lift_solution(rp_solution["X_sol"])
-        _ , cut = retrieve_solution(lifted_solution, graph.edges)
+        _, cut = retrieve_solution(lifted_solution, graph.edges)
 
         print(
             "{: <18.2f} {: >10} {: >8.2f} {: >8.2f} {: >8}".format(
@@ -259,31 +264,30 @@ def single_graph_results(graph: Graph, type="sparse", range=(0.1, 0.5), iteratio
                 rp_solution["size_psd_variable"],
                 rp_solution["objective"],
                 rp_solution["computation_time"],
-                cut
+                cut,
             )
         )
 
-
-    # Solve identity projector 
+    # Solve identity projector
     # ----------------------------------------
     id_random_projector = rp.RandomProjector(matrix_size, matrix_size, type="identity")
     id_rp_solution = projected_sdp_relaxation(
         graph, id_random_projector, verbose=False, slack=False
     )
-    _ , cut = retrieve_solution(id_rp_solution["X_sol"], graph.edges)
+    _, cut = retrieve_solution(id_rp_solution["X_sol"], graph.edges)
     print(
         "{: <18} {: >10} {: >8.2f} {: >8.2f} {: >8}".format(
             "Identity",
             id_rp_solution["size_psd_variable"],
             id_rp_solution["objective"],
             id_rp_solution["computation_time"],
-            cut
+            cut,
         )
     )
 
-
     print()
-    
+
+
 if __name__ == "__main__":
     # Create a graph
     directory = "graphs/400_vertices_0.2_probability"

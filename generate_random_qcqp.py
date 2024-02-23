@@ -52,6 +52,7 @@ where M_i = [[A_i, b_i],[b_i^T, c_i]], L = [[D, 0], [0, 0]], and
 import numpy as np
 import math
 
+
 def build_A_i(i, n):
     """
     Build A_i = P_i T_i P_i^T
@@ -80,11 +81,11 @@ def build_A_i(i, n):
 
     # Build P_i
     w_1 = np.random.uniform(-1, 1, n)
-    Q_1 = np.eye(n) - 2 * np.outer(w_1, w_1) / np.linalg.norm(w_1)**2
+    Q_1 = np.eye(n) - 2 * np.outer(w_1, w_1) / np.linalg.norm(w_1) ** 2
     w_2 = np.random.uniform(-1, 1, n)
-    Q_2 = np.eye(n) - 2 * np.outer(w_2, w_2) / np.linalg.norm(w_2)**2
+    Q_2 = np.eye(n) - 2 * np.outer(w_2, w_2) / np.linalg.norm(w_2) ** 2
     w_3 = np.random.uniform(-1, 1, n)
-    Q_3 = np.eye(n) - 2 * np.outer(w_3, w_3) / np.linalg.norm(w_3)**2
+    Q_3 = np.eye(n) - 2 * np.outer(w_3, w_3) / np.linalg.norm(w_3) ** 2
 
     P_i = Q_1 @ Q_2 @ Q_3
 
@@ -98,6 +99,7 @@ def build_A_i(i, n):
     A_i = P_i @ T_i @ P_i.T
 
     return A_i
+
 
 def build_b_i(i, n):
     """
@@ -126,6 +128,7 @@ def build_b_i(i, n):
 
     return b_i
 
+
 def build_c_i(m):
     """
     Build the vector c_i ∈ (-50, 0) for i=1,...,m.
@@ -145,6 +148,7 @@ def build_c_i(m):
     c_i = np.random.uniform(-50, 0, m)
 
     return c_i
+
 
 def build_D(l, n):
     """
@@ -168,6 +172,7 @@ def build_D(l, n):
 
     return D
 
+
 def build_d(l, n):
     """
     Build the vector d = De/n where e is the vector of all ones.
@@ -189,6 +194,7 @@ def build_d(l, n):
     d = np.ones(l) * l * np.random.uniform(0, 50) / n
 
     return d
+
 
 def build_Mi(i, n):
     """
@@ -216,8 +222,10 @@ def build_Mi(i, n):
 
     return M_i
 
+
 def build_L(D):
     raise NotImplementedError
+
 
 def build_R_i(i, n):
     """
@@ -238,10 +246,11 @@ def build_R_i(i, n):
     """
 
     R = np.zeros((n + 1, n + 1))
-    R[i, n ] = 1/2
-    R[n, i] = 1/2
+    R[i, n] = 1 / 2
+    R[n, i] = 1 / 2
 
     return R
+
 
 def build_B(n):
     """
@@ -275,7 +284,7 @@ class DataQCQP:
         self.M = [build_Mi(i, n) for i in range(1, m)]
         self.R = [build_R_i(i, n) for i in range(n)]
         self.B = build_B(n)
-    
+
 
 if __name__ == "__main__":
     n = 5

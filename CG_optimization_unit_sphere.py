@@ -401,7 +401,7 @@ if __name__ == "__main__":
     # Possible polynomials
     # ----------------------------------------
     # polynomial = polynomial_generation.Polynomial("x1^2 + x2^2 + 2x1x2", 2, 2)
-    polynomial = polynomial_generation.Polynomial("normal_form", 4, 4, seed=seed)
+    polynomial = polynomial_generation.Polynomial("normal_form", 20, 4, seed=seed)
     matrix = monomials.generate_monomials_matrix(polynomial.n, polynomial.d)
     matrix_size = len(matrix[0])
 
@@ -432,7 +432,7 @@ if __name__ == "__main__":
     print("Size     Value          Difference        Time")
     for rate in np.linspace(0.1, 1, 10):
         random_projector = random_projections.RandomProjector(
-            round(matrix_size * rate), matrix_size, type="debug_constant", seed=seed
+            round(matrix_size * rate), matrix_size, type="sparse", seed=seed
         )
         
         rp_solution = solve_projected_unit_sphere(

@@ -125,12 +125,21 @@ def generate_monomials_exact_degree(n, d):
 
     """
 
+    # if n == 1:
+    #     yield (d,)
+    # else:
+    #     for value in range(d + 1):
+    #         for permutation in generate_monomials_exact_degree(n - 1, d - value):
+    #             yield (value,) + permutation
+
     if n == 1:
         yield (d,)
     else:
         for value in range(d + 1):
             for permutation in generate_monomials_exact_degree(n - 1, d - value):
-                yield (value,) + permutation
+                yield permutation + (value,) 
+
+
 
 
 def generate_monomials_up_to_degree(n, d):
@@ -165,7 +174,7 @@ def generate_monomials_up_to_degree(n, d):
     return monomials
 
 
-def generate_monomials_matrix(n, d):
+def generate_monomials_matrix(n, d, stable_set=False):
     """
     Generates matrix of monomials from outer product of vector of monomials
     of degree d/2 and n variables.
@@ -194,12 +203,12 @@ def generate_monomials_matrix(n, d):
     """
 
     monomials_vector = generate_monomials_up_to_degree(n, math.floor(d / 2))
-    monomials_matrix = outer_product_monomials(monomials_vector)
+    monomials_matrix = outer_product_monomials(monomials_vector, stable_set=stable_set)
 
     return monomials_matrix
 
 
-def outer_product_monomials(monomials_vector):
+def outer_product_monomials(monomials_vector, stable_set=False):
     """
     Generates matrix of monomials from outer product of vector of monomials
     of degree d/2 and n variables.
@@ -229,14 +238,24 @@ def outer_product_monomials(monomials_vector):
     for i in range(len(monomials_vector)):
         monomials_matrix.append([])
         for j in range(len(monomials_vector)):
-            monomials_matrix[i].append(
-                tuple(
-                    [
-                        monomials_vector[i][k] + monomials_vector[j][k]
-                        for k in range(len(monomials_vector[i]))
-                    ]
+            if stable_set:
+                monomials_matrix[i].append(
+                    tuple(
+                        [
+                            int(monomials_vector[i][k] + monomials_vector[j][k] != 0)
+                            for k in range(len(monomials_vector[i]))
+                        ]
+                    )
                 )
-            )
+            else:
+                monomials_matrix[i].append(
+                    tuple(
+                        [
+                            monomials_vector[i][k] + monomials_vector[j][k]
+                            for k in range(len(monomials_vector[i]))
+                        ]
+                    )
+                )
 
     return monomials_matrix
 
@@ -487,20 +506,19 @@ def stable_set_monomial_matrix(edges, n, level=1):
         Matrix of monomials.
 
     """
-    monomial_matrix = generate_monomials_matrix(n, 2 * level)
-    new_matrix = []
-    for row in monomial_matrix:
-        new_row = []
-        for tup in row:
-            new_tup = tuple(1 if x in list(range(1, n)) else x for x in tup)
-            new_row.append(new_tup)
-        new_matrix.append(new_row)
+    monomial_matrix = generate_monomials_matrix(n, 2 * level, stable_set=True)
 
-    monomial_matrix = new_matrix
+    # new_matrix = []
+    # for row in monomial_matrix:
+    #     new_row = []
+    #     for tup in row:
+    #         new_tup = tuple(1 if x in list(range(1, n)) else x for x in tup)
+    #         new_row.append(new_tup)
+    #     new_matrix.append(new_row)
+
+    # monomial_matrix = new_matrix
 
     return monomial_matrix
-
-    return tuples
 
 
 def generate_tuples(n, d):
@@ -601,26 +619,20 @@ def stable_set_distinct_monomials(edges, n, level=1):
         print("Generating distinct monomials level 1 degree 2...")
         degree_2 = generate_binary_monomials_exact_degree(n, 2)
         print("Filtering distinct monomials level 1 degree 2...")
-        # Filter those in edges
-        filtered_degree_2 = []
-        for i, monomial in enumerate(list(degree_2)):
-            print("Filtering monomial {} out of {}".format(i, len(list(degree_2))))
-            if not any(
-                sum(1 for x, y in zip(monomial, edge) if x == 1 and y == 1) >= 2
-                for edge in edges_to_monomials(edges, n)
-            ):
-                filtered_degree_2.append(monomial)
-
-        # degree_2 = [
-        #     monomial
-        #     for monomial in degree_2
+        degree_2 = [monomial for monomial in degree_2 if monomial not in edges_to_monomials(edges, n)]
+        # # Filter those in edges
+        # filtered_degree_2 = []
+        # no_monomials = len(list(degree_2))
+        # for i, monomial in enumerate(list(degree_2)):
+        #     print("Filtering monomial {} out of {}".format(i, no_monomials))
         #     if not any(
         #         sum(1 for x, y in zip(monomial, edge) if x == 1 and y == 1) >= 2
         #         for edge in edges_to_monomials(edges, n)
-        #     )
-        # ]
+        #     ):
+        #         filtered_degree_2.append(monomial)
+
                 
-        distinct_monomials = list(set(list(degree_1) + filtered_degree_2 + [tuple(0 for _ in range(n))]))
+        distinct_monomials = list(set(list(degree_1) + degree_2 + [tuple(0 for _ in range(n))]))
 
     if level == 2:
         # #OLD METHOD

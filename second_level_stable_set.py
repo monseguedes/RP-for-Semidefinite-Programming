@@ -95,46 +95,46 @@ def second_level_stable_set_problem_sdp(graph, verbose=False):
         b_sol = b.level()
         computation_time = end_time - start_time
 
-        # Print the frobenious norm of the data matrices A.
-        for i, monomial in enumerate(A.keys()):
-            print(
-                "Frobenious norm of A{}: {}".format(
-                    i, np.linalg.norm(A[monomial], ord="fro")
-                )
-            )
-            print("Rank of A{}: {}".format(i, np.linalg.matrix_rank(A[monomial])))
-            print(
-                "Nuclear norm of A{}: {}".format(
-                    i, np.linalg.norm(A[monomial], ord="nuc")
-                )
-            )
-            print(
-                "Sparsity of A{}: {}".format(
-                    i, np.count_nonzero(A[monomial]) / A[monomial].size
-                )
-            )
+        # # Print the frobenious norm of the data matrices A.
+        # for i, monomial in enumerate(A.keys()):
+        #     print(
+        #         "Frobenious norm of A{}: {}".format(
+        #             i, np.linalg.norm(A[monomial], ord="fro")
+        #         )
+        #     )
+        #     print("Rank of A{}: {}".format(i, np.linalg.matrix_rank(A[monomial])))
+        #     print(
+        #         "Nuclear norm of A{}: {}".format(
+        #             i, np.linalg.norm(A[monomial], ord="nuc")
+        #         )
+        #     )
+        #     print(
+        #         "Sparsity of A{}: {}".format(
+        #             i, np.count_nonzero(A[monomial]) / A[monomial].size
+        #         )
+        #     )
 
-        print("Number of distinct monomials: ", len(distinct_monomials))
-        # Print rank of solution matrix
-        print(
-            "Rank of solution matrix: ",
-            np.linalg.matrix_rank(X_sol.reshape(size_psd_variable, size_psd_variable)),
-        )
-        # Print the nuclear norm of the solution matrix
-        print(
-            "Nuclear norm of solution matrix: ",
-            np.linalg.norm(
-                X_sol.reshape(size_psd_variable, size_psd_variable), ord="nuc"
-            ),
-        )
-        # Print the frobenious norm of the solution matrix
-        print(
-            "Frobenious norm of solution matrix: ",
-            np.linalg.norm(
-                X_sol.reshape(size_psd_variable, size_psd_variable), ord="fro"
-            ),
-        )
-        print("Number of constraints: ", len(constraints) + 1)
+        # print("Number of distinct monomials: ", len(distinct_monomials))
+        # # Print rank of solution matrix
+        # print(
+        #     "Rank of solution matrix: ",
+        #     np.linalg.matrix_rank(X_sol.reshape(size_psd_variable, size_psd_variable)),
+        # )
+        # # Print the nuclear norm of the solution matrix
+        # print(
+        #     "Nuclear norm of solution matrix: ",
+        #     np.linalg.norm(
+        #         X_sol.reshape(size_psd_variable, size_psd_variable), ord="nuc"
+        #     ),
+        # )
+        # # Print the frobenious norm of the solution matrix
+        # print(
+        #     "Frobenious norm of solution matrix: ",
+        #     np.linalg.norm(
+        #         X_sol.reshape(size_psd_variable, size_psd_variable), ord="fro"
+        #     ),
+        # )
+        # print("Number of constraints: ", len(constraints) + 1)
 
         solution = {
             "X": X_sol,
@@ -171,15 +171,15 @@ def projected_second_level_stable_set_problem_sdp(
 
         # Lower and upper bounds
         if slack:
-            lb_variables = M.variable(len(distinct_monomials), mf.Domain.greaterThan(0))
-            ub_variables = M.variable(len(distinct_monomials), mf.Domain.greaterThan(0))
+            lb_variables = M.variable(len(distinct_monomials) - 1, mf.Domain.greaterThan(0))
+            ub_variables = M.variable(len(distinct_monomials) - 1, mf.Domain.greaterThan(0))
 
             # Lower and upper bounds of the dual variables
             epsilon = 0.00001
             dual_lower_bound = 0 - epsilon
             dual_upper_bound = 1 + epsilon
 
-        ones_vector = np.ones(len(distinct_monomials))
+        ones_vector = np.ones(len(distinct_monomials) - 1)
         ones_vector[0] = 0
 
         # Objective: maximize a (scalar)
@@ -217,8 +217,8 @@ def projected_second_level_stable_set_problem_sdp(
 
             if slack:
                 difference_slacks = mf.Expr.sub(
-                    lb_variables.index(i + 1),
-                    ub_variables.index(i + 1),
+                    lb_variables.index(i),
+                    ub_variables.index(i),
                 )
             else:
                 difference_slacks = 0
@@ -272,7 +272,7 @@ def projected_second_level_stable_set_problem_sdp(
         return solution
 
 
-def single_graph_results(graph, type="sparse"):
+def single_graph_results(graph: Graph, type="sparse", range=(0.1, 0.6), iterations=5):
     """
     Get the results for a single graph.
 
@@ -287,42 +287,40 @@ def single_graph_results(graph, type="sparse"):
 
     # Solve unprojected stable set problem
     # ----------------------------------------
-    sdp_solution = second_level_stable_set_problem_sdp(graph)
     print("\n" + "-" * 80)
     print("Results for a graph with {} vertices".format(graph.n).center(80))
     print("-" * 80)
     print(
-        "\n{: <12} {: >10} {: >18} {: >8} {: >8}".format(
-            "Type", "Size X", "Linear variables", "Value", "Time"
+        "\n{: <18} {: >10} {: >8} {: >8}".format(
+            "Type", "Size X", "Value", "Time"
         )
     )
     print("-" * 80)
 
     first_level = ssp.stable_set_problem_sdp(graph, verbose=False)
     print(
-        "{: <12} {: >10} {: >18} {: >8.2f} {: >8.2f}".format(
+        "{: <18} {: >10} {: >8.2f} {: >8.2f}".format(
             "Original L1",
             first_level["size_psd_variable"],
-            first_level["no_linear_variables"],
             first_level["objective"],
             first_level["computation_time"],
         )
     )
-
+    
+    sdp_solution = second_level_stable_set_problem_sdp(graph, verbose=False)
     print(
-        "{: <12} {: >10} {: >18} {: >8.2f} {: >8.2f}".format(
+        "{: <18} {: >10} {: >8.2f} {: >8.2f}".format(
             "Original L2",
             sdp_solution["size_psd_variable"],
-            sdp_solution["no_linear_variables"],
             sdp_solution["objective"],
             sdp_solution["computation_time"],
         )
     )
 
-    matrix_size = monomials.number_of_monomials_up_to_degree(graph.n, 2)
+    matrix_size = graph.A_L2[graph.distinct_monomials_L2[0]].shape[0]
 
     
-    for rate in np.linspace(0.1, 0.6, 10):
+    for rate in np.linspace(range[0], range[1], iterations):
         slack = True
         if rate > 0.5:
             slack = True
@@ -337,10 +335,9 @@ def single_graph_results(graph, type="sparse"):
         # Print in table format with rate as column and then value and increment as other columns
 
         print(
-            "{: <12.2f} {: >10} {: >18} {: >8.2f} {: >8.2f}".format(
-                rate,
+            "{: <18} {: >10} {: >8.2f} {: >8.2f}".format(
+                "Projection " + str(round(rate, 2)),
                 rp_solution["size_psd_variable"],
-                rp_solution["no_linear_variables"],
                 rp_solution["objective"],
                 rp_solution["computation_time"],
             )
@@ -353,10 +350,9 @@ def single_graph_results(graph, type="sparse"):
         graph, id_random_projector, verbose=False, slack=False
     )
     print(
-        "{: <12} {: >10} {: >18} {: >8.2f} {: >8.2f}".format(
+        "{: <18} {: >10} {: >8.2f} {: >8.2f}".format(
             "Identity",
             id_rp_solution["size_psd_variable"],
-            id_rp_solution["no_linear_variables"],
             id_rp_solution["objective"],
             id_rp_solution["computation_time"],
         )
@@ -378,11 +374,12 @@ def projected_dimension(epsilon, probability, ranks_Ai, rank_solution):
 
 
 if __name__ == "__main__":
-    directory = "graphs/generalised_petersen_10_2_complement"
+    directory = "graphs/generalised_petersen_10_2"
     file_path = directory + "/graph.pkl"
     with open(file_path, "rb") as file:
         graph = pickle.load(file)
 
     projected_dimension(0.0005, 0.9, [6 for i in range(500)], 66)
 
-    single_graph_results(graph, type="sparse")
+    single_graph_results(graph, type="sparse", range=(0.1, 0.8), iterations=8)
+    print("No. distinct monomials: ", len(graph.distinct_monomials_L2))

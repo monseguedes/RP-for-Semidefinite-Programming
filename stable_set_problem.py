@@ -30,7 +30,7 @@ import os
 from generate_graphs import Graph
 
 
-def stable_set_problem_sdp(graph, verbose=False):
+def stable_set_problem_sdp(graph: Graph, verbose=False):
     """
     Write the polynomial optimization problem for the stable set problem.
 
@@ -61,8 +61,28 @@ def stable_set_problem_sdp(graph, verbose=False):
     """
 
     distinct_monomials = graph.distinct_monomials_L1
+    # print("Number of distinct monomials: ", len(distinct_monomials)
+    # )
+    # print("Distinct monomials degree 0: {}".format(
+    #     [m for m in distinct_monomials if sum(m) == 0]
+    # ))
+    # print("Distinct monomials degree 1: {}".format(
+    #     [m for m in distinct_monomials if sum(m) == 1]
+    # ))
+    # print("Length of distinct monomials degree 1: {}".format(
+    #     len([m for m in distinct_monomials if sum(m) == 1])
+    # ))
+    # print("Distinct monomials degree 2: {}".format(
+    #     [m for m in distinct_monomials if sum(m) == 2]
+    # ))
+    # print("Length of distinct monomials degree 2: {}".format(
+    #     len([m for m in distinct_monomials if sum(m) == 2])
+    # ))
     edges = graph.edges
     A = graph.A
+    # print("Length of A: ", len(A.keys()))
+    # for monomial in distinct_monomials:
+    #     print("A_{}: {}".format(monomial, A[monomial]))
 
     # Coefficients of objective
     C = {monomial: -1 if sum(monomial) == 1 else 0 for monomial in distinct_monomials}
@@ -114,24 +134,25 @@ def stable_set_problem_sdp(graph, verbose=False):
 
         # PRINTING RANKS AND NORMS----------------------------------------------
         # ----------------------------------------------------------------------
-        for i, monomial in enumerate(A.keys()):
-            print(
-                "Frobenious norm of A{}: {}".format(
-                    i, np.linalg.norm(A[monomial], ord="fro")
-                )
-            )
-            print("Rank of A{}: {}".format(i, np.linalg.matrix_rank(A[monomial])))
-        print("Number of distinct monomials: ", len(distinct_monomials))
-        print(
-            "Rank of solution matrix: ",
-            np.linalg.matrix_rank(X_sol.reshape(size_psd_variable, size_psd_variable)),
-        )
-        print(
-            "Nuclear norm of solution matrix: ",
-            np.linalg.norm(
-                X_sol.reshape(size_psd_variable, size_psd_variable), ord="nuc"
-            ),
-        )
+        # for i, monomial in enumerate(A.keys()):
+        #     print(
+        #         "Frobenious norm of A{}: {}".format(
+        #             i, np.linalg.norm(A[monomial], ord="fro")
+        #         )
+        #     )
+        #     print("Rank of A{}: {}".format(i, np.linalg.matrix_rank(A[monomial])))
+        # print("Number of distinct monomials: ", len(distinct_monomials))
+        # print(
+        #     "Rank of solution matrix: ",
+        #     np.linalg.matrix_rank(X_sol.reshape(size_psd_variable, size_psd_variable)),
+        # )
+        # print(
+        #     "Nuclear norm of solution matrix: ",
+        #     np.linalg.norm(
+        #         X_sol.reshape(size_psd_variable, size_psd_variable), ord="nuc"
+        #     ),
+        # )
+        # print("Frobenious norm of X: ", np.linalg.norm(X_sol.reshape(size_psd_variable, size_psd_variable), ord="fro"))
         # ----------------------------------------------------------------------
         # ----------------------------------------------------------------------
 
@@ -189,15 +210,15 @@ def projected_stable_set_problem_sdp(graph, random_projector, verbose=False):
         X = M.variable(mf.Domain.inPSDCone(A[distinct_monomials[0]].shape[0]))
 
         # Lower and upper bounds
-        lb_variables = M.variable(len(distinct_monomials), mf.Domain.greaterThan(0))
-        ub_variables = M.variable(len(distinct_monomials), mf.Domain.greaterThan(0))
+        lb_variables = M.variable(len(distinct_monomials) - 1, mf.Domain.greaterThan(0))
+        ub_variables = M.variable(len(distinct_monomials) - 1, mf.Domain.greaterThan(0))
 
         # Lower and upper bounds of the dual variables
         epsilon = 0.00000001
         dual_lower_bound = 0 - epsilon
         dual_upper_bound = 1 + epsilon
 
-        ones_vector = np.ones(len(distinct_monomials))
+        ones_vector = np.ones(len(distinct_monomials) - 1)
         ones_vector[0] = 0
 
         # Objective
@@ -229,8 +250,8 @@ def projected_stable_set_problem_sdp(graph, random_projector, verbose=False):
         ):
             matrix_inner_product = mf.Expr.dot(A[monomial], X)
             difference_slacks = mf.Expr.sub(
-                lb_variables.index(i + 1),
-                ub_variables.index(i + 1),
+                lb_variables.index(i),
+                ub_variables.index(i),
             )
             # difference_slacks = 0
             M.constraint(
@@ -502,13 +523,14 @@ def single_graph_results(graph, type="sparse", project="variables", range=(0.4, 
     print("-" * 80)
 
     print(
-        "{: <12} {: >10} {: >18} {: >8.2f} {: >8.2f}".format(
+        "{: <12} {: >10} {: >8.2f} {: >8.2f}".format(
             "Original",
             sdp_solution["size_psd_variable"],
             sdp_solution["objective"],
             sdp_solution["computation_time"],
         )
     )
+
 
     matrix_size = graph.graph.shape[0] + 1
     for rate in np.linspace(range[0], range[1], iterations):
@@ -520,10 +542,9 @@ def single_graph_results(graph, type="sparse", project="variables", range=(0.4, 
         )
 
         print(
-            "{: <12.2f} {: >10} {: >18} {: >8.2f} {: >8.2f}".format(
+            "{: <12.2f} {: >10} {: >8.2f} {: >8.2f}".format(
                 rate,
                 rp_solution["size_psd_variable"],
-                rp_solution["no_linear_variables"],
                 rp_solution["objective"],
                 rp_solution["computation_time"],
             )
@@ -589,7 +610,7 @@ if __name__ == "__main__":
     seed = 2
     # Open graph from pickle
     # ----------------------------------------
-    directory = "graphs/200_vertices_0.6_probability"
+    directory = "graphs/generalised_petersen_10_2_complement"
     file_path = directory + "/graph.pkl"
     with open(file_path, "rb") as file:
         graph = pickle.load(file)

@@ -34,6 +34,12 @@ class Polynomial:
 
         self.n = n
         self.d = d
+        A = {}
+        self.monomial_matrix = monomials.generate_monomials_matrix(self.n, self.d)
+        self.distinct_monomials = monomials.get_list_of_distinct_monomials(self.monomial_matrix)
+        for monomial in self.distinct_monomials:
+            A[monomial] = monomials.pick_specific_monomial(self.monomial_matrix, monomial)
+        self.A = A
 
         if polynomial == "random":
             self.polynomial = self.generate_random_polynomial(

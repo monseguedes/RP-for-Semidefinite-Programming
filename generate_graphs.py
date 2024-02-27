@@ -60,6 +60,7 @@ class Graph:
         if verbose:
             print("Building Ai matrices for level 1")
         # Picking monomials from SOS polynomial
+        print("Monomial matrix:", monomials.print_readable_matrix(monomial_matrix))
         A = {
             monomial: monomials.pick_specific_monomial(monomial_matrix, monomial)
             for monomial in distinct_monomials
@@ -480,7 +481,7 @@ def generate_probability_graph(n, p, seed=0):
 
     prob.get_edges_from_matrix()
     prob.plot_graph()
-    prob.get_picking_SOS(verbose=True)
+    # prob.get_picking_SOS(verbose=True)
     # prob.picking_for_level_two(verbose=True)
     prob.store_graph("{}_vertices_{}_probability".format(n, p))
 
@@ -553,13 +554,13 @@ def generate_connected_imperfect_graph(repetitions, p, type="6_wheel"):
 
 
 if __name__ == "__main__":
-    # generate_pentagon()
+    generate_pentagon()
     # generate_pentagon_with_legs()
     # generate_triangle()
     # generate_petersen_graph()
     # generate_6_wheel_graph()
-    # generate_generalised_petersen(10, 2, complement=True)
+    generate_generalised_petersen(10, 2, complement=True)
     # generate_cordones(5, complement=False)
     # more_connected_cordones(5, complement=False)
-    generate_probability_graph(200, 0.6, seed=0)
+    # generate_probability_graph(1000, 0.2, seed=0)
     # generate_connected_imperfect_graph(5, 0.4)

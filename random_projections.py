@@ -156,6 +156,30 @@ class RandomProjector:
 
         return (self.projector @ matrix) @ self.projector.T
 
+    def lift_solution(self, solution):
+        """
+        Lifts the solution of the projected problem to the original space.
+
+        Parameters
+        ----------
+        solution : numpy.ndarray
+            Solution of the projected problem.
+
+        Returns
+        -------
+        lifted_solution : numpy.ndarray
+            Lifted solution to the original space.
+
+        Examples
+        --------
+        >>> lift_solution(np.array([[1, 2], [3, 4]]), np.array([[0, 0], [0, 1]]))
+        array([[0, 0],
+            [0, 4]])
+
+        """
+
+        return self.projector.T @ solution @ self.projector
+    
     def make_random_squared_matrix(self, type="sparse"):
         """
         Generates a random squared matrix of a given dimension k.

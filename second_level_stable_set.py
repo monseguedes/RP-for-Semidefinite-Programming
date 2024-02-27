@@ -10,7 +10,7 @@ import monomials
 import pickle
 from generate_graphs import Graph
 from process_DIMACS_data import Graph_File
-import stable_set_problem as ssp
+import first_level_stable_set as ssp
 import random_projections as rp
 
 

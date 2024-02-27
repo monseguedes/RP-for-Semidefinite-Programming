@@ -6,6 +6,7 @@ import matplotlib.pyplot as plt
 import pickle
 from generate_graphs import Graph
 import random_projections as rp
+from process_graphs import File
 
 
 def laplacian_matrix(graph):
@@ -40,6 +41,15 @@ def sdp_relaxation(graph):
     """
     Solves the MaxCut problem using the SDP relaxation
     method.
+
+    This problem is formulated as a semidefinite program
+    as follows:
+
+    max 1/4 * <L, X>
+    s.t. X is PSD
+         X_ii = 1 for all i
+    
+    where L is the Laplacian matrix of the graph.
 
     Parameters
     ----------
@@ -106,7 +116,11 @@ def projected_sdp_relaxation(graph, projector, verbose=False, slack=True):
         A_matrix[i, i] = 1
         A[i] = A_matrix
 
-    projected_A = {i: projector.apply_rp_map(A[i]) for i in range(original_dimension)}
+    # projected_A = {}
+    # for i in range(original_dimension):
+    #     print("Projecting A matrix... {}/{}".format(i + 1, original_dimension), end="\r")
+    #     projected_A[i] = projector.apply_rp_map(A[i])
+    # print("Done!")
 
     with mf.Model("SDP") as M:
         # PSD variable X
@@ -141,18 +155,24 @@ def projected_sdp_relaxation(graph, projector, verbose=False, slack=True):
         )
 
         # Constraints:
-        constraints = []
+        # constraints = []
         for i in range(original_dimension):
+            print("Adding constraints... {}/{}".format(i + 1, original_dimension), end="\r")
             difference_slacks = mf.Expr.sub(
                 lb_variables.index(i),
                 ub_variables.index(i),
             )
-            constraints.append(
-                M.constraint(
-                    mf.Expr.add(mf.Expr.dot(projected_A[i], X), difference_slacks),
+            # constraints.append(
+            #     M.constraint(
+            #         mf.Expr.add(mf.Expr.dot(projector.apply_rp_map(A[i]), X), difference_slacks),
+            #         mf.Domain.equalsTo(1),
+            #     )
+            # )
+            M.constraint(
+                    mf.Expr.add(mf.Expr.dot(projector.apply_rp_map(A[i]), X), difference_slacks),
                     mf.Domain.equalsTo(1),
                 )
-            )
+        
 
         start_time = time.time()
         # Solve the problem
@@ -224,21 +244,23 @@ def single_graph_results(graph: Graph, type="sparse", range=(0.1, 0.5), iteratio
     print("Results for a graph with {} vertices".format(graph.n).center(80))
     print("-" * 80)
     print(
-        "\n{: <18} {: >10} {: >8} {: >8} {: >8}".format(
-            "Type", "Size X", "Value", "Time", "Cut"
+        "\n{: <18} {: >10} {: >8} {: >8} {: >8} {: >8} {:>12}".format(
+            "Type", "Size X", "Value", "Quality", "Time", "Cut", "Cut Quality"
         )
     )
     print("-" * 80)
 
     sdp_solution = sdp_relaxation(graph)
-    _, cut = retrieve_solution(sdp_solution["X_sol"], graph.edges)
+    _, opt_cut = retrieve_solution(sdp_solution["X_sol"], graph.edges)
     print(
-        "{: <18} {: >10} {: >8.2f} {: >8.2f} {: >8}".format(
+        "{: <18} {: >10} {: >8.2f} {: >8} {: >8.2f} {: >8} {:>12}".format(
             "SDP Relaxation",
             sdp_solution["size_psd_variable"],
             sdp_solution["objective"],
+            "100%",
             sdp_solution["computation_time"],
-            cut,
+            opt_cut,
+            "100%",
         )
     )
 
@@ -254,17 +276,20 @@ def single_graph_results(graph: Graph, type="sparse", range=(0.1, 0.5), iteratio
         rp_solution = projected_sdp_relaxation(
             graph, random_projector, verbose=False, slack=slack
         )
+        quality = rp_solution["objective"] / sdp_solution["objective"] * 100
         # Lift up solution
         lifted_solution = random_projector.lift_solution(rp_solution["X_sol"])
         _, cut = retrieve_solution(lifted_solution, graph.edges)
 
         print(
-            "{: <18.2f} {: >10} {: >8.2f} {: >8.2f} {: >8}".format(
-                rate,
+            "{: <18} {: >10} {: >8.2f} {: >8} {: >8.2f} {: >8} {:>12}".format(
+                "Projection " + str(round(rate, 2)),
                 rp_solution["size_psd_variable"],
                 rp_solution["objective"],
+                str(round(quality, 2)) + "%",
                 rp_solution["computation_time"],
                 cut,
+                str(round(cut / opt_cut * 100, 2)) + "%",
             )
         )
 
@@ -274,29 +299,96 @@ def single_graph_results(graph: Graph, type="sparse", range=(0.1, 0.5), iteratio
     id_rp_solution = projected_sdp_relaxation(
         graph, id_random_projector, verbose=False, slack=False
     )
+    quality = id_rp_solution["objective"] / sdp_solution["objective"] * 100
     _, cut = retrieve_solution(id_rp_solution["X_sol"], graph.edges)
     print(
-        "{: <18} {: >10} {: >8.2f} {: >8.2f} {: >8}".format(
+        "{: <18} {: >10} {: >8.2f} {:>8} {: >8.2f} {: >8} {:>12}".format(
             "Identity",
             id_rp_solution["size_psd_variable"],
             id_rp_solution["objective"],
+            str(round(quality, 2)) + "%",
             id_rp_solution["computation_time"],
             cut,
+            str(round(cut / opt_cut * 100, 2)) + "%",
         )
     )
 
     print()
 
+def comparison_graphs(graphs_list, percentage):
+    """
+    Compare the results for a list of graphs.
+
+    Parameters
+    ----------
+    graphs_list : list
+        List of Graph objects.
+    """
+
+    # Solve unprojected stable set problem
+    # ----------------------------------------
+    print("\n" + "-" * 110)
+    print("Comparison of different graphs for {}% projection".format(int(percentage * 100)).center(110))
+    print("-" * 110)
+    print(
+        "\n {: <6} {: >10} {: >12} {: >12} {: >18} {: >18} {: >12}".format(
+            "Graph", "Size", "SDP value", "SDP cuts", "Projection value", "Projection cuts", "Quality"
+        )
+    )
+    print("-" * 110)
+    
+    for graph in graphs_list:
+        sdp_solution = sdp_relaxation(graph)
+        # sdp_solution  = {
+        #     "X_sol": "-",
+        #     "objective": "-",
+        #     "size_psd_variable": graph.n,
+        # }
+        _, opt_cut = retrieve_solution(sdp_solution["X_sol"], graph.edges)
+        # opt_cut = "-"
+        matrix_size = sdp_solution["size_psd_variable"]
+        random_projector = rp.RandomProjector(
+            round(matrix_size * percentage), matrix_size, type="sparse"
+        )
+        rp_solution = projected_sdp_relaxation(graph, random_projector, verbose=True)
+        # Lift up solution
+        lifted_solution = random_projector.lift_solution(rp_solution["X_sol"])
+        _, cut = retrieve_solution(lifted_solution, graph.edges)
+        quality = cut / opt_cut * 100
+        # quality = "-"
+        print(
+            "{: <6} {: >10} {: >12.2f} {: >12} {: >18.2f} {: >18} {: >12}".format(
+                graph.name,
+                sdp_solution["size_psd_variable"],
+                sdp_solution["objective"],
+                opt_cut,
+                rp_solution["objective"],
+                cut,
+                str(round(quality, 2)) + "%",
+            )
+        )
+
+
 
 if __name__ == "__main__":
     # Create a graph
-    directory = "graphs/400_vertices_0.2_probability"
+    # directory = "graphs/1000_vertices_0.2_probability"
+    directory = "graphs/maxcut/G1"
     file_path = directory + "/graph.pkl"
     with open(file_path, "rb") as file:
         graph = pickle.load(file)
 
-    # Solve the MaxCut problem using the SDP relaxation method
-    solution = sdp_relaxation(graph)
+    # # Solve the MaxCut problem using the SDP relaxation method
+    # solution = sdp_relaxation(graph)
 
-    # Get the results for a single graph
-    single_graph_results(graph, type="sparser", range=(0.1, 0.9), iterations=9)
+    # # Get the results for a single graph
+    # single_graph_results(graph, type="sparse", range=(0.1, 0.9), iterations=9)
+
+    # Get the results for a list of graphs
+    list_of_graphs = []
+    for i in range(1, 10):
+        file_name = "graphs/maxcut/G" + str(i) + ".txt"
+        file = File(file_name)
+        list_of_graphs.append(file)
+
+    comparison_graphs(list_of_graphs, 0.2)

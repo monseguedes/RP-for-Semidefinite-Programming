@@ -78,9 +78,7 @@ class Polynomial:
 
         polynomial = {
             tuple: 0
-            for tuple in monomials.get_list_of_distinct_monomials(
-                monomials.generate_monomials_matrix(n, d)
-            )
+            for tuple in monomials.generate_monomials_up_to_degree(n, d)
         }
 
         np.random.seed(seed)

@@ -7,7 +7,8 @@ import numpy as np
 import math
 import scipy
 import itertools
-import time
+import time 
+from ordered_set import OrderedSet
 
 
 def sum_tuples(t1, t2):
@@ -233,6 +234,11 @@ def outer_product_monomials(monomials_vector, stable_set=False):
     ]
 
     """
+
+    if stable_set:
+        monomials_vector = [tuple(1 if x in list(range(1, len(monomials_vector[0]))) else x for x in monomial) for monomial in monomials_vector]
+        set_monomials_vector = OrderedSet(monomials_vector)
+        monomials_vector = list(set_monomials_vector)
 
     monomials_matrix = []
     for i in range(len(monomials_vector)):

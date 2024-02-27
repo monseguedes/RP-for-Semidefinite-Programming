@@ -17,6 +17,7 @@ vimquickrun.sh
 
 *.clq
 *.pkl
+*.txt
 
 # ignore DS_Store
 .DS_Store

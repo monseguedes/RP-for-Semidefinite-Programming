@@ -287,12 +287,6 @@ def projected_sdp_relaxation(
     monomial_matrix = monomials.generate_monomials_matrix(polynomial.n, polynomial.d)
     distinct_monomials = monomials.get_list_of_distinct_monomials(monomial_matrix)
 
-    # Picking monomials from SOS polynomial
-    # A = {
-    #     monomial: monomials.pick_specific_monomial(monomial_matrix, monomial)
-    #     for monomial in distinct_monomials
-    # }
-
     A = {}
     for monomial in distinct_monomials:
         A[monomial] = random_projector.apply_rp_map(
@@ -380,7 +374,6 @@ def projected_sdp_relaxation(
                 print("a[{}]:".format(i + 1))
                 print(a[monomial])
 
-            # matrix_inner_product = np.dot(random_projector.apply_rp_map(A[monomial]), X)
             matrix_inner_product = mf.Expr.dot(A[monomial], X)
 
             difference_slacks = mf.Expr.sub(
@@ -423,10 +416,6 @@ def projected_sdp_relaxation(
                     polynomial.polynomial[tuple_of_constant]
                 )
             )
-
-        # matrix_inner_product = np.dot(
-        #     random_projector.apply_rp_map(A[tuple_of_constant]), X
-        # )
         matrix_inner_product = mf.Expr.dot(A[tuple_of_constant], X)
         difference_slacks = mf.Expr.sub(lb_variables.index(0), ub_variables.index(0))
 
@@ -585,9 +574,3 @@ if __name__ == "__main__":
             )
         )
         X_solutions.append(rp_solution["X"])
-
-    print("-" * 50)
-    for i, X in enumerate(X_solutions):
-        print("Size of X_{}: {}".format(i, len(X)))
-        print("X_{}: {}".format(i, X[:5]))
-    print("-" * 50)

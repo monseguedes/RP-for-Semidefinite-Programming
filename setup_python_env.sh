@@ -28,5 +28,6 @@ pip install \
     Mosek \
     pandas \
     scipy \ 
-    seaborn 
+    seaborn \
+    yaml 
     

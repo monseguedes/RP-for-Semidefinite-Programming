@@ -1,3 +1,17 @@
+"""
+This script contains the implementation of the MaxCut problem
+using the SDP relaxation method and its projection. 
+
+The script also contains the implementation of the random projection
+map for SDP problems, i.e. m_P(A):A --> PAP^T, where P is a random
+projection matrix. We solve the following problem:
+
+    max 1/4 * <L, X>
+    s.t. X is PSD
+         X_ii = 1 for all i
+
+"""
+
 import numpy as np
 import networkx as nx
 import mosek.fusion as mf
@@ -7,6 +21,7 @@ import pickle
 from generate_graphs import Graph
 import random_projections as rp
 from process_graphs import File
+import monomials
 
 
 def laplacian_matrix(graph):
@@ -78,31 +93,42 @@ def sdp_relaxation(graph):
         # Constraints:
         constraints = []
         for i in range(n):
+            print("Adding constraints... {}/{}          ".format(i + 1, n), end="\r")
             constraints.append(M.constraint(X.index(i, i), mf.Domain.equalsTo(1)))
 
         start_time = time.time()
-        # Solve the problem
+        print(f"Solving the problem of size {n}         " , end="\r")
         M.solve()
         end_time = time.time()
 
-        # Get the solution
-        X_sol = X.level()
-        X_sol = X_sol.reshape((n, n))
-
-        computation_time = end_time - start_time
 
         solution = {
-            "X_sol": X_sol,
-            "computation_time": computation_time,
+            "X_sol": X.level().reshape((n, n)),
+            "computation_time": end_time - start_time,
             "objective": M.primalObjValue(),
             "size_psd_variable": n,
         }
+
+        # print("The nuclear norm the solution matrix is: ", np.linalg.norm(solution["X_sol"], "nuc"))
+        # print("The frobenius norm of the solution matrix is: ", np.linalg.norm(solution["X_sol"], "fro"))
+        # print("The nuclear norm of the laplacian matrix is: ", np.linalg.norm(L, "nuc"))
+        # print("The frobenius norm of the laplacian matrix is: ", np.linalg.norm(L, "fro"))
+
 
         return solution
 
 
 def projected_sdp_relaxation(graph, projector, verbose=False, slack=True):
-    """ """
+    """ 
+    Solves the MaxCut problem using the SDP relaxation method
+    and a random projection map.
+
+    This problem is formulated as a semidefinite program
+    as follows:
+
+    TODO: Add the problem formulation here.
+    
+    """
 
     L = laplacian_matrix(graph)
     original_dimension = L.shape[0]
@@ -120,7 +146,6 @@ def projected_sdp_relaxation(graph, projector, verbose=False, slack=True):
     # for i in range(original_dimension):
     #     print("Projecting A matrix... {}/{}".format(i + 1, original_dimension), end="\r")
     #     projected_A[i] = projector.apply_rp_map(A[i])
-    # print("Done!")
 
     with mf.Model("SDP") as M:
         # PSD variable X
@@ -157,7 +182,7 @@ def projected_sdp_relaxation(graph, projector, verbose=False, slack=True):
         # Constraints:
         # constraints = []
         for i in range(original_dimension):
-            print("Adding constraints... {}/{}".format(i + 1, original_dimension), end="\r")
+            print("Adding constraints... {}/{}          ".format(i + 1, original_dimension), end="\r")
             difference_slacks = mf.Expr.sub(
                 lb_variables.index(i),
                 ub_variables.index(i),
@@ -176,6 +201,7 @@ def projected_sdp_relaxation(graph, projector, verbose=False, slack=True):
 
         start_time = time.time()
         # Solve the problem
+        print(f"Solving the problem of size {n}         " , end="\r")
         M.solve()
         end_time = time.time()
 
@@ -232,10 +258,13 @@ def single_graph_results(graph: Graph, type="sparse", range=(0.1, 0.5), iteratio
     Parameters
     ----------
     graph : Graph
-        Graph object.
-    type : str
-        Type of random projector.
-
+        Graph object representing the input graph.
+    type : str, optional
+        Type of random projector. Defaults to "sparse".
+    range : tuple, optional
+        Range of rates for the random projector. Defaults to (0.1, 0.5).
+    iterations : int, optional
+        Number of iterations for the random projector. Defaults to 5.
     """
 
     # Solve unprojected stable set problem
@@ -257,10 +286,10 @@ def single_graph_results(graph: Graph, type="sparse", range=(0.1, 0.5), iteratio
             "SDP Relaxation",
             sdp_solution["size_psd_variable"],
             sdp_solution["objective"],
-            "100%",
+            "-",
             sdp_solution["computation_time"],
             opt_cut,
-            "100%",
+            "-",
         )
     )
 
@@ -279,7 +308,8 @@ def single_graph_results(graph: Graph, type="sparse", range=(0.1, 0.5), iteratio
         quality = rp_solution["objective"] / sdp_solution["objective"] * 100
         # Lift up solution
         lifted_solution = random_projector.lift_solution(rp_solution["X_sol"])
-        _, cut = retrieve_solution(lifted_solution, graph.edges)
+        dumb_matrix = np.random.randint(low=-10, high=10, size=(matrix_size, matrix_size))
+        _, cut = retrieve_solution(dumb_matrix, graph.edges)
 
         print(
             "{: <18} {: >10} {: >8.2f} {: >8} {: >8.2f} {: >8} {:>12}".format(
@@ -313,7 +343,10 @@ def single_graph_results(graph: Graph, type="sparse", range=(0.1, 0.5), iteratio
         )
     )
 
+    print(sdp_solution["X_sol"])
+
     print()
+
 
 def comparison_graphs(graphs_list, percentage):
     """
@@ -369,11 +402,10 @@ def comparison_graphs(graphs_list, percentage):
         )
 
 
-
 if __name__ == "__main__":
     # Create a graph
-    # directory = "graphs/1000_vertices_0.2_probability"
-    directory = "graphs/maxcut/G1"
+    directory = "graphs/300_vertices_0.1_probability"
+    directory = "graphs/maxcut/G"
     file_path = directory + "/graph.pkl"
     with open(file_path, "rb") as file:
         graph = pickle.load(file)
@@ -381,14 +413,14 @@ if __name__ == "__main__":
     # # Solve the MaxCut problem using the SDP relaxation method
     # solution = sdp_relaxation(graph)
 
-    # # Get the results for a single graph
-    # single_graph_results(graph, type="sparse", range=(0.1, 0.9), iterations=9)
+    # Get the results for a single graph
+    single_graph_results(graph, type="sparse", range=(0.001, 0.025), iterations=5)
 
-    # Get the results for a list of graphs
-    list_of_graphs = []
-    for i in range(1, 10):
-        file_name = "graphs/maxcut/G" + str(i) + ".txt"
-        file = File(file_name)
-        list_of_graphs.append(file)
+    # # Get the results for a list of graphs
+    # list_of_graphs = []
+    # for i in range(1, 10):
+    #     file_name = "graphs/maxcut/G" + str(i) + ".txt"
+    #     file = File(file_name)
+    #     list_of_graphs.append(file)
 
-    comparison_graphs(list_of_graphs, 0.2)
+    # comparison_graphs(list_of_graphs, 0.2)

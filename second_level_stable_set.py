@@ -63,6 +63,7 @@ def second_level_stable_set_problem_sdp(graph, verbose=False):
         for i, monomial in enumerate(
             [m for m in distinct_monomials if m != tuple_of_constant]
         ):
+            print("Adding constraints... {}/{}          ".format(i + 1, len(distinct_monomials) - 1), end="\r")
             # print("Building constraint for monomial {} out of {}".format(i, len(distinct_monomials)))
             SOS_dot_X = mf.Expr.dot(A[monomial], X)
 
@@ -87,6 +88,7 @@ def second_level_stable_set_problem_sdp(graph, verbose=False):
 
         start_time = time.time()
         # Solve the problem
+        print(f"Solving the problem of size {size_psd_variable}         " , end="\r")
         M.solve()
         end_time = time.time()
 
@@ -212,6 +214,7 @@ def projected_second_level_stable_set_problem_sdp(
         for i, monomial in enumerate(
             [m for m in distinct_monomials if m != tuple_of_constant]
         ):
+            print("Adding constraints... {}/{}          ".format(i + 1, len(distinct_monomials) - 1), end="\r")
             # print("Building constraint for monomial {} out of {}".format(i, len(distinct_monomials)))
             SOS_dot_X = mf.Expr.dot(A[monomial], X)
 
@@ -247,6 +250,7 @@ def projected_second_level_stable_set_problem_sdp(
 
         start_time = time.time()
         # Solve the problem
+        print(f"Solving the problem of size {size_psd_variable}         " , end="\r")
         M.solve()
         end_time = time.time()
 

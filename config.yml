@@ -1,0 +1,47 @@
+seed: 0 
+fully_overwrite: False
+
+# Datasets
+download: True
+websites: 
+  biqmac: "https://biqmac.aau.at/biqmaclib.html"
+  yyye: "https://web.stanford.edu/~yyye/yyye/Gset/"
+
+# Stable set
+stable_set:
+  max_vertices: 25
+  projection:
+    - 0.5
+    - 0.6
+  c_projection:
+    - 0.05
+    - 0.1
+    - 0.2
+  projector: 
+    - "sparser"
+    - "sparse"
+    - "gaussian"
+
+petersen_n_k:
+  - n: 5
+    k: 2
+  - n: 7
+    k: 2
+
+cordones:
+  - n: 5
+  - n: 6
+
+# Maxcut
+maxcut:
+  max_vertices: 800
+  weighted: False
+  projector: 
+    - "sparser"
+    - "sparse"
+  projection:
+    - 0.1
+    - 0.2
+
+
+# Maxsat

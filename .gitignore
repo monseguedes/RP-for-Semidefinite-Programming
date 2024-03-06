@@ -20,7 +20,7 @@ vimquickrun.sh
 *.txt
 
 # ignore in folder ruby
-ruby/
+rudy/
 ising/
 
 # ignore DS_Store

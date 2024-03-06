@@ -39,6 +39,7 @@ from generate_graphs import Graph
 import random_projections as rp
 import maxcut
 from process_graphs import File
+import json
 
 
 def download_datasets(config):
@@ -142,7 +143,7 @@ def run_stable_set_experiments(config):
                 graph = pickle.load(file)
 
             stable_set_experiments_graph(
-                f"results/stable_set/petersen/{n}_{k}.txt", graph
+                f"results/stable_set/petersen/{n}_{k}.pkl", graph
             )
 
             print(f"    Running experiments for graph {n}_{k} complement")
@@ -158,7 +159,7 @@ def run_stable_set_experiments(config):
                 graph = pickle.load(file)
 
             stable_set_experiments_graph(
-                f"results/stable_set/petersen/{n}_{k}_complement.txt", graph
+                f"results/stable_set/petersen/{n}_{k}_complement.pkl", graph
             )
 
     # Create folder for cordones results
@@ -178,7 +179,7 @@ def run_stable_set_experiments(config):
             with open(file_path, "rb") as file:
                 graph = pickle.load(file)
 
-            stable_set_experiments_graph(f"results/stable_set/cordones/{n}.txt", graph)
+            stable_set_experiments_graph(f"results/stable_set/cordones/{n}.pkl", graph)
 
             print(f"    Running experiments for graph {n} complement")
             if not os.path.isfile(f"graphs/cordones_{n}_complement/graph.pkl"):
@@ -191,7 +192,7 @@ def run_stable_set_experiments(config):
                 graph = pickle.load(file)
 
             stable_set_experiments_graph(
-                f"results/stable_set/cordones/{n}_complement.txt", graph
+                f"results/stable_set/cordones/{n}_complement.pkl", graph
             )
 
 
@@ -210,17 +211,12 @@ def stable_set_experiments_graph(directory, graph, complement=False):
     """
 
     L1_results = first_level_stable_set.stable_set_problem_sdp(graph)
-    with open(directory, "w") as file:
-        file.write("{L1: " + str(L1_results))
+    dict = {"L1": L1_results}
 
     L2_results = second_level_stable_set.second_level_stable_set_problem_sdp(graph)
-    with open(directory, "a") as file:
-        file.write(", L2: " + str(L2_results))
+    dict["L2"] = L2_results
 
     for projector_type in config["stable_set"]["projector"]:
-        with open(directory, "a") as file:
-            file.write(", " + projector_type + ": {")
-
         projections = config["stable_set"]["projection"]
         if complement:
             projections = config["stable_set"]["c_projection"]
@@ -230,18 +226,17 @@ def stable_set_experiments_graph(directory, graph, complement=False):
                 L2_results["size_psd_variable"],
                 projector_type,
             )
-            results = second_level_stable_set.projected_second_level_stable_set_problem_sdp(
-                graph, projector
+            results = (
+                second_level_stable_set.projected_second_level_stable_set_problem_sdp(
+                    graph, projector
+                )
             )
-            with open(directory, "a") as file:
-                file.write(f"{projection}: " + str(results) + ", ")
 
-        with open(directory, "a") as file:
-            file.write("}")
+            dict[projection] = results
 
-
-    with open(directory, "a") as file:
-        file.write("}")
+    # Save as pickle
+    with open(directory, "wb") as f:
+        pickle.dump(dict, f)
 
 
 def run_maxcut_experiments(config):
@@ -258,8 +253,9 @@ def run_maxcut_experiments(config):
         folder
         for folder in os.listdir("graphs/maxcut")
         if os.path.isdir(os.path.join("graphs/maxcut", folder))
-    ][:10]
-    for i, name in enumerate(folders):  
+        and not folder in ["rudy", "ising"]
+    ]
+    for i, name in enumerate(folders):
         print(f"Scanning graph {i + 1} of {len(folders)}")
         directory = f"graphs/maxcut"
         file_path = directory + f"/{name}/graph.pkl"
@@ -269,25 +265,21 @@ def run_maxcut_experiments(config):
 
         if graph.n <= config["maxcut"]["max_vertices"]:
             print(f"    Running experiments for graph {name}")
-            maxcut_experiments_graph(
-                f"results/maxcut/{name}.txt", graph
-            )
+            maxcut_experiments_graph(f"results/maxcut/{name}.pkl", graph)
 
 
 def maxcut_experiments_graph(directory, graph):
-    """ 
-    Run the experiments and store them in files. 
-    
+    """
+    Run the experiments and store them in files.
+
     """
 
     results = maxcut.sdp_relaxation(graph)
-    with open(directory, "w") as file:
-        file.write("{original: " + str(results))
-    
+
+    dict = {"original": results}
+
     for projector_type in config["maxcut"]["projector"]:
-        with open(directory, "a") as file:
-            file.write(", " + projector_type + ": {")
-        
+        dict[projector_type] = {}
         for projection in config["maxcut"]["projection"]:
             projector = rp.RandomProjector(
                 round(projection * results["size_psd_variable"]),
@@ -295,19 +287,17 @@ def maxcut_experiments_graph(directory, graph):
                 projector_type,
             )
             p_results = maxcut.projected_sdp_relaxation(graph, projector)
-            with open(directory, "a") as file:
-                file.write(f"{projection}: " + str(p_results) + ", ")
+           
+            dict[projector_type][projection] = p_results
 
-        with open(directory, "a") as file:
-            file.write("}")
-
-    with open(directory, "a") as file:
-        file.write("}")
+    # Save as pickle
+    with open(directory, "wb") as f:
+        pickle.dump(dict, f)
 
 
 if __name__ == "__main__":
     with open("config.yml", "r") as config_file:
         config = yaml.safe_load(config_file)
 
-    # run_stable_set_experiments(config)
-    run_maxcut_experiments(config)
+    run_stable_set_experiments(config)
+    # run_maxcut_experiments(config)

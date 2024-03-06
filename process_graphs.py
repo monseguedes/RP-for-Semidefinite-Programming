@@ -93,7 +93,17 @@ if __name__ == "__main__":
     # file = File(file_name)
     # file.store_graph("G1")
 
-    for i in range(1, 68):
-        file_name = "graphs/maxcut/G" + str(i) + ".txt"
+    # for i in range(1, 68):
+    #     file_name = "graphs/maxcut/G" + str(i) + ".txt"
+    #     file = File(file_name)
+    #     file.store_graph("G" + str(i))
+
+    # for graph in os.listdir("graphs/maxcut/rudy"):
+    #     file_name = "graphs/maxcut/rudy/" + graph
+    #     file = File(file_name)
+    #     file.store_graph(graph)
+
+    for graph in os.listdir("graphs/maxcut/ising"):
+        file_name = "graphs/maxcut/ising/" + graph
         file = File(file_name)
-        file.store_graph("G" + str(i))
+        file.store_graph(graph)

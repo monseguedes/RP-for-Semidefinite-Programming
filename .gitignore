@@ -19,5 +19,9 @@ vimquickrun.sh
 *.pkl
 *.txt
 
+# ignore in folder ruby
+ruby/
+ising/
+
 # ignore DS_Store
 .DS_Store

@@ -107,6 +107,7 @@ def sdp_relaxation(graph):
             "computation_time": end_time - start_time,
             "objective": M.primalObjValue(),
             "size_psd_variable": n,
+            "edges": len(graph.edges),
         }
 
         # print("The nuclear norm the solution matrix is: ", np.linalg.norm(solution["X_sol"], "nuc"))

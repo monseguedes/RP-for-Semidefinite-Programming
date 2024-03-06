@@ -19,8 +19,6 @@ stable_set:
     - 0.2
   projector: 
     - "sparser"
-    - "sparse"
-    - "gaussian"
 
 petersen_n_k:
   - n: 5
@@ -39,9 +37,14 @@ maxcut:
   projector: 
     - "sparser"
     - "sparse"
+    - "0.1_density"
+    - "0.2_density"
+
   projection:
     - 0.1
     - 0.2
+  results:
+    min_vertices: 100
 
 
 # Maxsat

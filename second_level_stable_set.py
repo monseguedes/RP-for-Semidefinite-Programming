@@ -97,47 +97,6 @@ def second_level_stable_set_problem_sdp(graph, verbose=False):
         b_sol = b.level()
         computation_time = end_time - start_time
 
-        # # Print the frobenious norm of the data matrices A.
-        # for i, monomial in enumerate(A.keys()):
-        #     print(
-        #         "Frobenious norm of A{}: {}".format(
-        #             i, np.linalg.norm(A[monomial], ord="fro")
-        #         )
-        #     )
-        #     print("Rank of A{}: {}".format(i, np.linalg.matrix_rank(A[monomial])))
-        #     print(
-        #         "Nuclear norm of A{}: {}".format(
-        #             i, np.linalg.norm(A[monomial], ord="nuc")
-        #         )
-        #     )
-        #     print(
-        #         "Sparsity of A{}: {}".format(
-        #             i, np.count_nonzero(A[monomial]) / A[monomial].size
-        #         )
-        #     )
-
-        # print("Number of distinct monomials: ", len(distinct_monomials))
-        # # Print rank of solution matrix
-        # print(
-        #     "Rank of solution matrix: ",
-        #     np.linalg.matrix_rank(X_sol.reshape(size_psd_variable, size_psd_variable)),
-        # )
-        # # Print the nuclear norm of the solution matrix
-        # print(
-        #     "Nuclear norm of solution matrix: ",
-        #     np.linalg.norm(
-        #         X_sol.reshape(size_psd_variable, size_psd_variable), ord="nuc"
-        #     ),
-        # )
-        # # Print the frobenious norm of the solution matrix
-        # print(
-        #     "Frobenious norm of solution matrix: ",
-        #     np.linalg.norm(
-        #         X_sol.reshape(size_psd_variable, size_psd_variable), ord="fro"
-        #     ),
-        # )
-        # print("Number of constraints: ", len(constraints) + 1)
-
         solution = {
             "X": X_sol,
             "b": b_sol,
@@ -145,6 +104,7 @@ def second_level_stable_set_problem_sdp(graph, verbose=False):
             "computation_time": computation_time,
             "size_psd_variable": size_psd_variable,
             "no_linear_variables": "TBC",
+            "edges": edges,
         }
 
         return solution

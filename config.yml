@@ -52,7 +52,7 @@ maxcut:
     - 0.2
     - 0.5
   results:
-    min_vertices: 50
+    min_vertices: 800
 
 
 # Maxsat

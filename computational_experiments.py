@@ -19,9 +19,9 @@ so that results are saves after each run, and not at the end.
     - File structure:
       - Dictionary-like object
         - Keys are the graph names
-        - Values are dictionaries
+        - Values are sol_dictionaries
             - Keys are L1, L2, projections
-            - Values are dictionaries
+            - Values are sol_dictionaries
                 - Keys are the parameters: size, solution, cpu time
                 - Values are the results
 
@@ -40,6 +40,7 @@ import random_projections as rp
 import maxcut
 from process_graphs import File
 import json
+import maxsat
 
 
 def download_datasets(config):
@@ -114,7 +115,7 @@ def run_stable_set_experiments(config):
     - File structure:
       - Dictionary-like object
         - Keys are L1, L2, projections
-        - Values are dictionaries
+        - Values are sol_dictionaries
             - Keys are the parameters: size, solution, cpu time
             - Values are the results
 
@@ -159,7 +160,8 @@ def run_stable_set_experiments(config):
                 graph = pickle.load(file)
 
             stable_set_experiments_graph(
-                f"results/stable_set/petersen/{n}_{k}_complement.pkl", graph
+                f"results/stable_set/petersen/{n}_{k}_complement.pkl", graph, 
+                complement=True
             )
 
     # Create folder for cordones results
@@ -192,7 +194,8 @@ def run_stable_set_experiments(config):
                 graph = pickle.load(file)
 
             stable_set_experiments_graph(
-                f"results/stable_set/cordones/{n}_complement.pkl", graph
+                f"results/stable_set/cordones/{n}_complement.pkl", graph,
+                complement=True
             )
 
 
@@ -204,17 +207,17 @@ def stable_set_experiments_graph(directory, graph, complement=False):
     - File structure:
       - Dictionary-like object
         - Keys are L1, L2, projections
-        - Values are dictionaries
+        - Values are sol_dictionaries
             - Keys are the parameters: size, solution, cpu time
             - Values are the results
 
     """
 
     L1_results = first_level_stable_set.stable_set_problem_sdp(graph)
-    dict = {"L1": L1_results}
+    sol_dict = {"L1": L1_results}
 
     L2_results = second_level_stable_set.second_level_stable_set_problem_sdp(graph)
-    dict["L2"] = L2_results
+    sol_dict["L2"] = L2_results
 
     for projector_type in config["stable_set"]["projector"]:
         projections = config["stable_set"]["projection"]
@@ -232,11 +235,11 @@ def stable_set_experiments_graph(directory, graph, complement=False):
                 )
             )
 
-            dict[projection] = results
+            sol_dict[projection] = results
 
     # Save as pickle
     with open(directory, "wb") as f:
-        pickle.dump(dict, f)
+        pickle.dump(sol_dict, f)
 
 
 def run_maxcut_experiments(config):
@@ -276,10 +279,10 @@ def maxcut_experiments_graph(directory, graph):
 
     results = maxcut.sdp_relaxation(graph)
 
-    dict = {"original": results}
+    sol_dict = {"original": results}
 
     for projector_type in config["maxcut"]["projector"]:
-        dict[projector_type] = {}
+        sol_dict[projector_type] = {}
         for projection in config["maxcut"]["projection"]:
             projector = rp.RandomProjector(
                 round(projection * results["size_psd_variable"]),
@@ -288,16 +291,52 @@ def maxcut_experiments_graph(directory, graph):
             )
             p_results = maxcut.projected_sdp_relaxation(graph, projector)
            
-            dict[projector_type][projection] = p_results
+            sol_dict[projector_type][projection] = p_results
 
     # Save as pickle
     with open(directory, "wb") as f:
-        pickle.dump(dict, f)
+        pickle.dump(sol_dict, f)
+
+
+def run_max_sat_experiments(config):
+    """ 
+    
+    """
+
+    # Create folder for max sat results
+    if not os.path.exists("results/maxsat"):
+        os.makedirs("results/maxsat", exist_ok=True)
+
+    for variables in config["maxsat"]["variables"]:
+        for C in config["maxsat"]["C"]:
+            print(f"Running maxsat instance {variables} variables and {variables * C} clauses, with C = {C}")
+            # Create maxsat intance.
+            formula = maxsat.Formula(variables, variables * C)
+            # Solve maxsat instance.
+            results = maxsat.sdp_relaxation(formula)
+            sol_dict = {"original": results}
+            for projector_type in config["maxsat"]["projector"]:
+                sol_dict[projector_type] = {}
+                for projection in config["maxsat"]["projection"]:
+                    projector = rp.RandomProjector(
+                        round(projection * results["size_psd_variable"]),
+                        results["size_psd_variable"],
+                        projector_type,
+                    )
+                    p_results = maxsat.projected_sdp_relaxation(formula, projector)
+                
+                    sol_dict[projector_type][projection] = p_results
+
+            # Store maxsat instance.
+            with open(f"results/maxsat/{variables}_{C}.pkl", "wb") as f:
+                pickle.dump(sol_dict, f)
+        
 
 
 if __name__ == "__main__":
     with open("config.yml", "r") as config_file:
         config = yaml.safe_load(config_file)
 
-    run_stable_set_experiments(config)
+    # run_stable_set_experiments(config)
     # run_maxcut_experiments(config)
+    run_max_sat_experiments(config)

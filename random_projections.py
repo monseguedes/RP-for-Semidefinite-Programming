@@ -87,7 +87,7 @@ class RandomProjector:
             )
         elif self.type == "sparser":
             projector = np.random.choice(
-                [-1, 0, 1], size=(self.k, self.m), p=[2.5 / 100, 95 / 100, 2.5 / 100]
+                [-1, 0, 1], size=(self.k, self.m), p=[5 / 100, 90 / 100, 5 / 100]
             )
 
         elif self.type == "identity":
@@ -115,6 +115,26 @@ class RandomProjector:
                 projector[:, i] = np.random.randint(
                     low=lower, high=upper, size=(1, self.k)
                 ) - np.mean(projector[:, i - 1])
+
+        elif self.type == "0.2_density":
+            p = 0.2
+            standard_deviation = 1 / (np.sqrt(self.k) * p)
+            projector = np.random.normal(0, standard_deviation, (self.k, self.m))
+            # Make 1 - p entries of the matrix be 0
+            random_indices = np.random.choice(projector.size, round(projector.size * (1 - p)), replace=False)
+            # Convert the 1D random indices to the corresponding 2D indices
+            indices_2d = np.unravel_index(random_indices, projector.shape)
+            projector[indices_2d] = 0
+            
+        elif self.type == "0.1_density":
+            p = 0.1
+            standard_deviation = 1 / (np.sqrt(self.k) * p)
+            projector = np.random.normal(0, standard_deviation, (self.k, self.m))
+            # Make 1 - p entries of the matrix be 0
+            random_indices = np.random.choice(projector.size, round(projector.size * (1 - p)), replace=False)
+            # Convert the 1D random indices to the corresponding 2D indices
+            indices_2d = np.unravel_index(random_indices, projector.shape)
+            projector[indices_2d] = 0
 
         elif self.type == "debug_ones":
             projector = np.ones((self.k, self.m))

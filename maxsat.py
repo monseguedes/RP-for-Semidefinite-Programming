@@ -63,10 +63,12 @@ class Formula():
         self.seed = seed
         self.n = n
         self.c = c
+        print("Generating formula...".ljust(80), end="\r")
         self.list_of_clauses = self.generate_formula(list_of_clauses)
         self.y_pairs = self.get_all_y_pairs()
         self.coefficients = self.get_all_coefficients()
         self.coefficients_matrix = self.get_coefficients_matrix()
+        print("Formula generated.".ljust(80), end="\r")
 
     def generate_formula(self, list_of_clauses):
         """
@@ -230,9 +232,11 @@ def sdp_relaxation(formula: Formula):
         # Constraints:
         constraints = []
         for i in range(matrix_size):
+            print("Adding constraints... {}/{}              ".format(i + 1, matrix_size), end="\r")
             constraints.append(M.constraint(X.index(i, i), mf.Domain.equalsTo(1)))
 
         start_time = time.time()
+        print("Solving SDP...".ljust(80), end="\r")
         M.solve()
         end_time = time.time()
 
@@ -241,7 +245,9 @@ def sdp_relaxation(formula: Formula):
             "X_sol": X.level().reshape((matrix_size, matrix_size)),
             "objective": M.primalObjValue(),
             "size_psd_variable": matrix_size,
-            "computation_time": end_time - start_time
+            "computation_time": end_time - start_time,
+            "C": formula.c / formula.n,
+            "n": formula.n,
         }
 
         return solution
@@ -283,6 +289,7 @@ def projected_sdp_relaxation(formula, projector, verbose=False, slack=True):
     A_matrix = np.zeros((n, n))
     A = {}
     for i in range(original_dimension):
+        print("Creating A matrix... {}/{}".format(i + 1, original_dimension), end="\r")
         A_matrix = np.zeros((original_dimension, original_dimension))
         A_matrix[i, i] = 1
         A[i] = A_matrix
@@ -326,7 +333,7 @@ def projected_sdp_relaxation(formula, projector, verbose=False, slack=True):
         # Constraints:
         # constraints = []
         for i in range(original_dimension):
-            print("Adding constraints... {}/{}".format(i + 1, original_dimension), end="\r")
+            print("Adding constraints... {}/{}              ".format(i + 1, original_dimension), end="\r")
             difference_slacks = mf.Expr.sub(
                 lb_variables.index(i),
                 ub_variables.index(i),
@@ -338,6 +345,7 @@ def projected_sdp_relaxation(formula, projector, verbose=False, slack=True):
         
 
         start_time = time.time()
+        print("Solving projected SDP with {} variables and projector {}".format(projector.k, projector.type).ljust(80))
         M.solve()
         end_time = time.time()
 

@@ -18,9 +18,12 @@ class File:
         self.file = open(filename, "r")
         self.lines = self.file.readlines()
         self.edges = self.get_edges()
+        self.weights = self.get_weights()
         self.graph = self.get_adjacency_matrix()
+        print("Shape of the graph: ", self.graph.shape)
         self.n = self.get_no_vertices()
-        self.e = self.get_no_edges()
+        self.e = self.get_no_edges() 
+
 
     def get_no_vertices(self):
         """
@@ -45,6 +48,18 @@ class File:
         self.edges = edges
 
         return edges
+    
+    def get_weights(self):
+        """
+        Get the weights from the file
+        """
+        weights_dict = {}
+        for line in self.lines[1:]:
+            i, j, w = int(line.split()[0]), int(line.split()[1]), int(line.split()[2])
+            weights_dict[(i-1, j-1)] = w
+            weights_dict[(j-1, i-1)] = w
+
+        return weights_dict
 
     def get_adjacency_matrix(self):
         """
@@ -54,8 +69,8 @@ class File:
         adj_matrix = np.zeros((n, n))
         for line in self.lines[1:]:
             i, j = int(line.split()[0]), int(line.split()[1])
-            adj_matrix[i-1][j-1] = 1
-            adj_matrix[j-1][i-1] = 1
+            adj_matrix[i-1][j-1] = self.weights[(i-1, j-1)] if self.weights else 1
+            adj_matrix[j-1][i-1] = self.weights[(j-1, i-1)] if self.weights else 1
 
         self.graph = adj_matrix
 
@@ -93,15 +108,15 @@ if __name__ == "__main__":
     # file = File(file_name)
     # file.store_graph("G1")
 
-    # for i in range(1, 68):
-    #     file_name = "graphs/maxcut/G" + str(i) + ".txt"
-    #     file = File(file_name)
-    #     file.store_graph("G" + str(i))
+    for i in range(1, 68):
+        file_name = "graphs/maxcut/G" + str(i) + ".txt"
+        file = File(file_name)
+        file.store_graph("G" + str(i))
 
-    # for graph in os.listdir("graphs/maxcut/rudy"):
-    #     file_name = "graphs/maxcut/rudy/" + graph
-    #     file = File(file_name)
-    #     file.store_graph(graph)
+    for graph in os.listdir("graphs/maxcut/rudy"):
+        file_name = "graphs/maxcut/rudy/" + graph
+        file = File(file_name)
+        file.store_graph(graph)
 
     for graph in os.listdir("graphs/maxcut/ising"):
         file_name = "graphs/maxcut/ising/" + graph

@@ -294,10 +294,15 @@ def projected_sdp_relaxation(formula, projector, verbose=False, slack=True):
         A_matrix[i, i] = 1
         A[i] = A_matrix
 
+    # projected_A = {}
+    # for i in range(original_dimension):
+    #     print("Projecting A matrix... {}/{}".format(i + 1, original_dimension), end="\r")
+    #     projected_A[i] = projector.apply_rp_map(A[i])
+
     projected_A = {}
     for i in range(original_dimension):
         print("Projecting A matrix... {}/{}".format(i + 1, original_dimension), end="\r")
-        projected_A[i] = projector.apply_rp_map(A[i])
+        projected_A[i] = np.outer(projector.projector[:, i], projector.projector[:, i])
 
     with mf.Model("SDP") as M:
         # PSD variable X
@@ -339,7 +344,7 @@ def projected_sdp_relaxation(formula, projector, verbose=False, slack=True):
                 ub_variables.index(i),
             )
             M.constraint(
-                    mf.Expr.add(mf.Expr.dot(projector.apply_rp_map(A[i]), X), difference_slacks),
+                    mf.Expr.add(mf.Expr.dot(projected_A[i], X), difference_slacks),
                     mf.Domain.equalsTo(1),
                 )
         

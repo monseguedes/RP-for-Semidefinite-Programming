@@ -144,9 +144,21 @@ def projected_sdp_relaxation(graph, projector, verbose=False, slack=True):
         A[i] = A_matrix
 
     # projected_A = {}
+    # time_start = time.time()
     # for i in range(original_dimension):
     #     print("Projecting A matrix... {}/{}".format(i + 1, original_dimension), end="\r")
     #     projected_A[i] = projector.apply_rp_map(A[i])
+    # time_end = time.time()
+    # print("Traditional rojection of A matrices took: ", time_end - time_start)
+
+    projected_A = {}
+    time_start = time.time()
+    for i in range(original_dimension):
+        print("Projecting A matrix... {}/{}".format(i + 1, original_dimension), end="\r")
+        projected_A[i] = np.outer(projector.projector[:, i], projector.projector[:, i])
+    time_end = time.time()
+    # print("New projection of A matrices took: ", time_end - time_start)
+
 
     with mf.Model("SDP") as M:
         # PSD variable X
@@ -195,7 +207,7 @@ def projected_sdp_relaxation(graph, projector, verbose=False, slack=True):
             #     )
             # )
             M.constraint(
-                    mf.Expr.add(mf.Expr.dot(projector.apply_rp_map(A[i]), X), difference_slacks),
+                    mf.Expr.add(mf.Expr.dot(projected_A[i], X), difference_slacks),
                     mf.Domain.equalsTo(1),
                 )
         
@@ -415,7 +427,7 @@ if __name__ == "__main__":
     # solution = sdp_relaxation(graph)
 
     # Get the results for a single graph
-    single_graph_results(graph, type="0.2_density", range=(0.1, 0.2), iterations=2)
+    single_graph_results(graph, type="sparse", range=(0.1, 0.2), iterations=2)
 
     # # Get the results for a list of graphs
     # list_of_graphs = []

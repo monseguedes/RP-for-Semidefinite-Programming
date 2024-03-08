@@ -158,8 +158,8 @@ def projected_sdp_relaxation(graph, projector, verbose=False, slack=True):
 
         # Lower and upper bounds of the dual variables
         epsilon = 0.00001
-        dual_lower_bound = -100 - epsilon
-        dual_upper_bound = 100 + epsilon
+        dual_lower_bound = -100000000 - epsilon
+        dual_upper_bound = 1000000000 + epsilon
 
         # Objective:
         # M.objective(mf.ObjectiveSense.Maximize, mf.Expr.mul(1 / 4, mf.Expr.dot(L, X)))
@@ -303,14 +303,14 @@ def single_graph_results(graph: Graph, type="sparse", range=(0.1, 0.5), iteratio
         random_projector = rp.RandomProjector(
             round(matrix_size * rate), matrix_size, type=type
         )
+        # print("Density of projector is:" , np.count_nonzero(random_projector.projector) / (random_projector.projector.size))
         rp_solution = projected_sdp_relaxation(
             graph, random_projector, verbose=False, slack=slack
         )
         quality = rp_solution["objective"] / sdp_solution["objective"] * 100
         # Lift up solution
         lifted_solution = random_projector.lift_solution(rp_solution["X_sol"])
-        dumb_matrix = np.random.randint(low=-10, high=10, size=(matrix_size, matrix_size))
-        _, cut = retrieve_solution(dumb_matrix, graph.edges)
+        _, cut = retrieve_solution(lifted_solution, graph.edges)
 
         print(
             "{: <18} {: >10} {: >8.2f} {: >8} {: >8.2f} {: >8} {:>12}".format(
@@ -324,27 +324,27 @@ def single_graph_results(graph: Graph, type="sparse", range=(0.1, 0.5), iteratio
             )
         )
 
-    # Solve identity projector
-    # ----------------------------------------
-    id_random_projector = rp.RandomProjector(matrix_size, matrix_size, type="identity")
-    id_rp_solution = projected_sdp_relaxation(
-        graph, id_random_projector, verbose=False, slack=False
-    )
-    quality = id_rp_solution["objective"] / sdp_solution["objective"] * 100
-    _, cut = retrieve_solution(id_rp_solution["X_sol"], graph.edges)
-    print(
-        "{: <18} {: >10} {: >8.2f} {:>8} {: >8.2f} {: >8} {:>12}".format(
-            "Identity",
-            id_rp_solution["size_psd_variable"],
-            id_rp_solution["objective"],
-            str(round(quality, 2)) + "%",
-            id_rp_solution["computation_time"],
-            cut,
-            str(round(cut / opt_cut * 100, 2)) + "%",
-        )
-    )
+    # # Solve identity projector
+    # # ----------------------------------------
+    # id_random_projector = rp.RandomProjector(matrix_size, matrix_size, type="identity")
+    # id_rp_solution = projected_sdp_relaxation(
+    #     graph, id_random_projector, verbose=False, slack=False
+    # )
+    # quality = id_rp_solution["objective"] / sdp_solution["objective"] * 100
+    # _, cut = retrieve_solution(id_rp_solution["X_sol"], graph.edges)
+    # print(
+    #     "{: <18} {: >10} {: >8.2f} {:>8} {: >8.2f} {: >8} {:>12}".format(
+    #         "Identity",
+    #         id_rp_solution["size_psd_variable"],
+    #         id_rp_solution["objective"],
+    #         str(round(quality, 2)) + "%",
+    #         id_rp_solution["computation_time"],
+    #         cut,
+    #         str(round(cut / opt_cut * 100, 2)) + "%",
+    #     )
+    # )
 
-    print(sdp_solution["X_sol"])
+    # print(sdp_solution["X_sol"])
 
     print()
 
@@ -406,7 +406,7 @@ def comparison_graphs(graphs_list, percentage):
 if __name__ == "__main__":
     # Create a graph
     directory = "graphs/300_vertices_0.1_probability"
-    directory = "graphs/maxcut/G"
+    directory = "graphs/maxcut/G1"
     file_path = directory + "/graph.pkl"
     with open(file_path, "rb") as file:
         graph = pickle.load(file)
@@ -415,7 +415,7 @@ if __name__ == "__main__":
     # solution = sdp_relaxation(graph)
 
     # Get the results for a single graph
-    single_graph_results(graph, type="sparse", range=(0.001, 0.025), iterations=5)
+    single_graph_results(graph, type="0.2_density", range=(0.1, 0.2), iterations=2)
 
     # # Get the results for a list of graphs
     # list_of_graphs = []

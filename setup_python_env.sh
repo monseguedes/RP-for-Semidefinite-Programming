@@ -13,7 +13,8 @@ if [ -d "env" ]; then
     exit 0
 fi
 
-~/Documents/GitHub/Virtual_Environment/KrakenflexVErn/bin/python -m venv env
+# ~/Documents/GitHub/Virtual_Environment/KrakenflexVErn/bin/python -m venv env
+~/usr/bin/python3.6
 
 . ./env/bin/activate
 

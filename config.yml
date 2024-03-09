@@ -58,7 +58,7 @@ maxcut:
 # Maxsat
 maxsat:
   variables:
-    - 1500
+    # - 1500
     - 2000
   C:
     # - 0.1

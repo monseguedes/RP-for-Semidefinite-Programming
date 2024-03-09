@@ -28,7 +28,7 @@ pip install \
     numpy \
     Mosek \
     pandas \
-    scipy \ 
+    scipy \
     seaborn \
-    yaml 
+    yaml
     

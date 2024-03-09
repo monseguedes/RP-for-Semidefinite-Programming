@@ -30,5 +30,6 @@ pip install \
     pandas \
     scipy \
     seaborn \
-    yaml
+    ordered_set \
+    pyyaml
     

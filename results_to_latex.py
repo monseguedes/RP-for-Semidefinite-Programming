@@ -15,8 +15,8 @@ def maxcut_to_latex(directory, config, projector_type="sparse", percentage=[0.1,
 
     # Create the table header
     table_header = r"""
-    \begin{longtable}[!htbp]
-        \caption{Computational results \textsc{maxcut}} \\
+    \begin{table}[!htbp]
+        \captionof{table}{Computational results \textsc{maxcut}} 
         \resizebox{\textwidth}{!}{%
         \begin{tabular}{lrrrrrrrrrrrrrrr} 
             \toprule
@@ -78,7 +78,7 @@ def maxcut_to_latex(directory, config, projector_type="sparse", percentage=[0.1,
             \bottomrule
         \end{tabular}}
         \label{tab:my_label}
-    \end{longtable}
+    \end{table}
     """
     print(table_footer)
 
@@ -249,8 +249,8 @@ with open("config.yml", "r") as file:
     config = yaml.safe_load(file)
 
 # maxcut_to_latex("results/maxcut", config, "sparse", [0.1, 0.2])
-# maxcut_to_latex("results/maxcut", config, "0.2_density", [0.1, 0.2])
 maxcut_to_latex("results/maxcut", config, "0.05_density", [0.1, 0.2])
+# maxcut_to_latex("results/maxcut", config, "sparse", [0.1, 0.2])
 # stable_set_to_latex("results/stable_set")
 # maxsat_to_latex("results/maxsat", "sparse", [0.1, 0.2])
 # maxsat_to_latex("results/maxsat", "0.2_density", [0.1, 0.2])

@@ -236,8 +236,9 @@ def sdp_relaxation(formula: Formula):
             constraints.append(M.constraint(X.index(i, i), mf.Domain.equalsTo(1)))
 
         start_time = time.time()
-        print("Solving SDP...".ljust(80), end="\r")
+        print("Solving original SDP...".ljust(80), end="\r")
         M.solve()
+        print("Solved")
         end_time = time.time()
 
 
@@ -352,6 +353,7 @@ def projected_sdp_relaxation(formula, projector, verbose=False, slack=True):
         start_time = time.time()
         print("Solving projected SDP with {} variables and projector {}".format(projector.k, projector.type).ljust(80))
         M.solve()
+        print("Solved")
         end_time = time.time()
 
         solution = {

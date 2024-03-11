@@ -136,6 +136,26 @@ class RandomProjector:
             indices_2d = np.unravel_index(random_indices, projector.shape)
             projector[indices_2d] = 0
 
+        elif self.type == "0.05_density":
+            p = 0.05
+            standard_deviation = 1 / (np.sqrt(self.k) * p)
+            projector = np.random.normal(0, standard_deviation, (self.k, self.m))
+            # Make 1 - p entries of the matrix be 0
+            random_indices = np.random.choice(projector.size, round(projector.size * (1 - p)), replace=False)
+            # Convert the 1D random indices to the corresponding 2D indices
+            indices_2d = np.unravel_index(random_indices, projector.shape)
+            projector[indices_2d] = 0
+
+        elif self.type == "0.01_density":
+            p = 0.01
+            standard_deviation = 1 / (np.sqrt(self.k) * p)
+            projector = np.random.normal(0, standard_deviation, (self.k, self.m))
+            # Make 1 - p entries of the matrix be 0
+            random_indices = np.random.choice(projector.size, round(projector.size * (1 - p)), replace=False)
+            # Convert the 1D random indices to the corresponding 2D indices
+            indices_2d = np.unravel_index(random_indices, projector.shape)
+            projector[indices_2d] = 0
+
         elif self.type == "debug_ones":
             projector = np.ones((self.k, self.m))
         elif self.type == "debug_zeros":

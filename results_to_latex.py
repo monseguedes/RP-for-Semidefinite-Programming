@@ -38,13 +38,13 @@ def maxcut_to_latex(directory, config, projector_type="sparse", percentage=[0.1,
         file_path = os.path.join(directory, name)
         with open(file_path, "rb") as file:
             results = pickle.load(file)
-        if results["original"]["size_psd_variable"] >= config["maxcut"]["results"]["min_vertices"]:
+        if results["original"]["size_psd_variable"] >= config["maxcut"]["results"]["min_vertices"] and results["original"]["size_psd_variable"] <= config["maxcut"]["results"]["max_vertices"]:
             first_ratio = results[projector_type][percentage[0]]["objective"] / results["original"]["objective"] * 100
             second_ratio = (
                 results[projector_type][percentage[1]]["objective"] / results["original"]["objective"] * 100
             )
 
-            if first_ratio > 80 and second_ratio > 80:
+            if first_ratio > 10 and second_ratio > 10:
                 # results[projector_type][percentage[0]]["objective"] = 0
                 # results[projector_type][percentage[0]]["computation_time"] = 0
                 # first_ratio = 0
@@ -197,7 +197,7 @@ def maxsat_to_latex(directory, projector_type="sparse", percentage=[0.1, 0.2]):
         \resizebox{\textwidth}{!}{%
         \begin{tabular}{lrrrrrrrrrrrrrrr} 
             \toprule
-            & & & & \multicolumn{2}{c}{original} && \multicolumn{4}{c}{20\% projection} && \multicolumn{4}{c}{50\% projection} \\
+            & & & & \multicolumn{2}{c}{original} && \multicolumn{4}{c}{10\% projection} && \multicolumn{4}{c}{20\% projection} \\
             \cmidrule{5-6} \cmidrule{8-11} \cmidrule{13-16}
             \rule{0pt}{10pt} % Adding space of 10pt between lines and text below
             Instance & n & C & clauses & Value & Time && Size & Value & Time & Qlt && Size & Value & Time & Qlt \\
@@ -209,6 +209,7 @@ def maxsat_to_latex(directory, projector_type="sparse", percentage=[0.1, 0.2]):
         [file for file in os.listdir(directory) if file.endswith(".pkl")],
         key=lambda x: int("".join([i for i in x if i.isdigit()])),
     )
+    alphabetical_dir = [file for file in os.listdir(directory) if file.endswith(".pkl")]
 
     for name in alphabetical_dir:
         file_path = os.path.join(directory, name)
@@ -248,5 +249,8 @@ with open("config.yml", "r") as file:
     config = yaml.safe_load(file)
 
 # maxcut_to_latex("results/maxcut", config, "sparse", [0.1, 0.2])
+# maxcut_to_latex("results/maxcut", config, "0.2_density", [0.1, 0.2])
+maxcut_to_latex("results/maxcut", config, "0.05_density", [0.1, 0.2])
 # stable_set_to_latex("results/stable_set")
-maxsat_to_latex("results/maxsat", "sparse", [0.2, 0.5])
+# maxsat_to_latex("results/maxsat", "sparse", [0.1, 0.2])
+# maxsat_to_latex("results/maxsat", "0.2_density", [0.1, 0.2])

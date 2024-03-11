@@ -39,27 +39,33 @@ cordones:
 
 # Maxcut
 maxcut:
-  max_vertices: 800
+  max_vertices: 5000
+  min_vertices: 5000
   weighted: False
   projector: 
     # - "sparser"
-    - "sparse"
+    # - "sparse"
     # - "0.1_density"
-    - "0.2_density"
+    # - "0.2_density"
+    # - "0.05_density"
+    - "0.01_density"
 
   projection:
     - 0.1
     - 0.2
-    - 0.5
+    # - 0.5
   results:
-    min_vertices: 800
+    min_vertices: 5000
+    max_vertices: 5000
 
 
 # Maxsat
 maxsat:
   variables:
+    # - 1000
     # - 1500
-    - 2000
+    # - 2000
+    - 5000
   C:
     # - 0.1
     - 0.5

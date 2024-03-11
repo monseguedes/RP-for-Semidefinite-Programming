@@ -256,7 +256,7 @@ def run_maxcut_experiments(config):
         folder
         for folder in os.listdir("graphs/maxcut")
         if os.path.isdir(os.path.join("graphs/maxcut", folder))
-        and not folder in ["rudy", "ising"]
+        and not folder in ["rudy", "ising"] and "G" in folder
     ]
     for i, name in enumerate(folders):
         print(f"Scanning graph {i + 1} of {len(folders)}")
@@ -266,7 +266,7 @@ def run_maxcut_experiments(config):
         with open(file_path, "rb") as file:
             graph = pickle.load(file)
 
-        if graph.n <= config["maxcut"]["max_vertices"]:
+        if graph.n <= config["maxcut"]["max_vertices"] and graph.n >= config["maxcut"]["min_vertices"]:
             print(f"    Running experiments for graph {name}")
             maxcut_experiments_graph(f"results/maxcut/{name}.pkl", graph)
 
@@ -338,5 +338,5 @@ if __name__ == "__main__":
         config = yaml.safe_load(config_file)
 
     # run_stable_set_experiments(config)
-    # run_maxcut_experiments(config)
-    run_max_sat_experiments(config)
+    run_maxcut_experiments(config)
+    # run_max_sat_experiments(config)

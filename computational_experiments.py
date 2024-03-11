@@ -270,7 +270,7 @@ def run_maxcut_experiments(config):
 
         if graph.n <= config["maxcut"]["max_vertices"] and graph.n >= config["maxcut"]["min_vertices"]:
             print(f"    Running experiments for graph {name}, starting at {datetime.datetime.now()}")
-            start = time.start()
+            start = time.time()
             maxcut_experiments_graph(f"results/maxcut/{name}.pkl", graph)
             print(f"    Finished experiments for graph {name}, took {time.time() - start} seconds")
 

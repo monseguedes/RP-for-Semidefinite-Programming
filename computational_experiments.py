@@ -272,8 +272,7 @@ def run_maxcut_experiments(config):
             print(f"    Running experiments for graph {name}, starting at {datetime.datetime.now()}")
             start = time.start()
             maxcut_experiments_graph(f"results/maxcut/{name}.pkl", graph)
-            end = time.end()
-            print(f"    Finished experiments for graph {name}, took {end - start} seconds")
+            print(f"    Finished experiments for graph {name}, took {time.time() - start} seconds")
 
 
 def maxcut_experiments_graph(directory, graph):
@@ -282,10 +281,9 @@ def maxcut_experiments_graph(directory, graph):
 
     """
 
-    start = time.start()
+    start = time.time()
     results = maxcut.sdp_relaxation(graph)
-    end = time.end()
-    print(f"    Finished original sdp maxcut, took {end - start} seconds")
+    print(f"    Finished original sdp maxcut, took {time.time() - start} seconds")
 
     sol_dict = {"original": results}
 
@@ -297,10 +295,9 @@ def maxcut_experiments_graph(directory, graph):
                 results["size_psd_variable"],
                 projector_type,
             )
-            start = time.start()
+            start = time.time()
             p_results = maxcut.projected_sdp_relaxation(graph, projector)
-            end = time.end()
-            print(f"    Finished {projection} for projector {projector} sdp maxcut, took {end - start} seconds")
+            print(f"    Finished {projection} for projector {projector} sdp maxcut, took {time.time() - start} seconds")
            
             sol_dict[projector_type][projection] = p_results
 

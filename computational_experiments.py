@@ -41,6 +41,8 @@ import maxcut
 from process_graphs import File
 import json
 import maxsat
+import datetime
+import time
 
 
 def download_datasets(config):
@@ -259,7 +261,7 @@ def run_maxcut_experiments(config):
         and not folder in ["rudy", "ising"] and "G" in folder
     ]
     for i, name in enumerate(folders):
-        print(f"Scanning graph {i + 1} of {len(folders)}")
+        print(f"Scanning graph {i + 1} of {len(folders)}        ")
         directory = f"graphs/maxcut"
         file_path = directory + f"/{name}/graph.pkl"
 
@@ -267,8 +269,11 @@ def run_maxcut_experiments(config):
             graph = pickle.load(file)
 
         if graph.n <= config["maxcut"]["max_vertices"] and graph.n >= config["maxcut"]["min_vertices"]:
-            print(f"    Running experiments for graph {name}")
+            print(f"    Running experiments for graph {name}, starting at {datetime.datetime.now()}")
+            start = time.start()
             maxcut_experiments_graph(f"results/maxcut/{name}.pkl", graph)
+            end = time.end()
+            print(f"    Finished experiments for graph {name}, took {end - start} seconds")
 
 
 def maxcut_experiments_graph(directory, graph):
@@ -277,7 +282,10 @@ def maxcut_experiments_graph(directory, graph):
 
     """
 
+    start = time.start()
     results = maxcut.sdp_relaxation(graph)
+    end = time.end()
+    print(f"    Finished original sdp maxcut, took {end - start} seconds")
 
     sol_dict = {"original": results}
 
@@ -289,7 +297,10 @@ def maxcut_experiments_graph(directory, graph):
                 results["size_psd_variable"],
                 projector_type,
             )
+            start = time.start()
             p_results = maxcut.projected_sdp_relaxation(graph, projector)
+            end = time.end()
+            print(f"    Finished {projection} for projector {projector} sdp maxcut, took {end - start} seconds")
            
             sol_dict[projector_type][projection] = p_results
 

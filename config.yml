@@ -47,9 +47,9 @@ maxcut:
     # - "sparse"
     # - "0.1_density"
     # - "0.2_density"
-    # - "0.05_density"
-    # - "0.01_density"
-
+    - "0.05_density"
+    - "0.03_density"
+    - "0.01_density"
   projection:
     - 0.1
     - 0.2
@@ -57,6 +57,9 @@ maxcut:
   results:
     min_vertices: 5000
     max_vertices: 5000
+  name: "mcp"
+    # - "G"
+    # - "mcp"
 
 
 # Maxsat

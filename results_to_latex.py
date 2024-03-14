@@ -30,7 +30,7 @@ def maxcut_to_latex(directory, config, projector_type="sparse", percentage=[0.1,
     print(table_header)
 
     alphabetical_dir = sorted(
-        [file for file in os.listdir(directory) if file.endswith(".pkl")],
+        [file for file in os.listdir(directory) if file.endswith(".pkl") if config["maxcut"]["name"] in file],
         key=lambda x: int("".join([i for i in x if i.isdigit()])),
     )
 

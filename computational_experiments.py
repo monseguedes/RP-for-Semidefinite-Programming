@@ -258,7 +258,7 @@ def run_maxcut_experiments(config):
         folder
         for folder in os.listdir("graphs/maxcut")
         if os.path.isdir(os.path.join("graphs/maxcut", folder))
-        and not folder in ["rudy", "ising"] and config["maxcut"]["name"] in folder
+        and not folder in ["rudy", "ising"] and config["maxcut"]["name"] in folder and folder in ["mcp_7000_30_1", "mcp_7000_30_2", "mcp_7000_40_1", "mcp_7000_40_2"]
     ]
     for i, name in enumerate(folders):
         print(f"Scanning graph {i + 1} of {len(folders)}        ")
@@ -297,7 +297,7 @@ def maxcut_experiments_graph(directory, graph):
             )
             start = time.time()
             p_results = maxcut.projected_sdp_relaxation(graph, projector)
-            print(f"    Finished {projection} for projector {projector} sdp maxcut, took {time.time() - start} seconds")
+            print(f"    Finished {projection} for projector {projector.type} sdp maxcut, took {time.time() - start} seconds")
            
             sol_dict[projector_type][projection] = p_results
 

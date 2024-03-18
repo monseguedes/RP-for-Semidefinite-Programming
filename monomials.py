@@ -780,8 +780,6 @@ def stable_set_distinct_monomials(edges, n, level=1):
         print("Time elapsed distinct monomials new method: {}".format(end - start))
         print("Number of distinct monomials: {}".format(len(distinct_monomials)))
 
-        raise SystemExit
-
 
 
     return distinct_monomials

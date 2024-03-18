@@ -135,21 +135,7 @@ def run_stable_set_experiments(config):
         k = graph["k"]
         print(f"Scanning petersen graph {i + 1} of {len(config['petersen_n_k'])}")
         if 2 * graph["n"] <= config["stable_set"]["max_vertices"]:
-            print(f"    Running experiments for graph {n}_{k}")
-            if not os.path.isfile(f"graphs/generalised_petersen_{n}_{k}/graph.pkl"):
-                generate_graphs.generate_generalised_petersen(n, k)
-
-            directory = f"graphs/generalised_petersen_{n}_{k}"
-            file_path = directory + "/graph.pkl"
-
-            with open(file_path, "rb") as file:
-                graph = pickle.load(file)
-
-            stable_set_experiments_graph(
-                f"results/stable_set/petersen/{n}_{k}.pkl", graph
-            )
-
-            print(f"    Running experiments for graph {n}_{k} complement")
+            print(f"    Running experiments for petersen {n}_{k} complement")
             if not os.path.isfile(
                 f"graphs/generalised_petersen_{n}_{k}_complement/graph.pkl"
             ):
@@ -173,19 +159,7 @@ def run_stable_set_experiments(config):
         n = graph["n"]
         print(f"Scanning cordones graph {i + 1} of {len(config['cordones'])}")
         if 2 * graph["n"] <= config["stable_set"]["max_vertices"]:
-            print(f"    Running experiments for graph {n}")
-            if not os.path.isfile(f"graphs/cordones_{n}/graph.pkl"):
-                generate_graphs.generate_cordones(n)
-
-            directory = f"graphs/cordones_{n}"
-            file_path = directory + "/graph.pkl"
-
-            with open(file_path, "rb") as file:
-                graph = pickle.load(file)
-
-            stable_set_experiments_graph(f"results/stable_set/cordones/{n}.pkl", graph)
-
-            print(f"    Running experiments for graph {n} complement")
+            print(f"    Running experiments for cordones {n} complement")
             if not os.path.isfile(f"graphs/cordones_{n}_complement/graph.pkl"):
                 generate_graphs.generate_cordones(n, complement=True)
 
@@ -221,10 +195,21 @@ def stable_set_experiments_graph(directory, graph, complement=False):
     L2_results = second_level_stable_set.second_level_stable_set_problem_sdp(graph)
     sol_dict["L2"] = L2_results
 
-    for projector_type in config["stable_set"]["projector"]:
+    if 0 <= L2_results["size_psd_variable"] <= 1000:
+        projector_type =  "sparse"
+    elif 1000 < L2_results["size_psd_variable"] <= 2500:
+        projector_type = "0.2_density"
+    elif 2500 < L2_results["size_psd_variable"] <= 4000:
+        projector_type = "0.1_density"
+    elif 4000 < L2_results["size_psd_variable"]:
+        projector_type = "0.05_density"
+
+    if complement:
+        projections = config["stable_set"]["c_projection"]
+    else:
         projections = config["stable_set"]["projection"]
-        if complement:
-            projections = config["stable_set"]["c_projection"]
+
+    if L2_results["size_psd_variable"] <= config["stable_set"]["max_matrix"]:
         for projection in projections:
             projector = rp.RandomProjector(
                 round(projection * L2_results["size_psd_variable"]),
@@ -236,7 +221,6 @@ def stable_set_experiments_graph(directory, graph, complement=False):
                     graph, projector
                 )
             )
-
             sol_dict[projection] = results
 
     # Save as pickle
@@ -345,6 +329,6 @@ if __name__ == "__main__":
     with open("config.yml", "r") as config_file:
         config = yaml.safe_load(config_file)
 
-    # run_stable_set_experiments(config)
-    run_maxcut_experiments(config)
+    run_stable_set_experiments(config)
+    # run_maxcut_experiments(config)
     # run_max_sat_experiments(config)

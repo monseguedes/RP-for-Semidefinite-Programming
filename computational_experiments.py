@@ -234,12 +234,9 @@ def stable_set_experiments_graph(directory, graph, complement=False):
 def run_maxcut_experiments(config):
     """ """
 
-    # Create folder for stable set results
+    # Create folder for maxcut results
     if not os.path.exists("results/maxcut"):
         os.makedirs("results/maxcut")
-
-    # Create folder for maxcut results
-    os.makedirs("results/maxcut", exist_ok=True)
 
     folders = [
         folder
@@ -326,12 +323,41 @@ def run_max_sat_experiments(config):
             with open(f"results/maxsat/{variables}_{C}.pkl", "wb") as f:
                 pickle.dump(sol_dict, f)
         
+def quality_plot_computational_experiments_maxcut():
+    # Create folder for maxcut results
+    if not os.path.exists("results/maxcut/plot"):
+        os.makedirs("results/maxcut/plot")
+
+    names = [
+        name
+        for name in os.listdir("graphs/maxcut/plot")
+    ]
+
+    for i, name in enumerate(names):
+        print(f"Scanning graph {i + 1} of {len(names)}        ")
+        if not os.path.exists(f"results/maxcut/plot/{name}.pkl"):
+            directory = f"graphs/maxcut/plot"
+            file_name = "graphs/maxcut/plot/" + name + ".txt"
+            file = File(file_name)
+            file.store_graph(graph.strip(".txt"))
+            file_path = directory + f"/{name}/graph.pkl"
+
+            with open(file_path, "rb") as file:
+                graph = pickle.load(file)
+
+            print(f"    Running experiments for graph {name}, starting at {datetime.datetime.now()}")
+            start = time.time()
+            maxcut_experiments_graph(f"results/maxcut/plot/{name}.pkl", graph)
+            print(f"    Finished experiments for graph {name}, took {time.time() - start} seconds")
+
+
 
 
 if __name__ == "__main__":
     with open("config.yml", "r") as config_file:
         config = yaml.safe_load(config_file)
 
-    run_stable_set_experiments(config)
+    # run_stable_set_experiments(config)
     # run_maxcut_experiments(config)
     # run_max_sat_experiments(config)
+    quality_plot_computational_experiments_maxcut()

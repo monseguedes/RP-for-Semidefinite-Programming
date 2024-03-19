@@ -157,8 +157,8 @@ def stable_set_problem_sdp(graph: Graph, verbose=False):
         # ----------------------------------------------------------------------
 
         solution = {
-            "X": X_sol,
-            "b": b_sol,
+            # "X": X_sol,
+            # "b": b_sol,
             "objective": M.primalObjValue(),
             "computation_time": computation_time,
             "size_psd_variable": size_psd_variable,
@@ -282,7 +282,7 @@ def projected_stable_set_problem_sdp(graph, random_projector, verbose=False):
         computation_time = end_time - start_time
 
         solution = {
-            "X": X_sol,
+            # "X": X_sol,
             "b": b_sol,
             "objective": M.primalObjValue(),
             "computation_time": computation_time,

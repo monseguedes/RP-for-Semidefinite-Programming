@@ -98,12 +98,12 @@ def second_level_stable_set_problem_sdp(graph, verbose=False):
         computation_time = end_time - start_time
 
         solution = {
-            "X": X_sol,
-            "b": b_sol,
+            # "X": X_sol,
+            # "b": b_sol,
             "objective": M.primalObjValue(),
             "computation_time": computation_time,
             "size_psd_variable": size_psd_variable,
-            "no_linear_variables": "TBC",
+            # "no_linear_variables": "TBC",
             "edges": edges,
         }
 
@@ -225,12 +225,12 @@ def projected_second_level_stable_set_problem_sdp(
             linear_variables = 1
 
         solution = {
-            "X": X_sol,
-            "b": b_sol,
+            # "X": X_sol,
+            # "b": b_sol,
             "objective": M.primalObjValue(),
             "computation_time": computation_time,
             "size_psd_variable": size_psd_variable,
-            "no_linear_variables": "TBC",
+            # "no_linear_variables": "TBC",
         }
 
         return solution

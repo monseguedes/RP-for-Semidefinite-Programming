@@ -103,7 +103,7 @@ def sdp_relaxation(graph):
 
 
         solution = {
-            "X_sol": X.level().reshape((n, n)),
+            # "X_sol": X.level().reshape((n, n)),
             "computation_time": end_time - start_time,
             "objective": M.primalObjValue(),
             "size_psd_variable": n,
@@ -225,7 +225,7 @@ def projected_sdp_relaxation(graph, projector, verbose=False, slack=True):
         X_sol = X_sol.reshape((n, n))
 
         solution = {
-            "X_sol": X_sol,
+            # "X_sol": X_sol,
             "computation_time": computation_time,
             "objective": M.primalObjValue(),
             "size_psd_variable": n,

@@ -353,16 +353,17 @@ def quality_plot_computational_experiments_maxcut():
             results = maxcut.sdp_relaxation(graph)
             print(f"    Finished original sdp maxcut, took {time.time() - start} seconds")
             sol_dict = {"original": results}
+            size = sol_dict["original"]["size_psd_variable"]
 
-            if 0 <= results["size_psd_variable"] <= 1000:
+            if 0 <= size <= 1000:
                 projector_type = "sparse"
-            elif 2000 <= results["size_psd_variable"] <= 3000:
+            elif 2000 <= size <= 3500:
                 projector_type = "0.2_density"
-            elif results["size_psd_variable"] == 4000:
+            elif size == 4000:
                 projector_type = "0.1_density"
-            elif 5000 <= results["size_psd_variable"] <= 6000:
+            elif 5000 <= size <= 6000:
                 projector_type = "0.05_density"
-            elif 7000 <= results["size_psd_variable"]:
+            elif 7000 <= size <= 8000:
                 projector_type = "0.04_density"
 
             sol_dict[projector_type] = {}

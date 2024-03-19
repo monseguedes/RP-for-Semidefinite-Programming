@@ -15,16 +15,17 @@ def plot_quality():
     for name in os.listdir(directory):
         with open(f"results/maxcut/plot/{name}", "rb") as file:
             results = pickle.load(file)
+            print(results)
 
-            if 0 <= results["size_psd_variable"] <= 1000:
+            if 0 <= results["original"]["size_psd_variable"] <= 1000:
                 projector_type = "sparse"
-            elif 2000 <= results["size_psd_variable"] <= 3000:
+            elif 2000 <= results["original"]["size_psd_variable"] <= 3000:
                 projector_type = "0.2_density"
-            elif results["size_psd_variable"] == 4000:
+            elif results["original"]["size_psd_variable"] == 4000:
                 projector_type = "0.1_density"
-            elif 5000 <= results["size_psd_variable"] <= 6000:
+            elif 5000 <= results["original"]["size_psd_variable"] <= 6000:
                 projector_type = "0.05_density"
-            elif 7000 <= results["size_psd_variable"]:
+            elif 7000 <= results["original"]["size_psd_variable"]:
                 projector_type = "0.04_density"
 
             quality = results[projector_type][0.1]["objective"] / results["original"]["objective"] * 100
@@ -35,5 +36,7 @@ def plot_quality():
     plt.xlabel('Size of the graph')
     plt.ylabel('Quality (%)')
     plt.title('Approximation Quality of Projection')
+
+    plt.savefig("plots/quality.png")
 
 plot_quality()

@@ -138,6 +138,57 @@ def maxcut_to_latex_single(directory, config, projector_type="sparse", percentag
     """
     print(table_footer)
 
+def maxcut_to_latex_single_simplified(directory, config, projector_type="sparse", percentage=0.1):
+    """
+    Convert the results of the maxcut problem to a LaTeX table.
+    """
+
+    # Create the table header
+    table_header = r"""
+    \begin{table}[!htbp]
+        \captionof{table}{Computational time in seconds and quality of projection \textsc{maxcut} with respect to SDP relaxation for FILL vertices rudy graphs using FILL projector} 
+        \begin{tabular}{lrrrrrrrrrrrrrrr} 
+            \toprule
+            & & && \multicolumn{2}{c}{10\% projection} \\
+            \cmidrule{5-6}
+            \rule{0pt}{10pt} % Adding space of 10pt between lines and text below
+            Instance & m & Density && Relative time & Relative quality \\
+            \midrule
+    """
+
+    print(table_header)
+
+    alphabetical_dir = sorted(
+        [file for file in os.listdir(directory) if file.endswith(".pkl") if config["maxcut"]["name"] in file],
+        key=lambda x: int("".join([i for i in x if i.isdigit()])),
+    )
+
+    for name in alphabetical_dir:
+        file_path = os.path.join(directory, name)
+        with open(file_path, "rb") as file:
+            results = pickle.load(file)
+        if results["original"]["size_psd_variable"] == config["maxcut"]["results"]["min_vertices"]:
+            objective_ratio = results[projector_type][percentage]["objective"] / results["original"]["objective"] * 100
+            time_ratio = results[projector_type][percentage]["computation_time"] / results["original"]["computation_time"] * 100
+            name = name.strip(".pkl")
+            print(
+                "   {:8} & {:10} & {:8} & {:8.2f} \
+                & & {:8.2f} & {:8.2f} \\\\".format(
+                    name.replace("_", "-"), # Instance
+                    results["original"]["edges"], # m
+                    name.split("-")[2], # Density
+                    time_ratio, # Projection time
+                    objective_ratio, # Quality
+                )
+                )
+    table_footer = r"""
+            \bottomrule
+        \end{tabular}
+        \label{tab:FILL}
+    \end{table}
+    """
+    print(table_footer)
+
 
 def stable_set_to_latex(directory, projector_type="sparse"):
     """
@@ -295,6 +346,7 @@ with open("config.yml", "r") as file:
 # maxcut_to_latex("results/maxcut", config, "0.05_density", [0.1, 0.1])
 # maxcut_to_latex_single("results/maxcut", config, "0.04_density", 0.1)
 # maxcut_to_latex("results/maxcut", config, "sparse", [0.1, 0.2])
-stable_set_to_latex("results/stable_set")
+# stable_set_to_latex("results/stable_set")
 # maxsat_to_latex("results/maxsat", "sparse", [0.1, 0.2])
 # maxsat_to_latex("results/maxsat", "sparse", [0.1, 0.2])
+maxcut_to_latex_single_simplified("results/maxcut", config, "sparse", 0.1)

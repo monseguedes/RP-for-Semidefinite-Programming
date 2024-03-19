@@ -9,6 +9,7 @@ import numpy as np
 import optimization_unit_sphere as ous
 import matplotlib.pyplot as plt
 import networkx as nx
+import time
 
 
 class Graph:
@@ -249,7 +250,7 @@ def generate_petersen_graph():
     petersen.store_graph("petersen")
 
 
-def generate_cordones(n, complement=False):
+def generate_cordones(n, complement=False, save=False):
     """ 
     Generate a cordones graph.
 
@@ -267,6 +268,8 @@ def generate_cordones(n, complement=False):
     [., ., ., ..., ., ., ..., ., ., ..., 0]
     [0, 0, 0, ..., 1, 0, ..., 1, 0, ..., 0]
     """
+
+    print("Generating cordones graph with n={}...".format(n))
 
     Jn = np.ones((n, n))
     In = np.eye(n)
@@ -291,16 +294,22 @@ def generate_cordones(n, complement=False):
     if complement:
         cordones.edges_complement_graph()
         cordones.get_matrix_from_edges()
-    cordones.plot_graph()
-    cordones.get_picking_SOS(verbose=True)
-    cordones.picking_for_level_two(verbose=True)
-    if complement:
-        cordones.store_graph("cordones_{}_complement".format(n))
-    else:
-        cordones.store_graph("cordones_{}".format(n))
+    # cordones.plot_graph()
+    print("Picking for level 1...")
+    cordones.get_picking_SOS(verbose=False)
+    print("Picking for level 2...")
+    start = time.time()
+    cordones.picking_for_level_two(verbose=False)
+    print("Time taken building level 2:", time.time() - start)
+    if save:
+        if complement:
+            cordones.store_graph("cordones_{}_complement".format(n))
+        else:
+            cordones.store_graph("cordones_{}".format(n))
+    print("Graph cordones graph with n={} generated!".format(n))
 
 
-def generate_generalised_petersen(n, k, complement=False):
+def generate_generalised_petersen(n, k, complement=False, save=False):
     """
     Generate a generalised petersen graph.
     """
@@ -323,14 +332,21 @@ def generate_generalised_petersen(n, k, complement=False):
         petersen.graph[i][j] = 1
         petersen.graph[j][i] = 1
 
-    print("Pickings for level 1:")
-    petersen.plot_graph()
+    print("Generating peteresen graph with n={} and k={}...".format(n, k))
+    print("Picking for level 1...")
+    # petersen.plot_graph()
     petersen.get_picking_SOS(verbose=False)
-    petersen.picking_for_level_two(verbose=True)
-    if complement:
-        petersen.store_graph("generalised_petersen_{}_{}_complement".format(n, k))
-    else:
-        petersen.store_graph("generalised_petersen_{}_{}".format(n, k))
+    print("Picking for level 2...")
+    start = time.time()
+    petersen.picking_for_level_two(verbose=False)
+    print("Time taken building level 2:", time.time() - start)
+    if save: 
+        if complement:
+            petersen.store_graph("generalised_petersen_{}_{}_complement".format(n, k))
+        else:
+            petersen.store_graph("generalised_petersen_{}_{}".format(n, k))
+
+    print("Graph petersen graph with n={} k={} generated!".format(n, k))
 
 
 def generate_probability_graph(n, p, seed=0):

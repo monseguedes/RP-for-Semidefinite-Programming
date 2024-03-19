@@ -135,22 +135,23 @@ def run_stable_set_experiments(config):
         k = graph["k"]
         print(f"Scanning petersen graph {i + 1} of {len(config['petersen_n_k'])}")
         if 2 * graph["n"] <= config["stable_set"]["max_vertices"]:
-            print(f"    Running experiments for petersen {n}_{k} complement")
-            if not os.path.isfile(
-                f"graphs/generalised_petersen_{n}_{k}_complement/graph.pkl"
-            ):
-                generate_graphs.generate_generalised_petersen(n, k, complement=True)
+            print(f"    Running experiments for petersen {n}_{k} complement...")
+            # if not os.path.isfile(
+            #     f"graphs/generalised_petersen_{n}_{k}_complement/graph.pkl"
+            # ):
+            graph = generate_graphs.generate_generalised_petersen(n, k, complement=True, save=False)
 
-            directory = f"graphs/generalised_petersen_{n}_{k}_complement"
-            file_path = directory + "/graph.pkl"
+            # directory = f"graphs/generalised_petersen_{n}_{k}_complement"
+            # file_path = directory + "/graph.pkl"
 
-            with open(file_path, "rb") as file:
-                graph = pickle.load(file)
+            # with open(file_path, "rb") as file:
+            #     graph = pickle.load(file)
 
             stable_set_experiments_graph(
                 f"results/stable_set/petersen/{n}_{k}_complement.pkl", graph, 
                 complement=True
             )
+            print("Done!")
 
     # Create folder for cordones results
     os.makedirs("results/stable_set/cordones", exist_ok=True)
@@ -160,19 +161,21 @@ def run_stable_set_experiments(config):
         print(f"Scanning cordones graph {i + 1} of {len(config['cordones'])}")
         if 2 * graph["n"] <= config["stable_set"]["max_vertices"]:
             print(f"    Running experiments for cordones {n} complement")
-            if not os.path.isfile(f"graphs/cordones_{n}_complement/graph.pkl"):
-                generate_graphs.generate_cordones(n, complement=True)
+            # if not os.path.isfile(f"graphs/cordones_{n}_complement/graph.pkl"):
+                
+            graph = generate_graphs.generate_cordones(n, complement=True, save=False)
 
-            directory = f"graphs/cordones_{n}_complement"
-            file_path = directory + "/graph.pkl"
+            # directory = f"graphs/cordones_{n}_complement"
+            # file_path = directory + "/graph.pkl"
 
-            with open(file_path, "rb") as file:
-                graph = pickle.load(file)
+            # with open(file_path, "rb") as file:
+            #     graph = pickle.load(file)
 
             stable_set_experiments_graph(
                 f"results/stable_set/cordones/{n}_complement.pkl", graph,
                 complement=True
             )
+            print("Done!")
 
 
 def stable_set_experiments_graph(directory, graph, complement=False):

@@ -308,6 +308,8 @@ def generate_cordones(n, complement=False, save=False):
             cordones.store_graph("cordones_{}".format(n))
     print("Graph cordones graph with n={} generated!".format(n))
 
+    return cordones
+
 
 def generate_generalised_petersen(n, k, complement=False, save=False):
     """
@@ -347,6 +349,8 @@ def generate_generalised_petersen(n, k, complement=False, save=False):
             petersen.store_graph("generalised_petersen_{}_{}".format(n, k))
 
     print("Graph petersen graph with n={} k={} generated!".format(n, k))
+
+    return petersen
 
 
 def generate_probability_graph(n, p, seed=0):

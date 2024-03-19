@@ -336,11 +336,11 @@ def quality_plot_computational_experiments_maxcut():
     for i, name in enumerate(names):
         print(f"Scanning graph {i + 1} of {len(names)}        ")
         if not os.path.exists(f"results/maxcut/plot/{name}.pkl"):
-            directory = f"graphs/maxcut/plot"
-            file_name = "graphs/maxcut/plot/" + name + ".txt"
+            directory = f"graphs/maxcut"
+            file_name = "graphs/maxcut/plot/" + name 
             file = File(file_name)
-            file.store_graph(graph.strip(".txt"))
-            file_path = directory + f"/{name}/graph.pkl"
+            file.store_graph(name.strip(".txt"))
+            file_path = directory + f"/{name.strip('.txt')}/graph.pkl"
 
             with open(file_path, "rb") as file:
                 graph = pickle.load(file)
@@ -348,6 +348,40 @@ def quality_plot_computational_experiments_maxcut():
             print(f"    Running experiments for graph {name}, starting at {datetime.datetime.now()}")
             start = time.time()
             maxcut_experiments_graph(f"results/maxcut/plot/{name}.pkl", graph)
+            start = time.time()
+
+            results = maxcut.sdp_relaxation(graph)
+            print(f"    Finished original sdp maxcut, took {time.time() - start} seconds")
+            sol_dict = {"original": results}
+
+            if 0 <= results["size_psd_matrix"] <= 1000:
+                projector_type = "sparse"
+            elif 2000 <= results["size_psd_matrix"] <= 3000:
+                projector_type = "0.2_density"
+            elif results["size_psd_matrix"] == 4000:
+                projector_type = "0.1_density"
+            elif 5000 <= results["size_psd_matrix"] <= 6000:
+                projector_type = "0.05_density"
+            elif 7000 <= results["size_psd_matrix"]:
+                projector_type = "0.04_density"
+
+            sol_dict[projector_type] = {}
+            projection = 0.1
+            projector = rp.RandomProjector(
+                round(projection * results["size_psd_variable"]),
+                results["size_psd_variable"],
+                projector_type,
+            )
+            start = time.time()
+            p_results = maxcut.projected_sdp_relaxation(graph, projector)
+            print(f"    Finished {projection} for projector {projector.type} sdp maxcut, took {time.time() - start} seconds")
+        
+            sol_dict[projector_type][projection] = p_results
+
+            # Save as pickle
+            with open(f"results/maxcut/plot/{name}.pkl", "wb") as f:
+                pickle.dump(sol_dict, f)
+
             print(f"    Finished experiments for graph {name}, took {time.time() - start} seconds")
 
 

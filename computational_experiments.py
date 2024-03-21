@@ -425,6 +425,6 @@ if __name__ == "__main__":
         config = yaml.safe_load(config_file)
 
     # run_stable_set_experiments(config)
-    # run_maxcut_experiments(config)
-    run_max_sat_experiments(config)
+    run_maxcut_experiments(config)
+    # run_max_sat_experiments(config)
     # quality_plot_computational_experiments_maxcut()

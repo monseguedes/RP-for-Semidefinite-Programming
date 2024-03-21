@@ -337,22 +337,32 @@ def run_max_sat_experiments(config):
             )
             # Create maxsat intance.
             formula = maxsat.Formula(variables, variables * C)
-            # Solve maxsat instance.
-            results = maxsat.sdp_relaxation(formula)
-            sol_dict = {"original": results}
-            projector_type = config["densities"][
-                int(sol_dict["original"]["size_psd_variable"])
-            ]
-            sol_dict[projector_type] = {}
-            for projection in config["maxsat"]["projection"]:
-                projector = rp.RandomProjector(
-                    round(projection * results["size_psd_variable"]),
-                    results["size_psd_variable"],
-                    projector_type,
-                )
-                p_results = maxsat.projected_sdp_relaxation(formula, projector)
 
-                sol_dict[projector_type][projection] = p_results
+            if os.path.exists(f"results/maxsat/{variables}_{C}.pkl"):
+                sol_dict = pickle.load(open(f"results/maxsat/{variables}_{C}.pkl", "rb"))
+            else:
+                sol_dict = {}
+
+            if "original" not in sol_dict:
+                results = maxsat.sdp_relaxation(formula)
+                sol_dict = {"original": results}
+            
+            for projector_type in config["densities"][results["size_psd_variable"]]:
+                if projector_type not in sol_dict:
+                    sol_dict[projector_type] = {}
+                gen = (
+                    projection
+                    for projection in config["maxsat"]["projection"]
+                    if projection not in sol_dict[projector_type]
+                )
+                for projection in gen:
+                    projector = rp.RandomProjector(
+                        round(projection * results["size_psd_variable"]),
+                        results["size_psd_variable"],
+                        projector_type,
+                    )
+                    p_results = maxsat.projected_sdp_relaxation(formula, projector)
+                    sol_dict[projector_type][projection] = p_results
 
             # Store maxsat instance.
             with open(f"results/maxsat/{variables}_{C}.pkl", "wb") as f:

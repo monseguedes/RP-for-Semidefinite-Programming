@@ -288,17 +288,9 @@ def maxcut_experiments_graph(directory, graph):
         sol_dict = {"original": results}
         print(f"    Finished original sdp maxcut, took {time.time() - start} seconds")
 
-    gen_type = (
-        projector_type
-        for projector_type in list(
-            config["densities"][sol_dict["original"]["size_psd_variable"]]
-        )
-        if projector_type not in sol_dict
-    )
-    for (
-        projector_type
-    ) in gen_type:  # Run projection for different projectors only if not stored
-        sol_dict[projector_type] = {}
+    for projector_type in list(config["densities"][sol_dict["original"]["size_psd_variable"]]):  # Run projection for different projectors only if not stored
+        if projector_type not in sol_dict:
+            sol_dict[projector_type] = {}
         gen_projection = (
             projection
             for projection in config["maxcut"]["projection"]
@@ -347,7 +339,7 @@ def run_max_sat_experiments(config):
                 results = maxsat.sdp_relaxation(formula)
                 sol_dict = {"original": results}
             
-            for projector_type in config["densities"][results["size_psd_variable"]]:
+            for projector_type in config["densities"][results["size_psd_variable"] - 1]:
                 if projector_type not in sol_dict:
                     sol_dict[projector_type] = {}
                 gen = (
@@ -435,6 +427,6 @@ if __name__ == "__main__":
         config = yaml.safe_load(config_file)
 
     # run_stable_set_experiments(config)
-    run_maxcut_experiments(config)
-    # run_max_sat_experiments(config)
+    # run_maxcut_experiments(config)
+    run_max_sat_experiments(config)
     # quality_plot_computational_experiments_maxcut()

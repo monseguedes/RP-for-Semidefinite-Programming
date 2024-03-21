@@ -250,25 +250,24 @@ def run_maxcut_experiments(config):
     ]
     for i, name in enumerate(folders):
         print(f"Scanning graph {i + 1} of {len(folders)}        ")
-        if not os.path.exists(f"results/maxcut/plot/{name}.pkl"):
-            directory = f"graphs/maxcut"
-            file_path = directory + f"/{name}/graph.pkl"
+        directory = f"graphs/maxcut"
+        file_path = directory + f"/{name}/graph.pkl"
 
-            with open(file_path, "rb") as file:
-                graph = pickle.load(file)
+        with open(file_path, "rb") as file:
+            graph = pickle.load(file)
 
-            if (
-                graph.n <= config["maxcut"]["max_vertices"]
-                and graph.n >= config["maxcut"]["min_vertices"]
-            ):
-                print(
-                    f"    Running experiments for graph {name}, starting at {datetime.datetime.now()}"
-                )
-                start = time.time()
-                maxcut_experiments_graph(f"results/maxcut/{name}.pkl", graph)
-                print(
-                    f"    Finished experiments for graph {name}, took {time.time() - start} seconds"
-                )
+        if (
+            graph.n <= config["maxcut"]["max_vertices"]
+            and graph.n >= config["maxcut"]["min_vertices"]
+        ):
+            print(
+                f"    Running experiments for graph {name}, starting at {datetime.datetime.now()}"
+            )
+            start = time.time()
+            maxcut_experiments_graph(f"results/maxcut/{name}.pkl", graph)
+            print(
+                f"    Finished experiments for graph {name}, took {time.time() - start} seconds"
+            )
 
 
 def maxcut_experiments_graph(directory, graph):
@@ -277,27 +276,47 @@ def maxcut_experiments_graph(directory, graph):
 
     """
 
-    start = time.time()
-    results = maxcut.sdp_relaxation(graph)
-    print(f"    Finished original sdp maxcut, took {time.time() - start} seconds")
+    if os.path.exists(directory):  # Load previous results if available
+        with open(directory, "rb") as f:
+            sol_dict = pickle.load(f)
+    else:
+        sol_dict = {}
 
-    sol_dict = {"original": results}
-
-    projector_type = config["densities"][int(sol_dict["original"]["size_psd_variable"])]
-    sol_dict[projector_type] = {}
-    for projection in config["maxcut"]["projection"]:
-        projector = rp.RandomProjector(
-            round(projection * results["size_psd_variable"]),
-            results["size_psd_variable"],
-            projector_type,
-        )
+    if "original" not in sol_dict:  # Run original sdp maxcut only if not stored
         start = time.time()
-        p_results = maxcut.projected_sdp_relaxation(graph, projector)
-        print(
-            f"    Finished {projection} for projector {projector.type} sdp maxcut, took {time.time() - start} seconds"
-        )
+        results = maxcut.sdp_relaxation(graph)
+        sol_dict = {"original": results}
+        print(f"    Finished original sdp maxcut, took {time.time() - start} seconds")
 
-        sol_dict[projector_type][projection] = p_results
+    gen_type = (
+        projector_type
+        for projector_type in list(
+            config["densities"][sol_dict["original"]["size_psd_variable"]]
+        )
+        if projector_type not in sol_dict
+    )
+    for (
+        projector_type
+    ) in gen_type:  # Run projection for different projectors only if not stored
+        sol_dict[projector_type] = {}
+        gen_projection = (
+            projection
+            for projection in config["maxcut"]["projection"]
+            if projection not in sol_dict[projector_type]
+        )
+        for projection in gen_projection:
+            projector = rp.RandomProjector(
+                round(projection * results["size_psd_variable"]),
+                results["size_psd_variable"],
+                projector_type,
+            )
+            start = time.time()
+            p_results = maxcut.projected_sdp_relaxation(graph, projector)
+            print(
+                f"    Finished {projection} for projector {projector.type} sdp maxcut, took {time.time() - start} seconds"
+            )
+
+            sol_dict[projector_type][projection] = p_results
 
     # Save as pickle
     with open(directory, "wb") as f:
@@ -321,7 +340,9 @@ def run_max_sat_experiments(config):
             # Solve maxsat instance.
             results = maxsat.sdp_relaxation(formula)
             sol_dict = {"original": results}
-            projector_type = config["densities"][int(sol_dict["original"]["size_psd_variable"])]
+            projector_type = config["densities"][
+                int(sol_dict["original"]["size_psd_variable"])
+            ]
             sol_dict[projector_type] = {}
             for projection in config["maxsat"]["projection"]:
                 projector = rp.RandomProjector(

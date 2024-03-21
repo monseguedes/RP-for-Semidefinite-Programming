@@ -30,7 +30,12 @@ def maxcut_to_latex(directory, config, projector_type="sparse", percentage=[0.1,
     print(table_header)
 
     alphabetical_dir = sorted(
-        [file for file in os.listdir(directory) if file.endswith(".pkl") if config["maxcut"]["name"] in file],
+        [
+            file
+            for file in os.listdir(directory)
+            if file.endswith(".pkl")
+            if config["maxcut"]["name"] in file
+        ],
         key=lambda x: int("".join([i for i in x if i.isdigit()])),
     )
 
@@ -38,10 +43,21 @@ def maxcut_to_latex(directory, config, projector_type="sparse", percentage=[0.1,
         file_path = os.path.join(directory, name)
         with open(file_path, "rb") as file:
             results = pickle.load(file)
-        if results["original"]["size_psd_variable"] >= config["maxcut"]["results"]["min_vertices"] and results["original"]["size_psd_variable"] <= config["maxcut"]["results"]["max_vertices"]:
-            first_ratio = results[projector_type][percentage[0]]["objective"] / results["original"]["objective"] * 100
+        if (
+            results["original"]["size_psd_variable"]
+            >= config["maxcut"]["results"]["min_vertices"]
+            and results["original"]["size_psd_variable"]
+            <= config["maxcut"]["results"]["max_vertices"]
+        ):
+            first_ratio = (
+                results[projector_type][percentage[0]]["objective"]
+                / results["original"]["objective"]
+                * 100
+            )
             second_ratio = (
-                results[projector_type][percentage[1]]["objective"] / results["original"]["objective"] * 100
+                results[projector_type][percentage[1]]["objective"]
+                / results["original"]["objective"]
+                * 100
             )
 
             if first_ratio > -10000000000 and second_ratio > -1000000000:
@@ -49,7 +65,7 @@ def maxcut_to_latex(directory, config, projector_type="sparse", percentage=[0.1,
                 # results[projector_type][percentage[0]]["computation_time"] = 0
                 # first_ratio = 0
 
-            # if second_ratio < 0:
+                # if second_ratio < 0:
                 # results[projector_type][percentage[1]]["objective"] = 0
                 # results[projector_type][percentage[1]]["computation_time"] = 0
                 # second_ratio = 0
@@ -73,7 +89,7 @@ def maxcut_to_latex(directory, config, projector_type="sparse", percentage=[0.1,
                         results[projector_type][percentage[1]]["computation_time"],
                         second_ratio,
                     )
-                    )
+                )
     table_footer = r"""
             \bottomrule
         \end{tabular}}
@@ -105,7 +121,12 @@ def maxcut_to_latex_single(directory, config, projector_type="sparse", percentag
     print(table_header)
 
     alphabetical_dir = sorted(
-        [file for file in os.listdir(directory) if file.endswith(".pkl") if config["maxcut"]["name"] in file],
+        [
+            file
+            for file in os.listdir(directory)
+            if file.endswith(".pkl")
+            if config["maxcut"]["name"] in file
+        ],
         key=lambda x: int("".join([i for i in x if i.isdigit()])),
     )
 
@@ -113,8 +134,17 @@ def maxcut_to_latex_single(directory, config, projector_type="sparse", percentag
         file_path = os.path.join(directory, name)
         with open(file_path, "rb") as file:
             results = pickle.load(file)
-        if results["original"]["size_psd_variable"] >= config["maxcut"]["results"]["min_vertices"] and results["original"]["size_psd_variable"] <= config["maxcut"]["results"]["max_vertices"]:
-            first_ratio = results[projector_type][percentage]["objective"] / results["original"]["objective"] * 100
+        if (
+            results["original"]["size_psd_variable"]
+            >= config["maxcut"]["results"]["min_vertices"]
+            and results["original"]["size_psd_variable"]
+            <= config["maxcut"]["results"]["max_vertices"]
+        ):
+            first_ratio = (
+                results[projector_type][percentage]["objective"]
+                / results["original"]["objective"]
+                * 100
+            )
             name = name.strip(".pkl")
             print(
                 "             {:8} & {:8} & {:8} & {:8.2f} & {:8.2f} \
@@ -129,7 +159,7 @@ def maxcut_to_latex_single(directory, config, projector_type="sparse", percentag
                     results[projector_type][percentage]["computation_time"],
                     first_ratio,
                 )
-                )
+            )
     table_footer = r"""
             \bottomrule
         \end{tabular}}
@@ -138,7 +168,10 @@ def maxcut_to_latex_single(directory, config, projector_type="sparse", percentag
     """
     print(table_footer)
 
-def maxcut_to_latex_single_simplified(directory, config, projector_type="sparse", percentage=0.1):
+
+def maxcut_to_latex_single_simplified(
+    directory, config, projector_type="sparse", percentage=0.1
+):
     """
     Convert the results of the maxcut problem to a LaTeX table.
     """
@@ -152,14 +185,19 @@ def maxcut_to_latex_single_simplified(directory, config, projector_type="sparse"
             & & && \multicolumn{2}{c}{10\% projection} \\
             \cmidrule{5-6}
             \rule{0pt}{10pt} % Adding space of 10pt between lines and text below
-            Instance & m & Density && Relative time & Relative quality \\
+            Instance & m & Density && Time & Quality \\
             \midrule
     """
 
     print(table_header)
 
     alphabetical_dir = sorted(
-        [file for file in os.listdir(directory) if file.endswith(".pkl") if config["maxcut"]["name"] in file],
+        [
+            file
+            for file in os.listdir(directory)
+            if file.endswith(".pkl")
+            if config["maxcut"]["name"] in file
+        ],
         key=lambda x: int("".join([i for i in x if i.isdigit()])),
     )
 
@@ -167,20 +205,31 @@ def maxcut_to_latex_single_simplified(directory, config, projector_type="sparse"
         file_path = os.path.join(directory, name)
         with open(file_path, "rb") as file:
             results = pickle.load(file)
-        if results["original"]["size_psd_variable"] == config["maxcut"]["results"]["min_vertices"]:
-            objective_ratio = results[projector_type][percentage]["objective"] / results["original"]["objective"] * 100
-            time_ratio = results[projector_type][percentage]["computation_time"] / results["original"]["computation_time"] * 100
-            name = name.strip(".pkl")
+        if (
+            results["original"]["size_psd_variable"]
+            == config["maxcut"]["results"]["min_vertices"]
+        ):
+            objective_ratio = (
+                results[projector_type][percentage]["objective"]
+                / results["original"]["objective"]
+                * 100
+            )
+            time_ratio = (
+                results[projector_type][percentage]["computation_time"]
+                / results["original"]["computation_time"]
+                * 100
+            )
+            name = name.strip(".pkl").replace("_", "-")
             print(
-                "   {:8} & {:10} & {:8} & {:8.2f} \
-                & & {:8.2f} & {:8.2f} \\\\".format(
-                    name.replace("_", "-"), # Instance
-                    results["original"]["edges"], # m
-                    name.split("-")[2], # Density
-                    time_ratio, # Projection time
-                    objective_ratio, # Quality
+                "             {:8} & {:10} & {:2} \
+                & & {:2.2f} & {:2.2f} \\\\".format(
+                    name,  # Instance
+                    results["original"]["edges"],  # m
+                    name.split("-")[2],  # Density
+                    time_ratio,  # Projection time
+                    objective_ratio,  # Quality
                 )
-                )
+            )
     table_footer = r"""
             \bottomrule
         \end{tabular}
@@ -225,24 +274,24 @@ def stable_set_to_latex(directory, projector_type="sparse"):
             results = pickle.load(file)
 
         key = 0.1
-        
+
         print(
-        "             {:8} & {:8} & {:8} & {:8.2f} & {:8} & {:8.2f} & {:8.2f} & & {:8} & {:8.2f} & {:8.2f} \\\\".format(
-            "c-petersen-" + name.strip(".pkl").replace("_", "-").strip("-complement"),
-            results["L1"]["size_psd_variable"] - 1,
-            len(results["L2"]["edges"]),
-            abs(results["L1"]["objective"]),
-            results["L2"]["size_psd_variable"],
-            abs(results["L2"]["objective"]),
-            results["L2"]["computation_time"],
-            results[key]["size_psd_variable"],
-            abs(results[key]["objective"]),
-            results[key]["computation_time"],
-        )
+            "             {:8} & {:8} & {:8} & {:8.2f} & {:8} & {:8.2f} & {:8.2f} & & {:8} & {:8.2f} & {:8.2f} \\\\".format(
+                "c-petersen-"
+                + name.strip(".pkl").replace("_", "-").strip("-complement"),
+                results["L1"]["size_psd_variable"] - 1,
+                len(results["L2"]["edges"]),
+                abs(results["L1"]["objective"]),
+                results["L2"]["size_psd_variable"],
+                abs(results["L2"]["objective"]),
+                results["L2"]["computation_time"],
+                results[key]["size_psd_variable"],
+                abs(results[key]["objective"]),
+                results[key]["computation_time"],
+            )
         )
 
-
-    # Cordones          
+    # Cordones
     alphabetical_dir = sorted(
         [file for file in os.listdir(cordones_dir) if file.endswith(".pkl")],
         key=lambda x: int("".join([i for i in x if i.isdigit()])),
@@ -251,23 +300,23 @@ def stable_set_to_latex(directory, projector_type="sparse"):
         file_path = os.path.join(cordones_dir, name)
         with open(file_path, "rb") as file:
             results = pickle.load(file)
-            
+
         key = 0.2
         print(
-        "             {:8} & {:8} & {:8} & {:8.2f} & {:8} & {:8.2f} & {:8.2f} & & {:8} & {:8.2f} & {:8.2f} \\\\".format(
-            "c-cordones-" + name.strip(".pkl").replace("_", "-").strip("-complement"),
-            results["L1"]["size_psd_variable"] - 1,
-            len(results["L2"]["edges"]),
-            abs(results["L1"]["objective"]),
-            results["L2"]["size_psd_variable"],
-            abs(results["L2"]["objective"]),
-            results["L2"]["computation_time"],
-            results[key]["size_psd_variable"],
-            abs(results[key]["objective"]),
-            results[key]["computation_time"],
+            "             {:8} & {:8} & {:8} & {:8.2f} & {:8} & {:8.2f} & {:8.2f} & & {:8} & {:8.2f} & {:8.2f} \\\\".format(
+                "c-cordones-"
+                + name.strip(".pkl").replace("_", "-").strip("-complement"),
+                results["L1"]["size_psd_variable"] - 1,
+                len(results["L2"]["edges"]),
+                abs(results["L1"]["objective"]),
+                results["L2"]["size_psd_variable"],
+                abs(results["L2"]["objective"]),
+                results["L2"]["computation_time"],
+                results[key]["size_psd_variable"],
+                abs(results[key]["objective"]),
+                results[key]["computation_time"],
+            )
         )
-        )
-        
 
     table_footer = r"""
             \bottomrule
@@ -303,15 +352,27 @@ def maxsat_to_latex(directory, projector_type="sparse", percentage=[0.1, 0.2]):
         [file for file in os.listdir(directory) if file.endswith(".pkl")],
         key=lambda x: int("".join([i for i in x if i.isdigit()])),
     )
-    alphabetical_dir = [file for file in os.listdir(directory) if file.endswith(".pkl") and "1000" in file]
+    alphabetical_dir = [
+        file
+        for file in os.listdir(directory)
+        if file.endswith(".pkl") and "1000" in file
+    ]
 
     for name in alphabetical_dir:
         file_path = os.path.join(directory, name)
         with open(file_path, "rb") as file:
             results = pickle.load(file)
         name = name.strip(".pkl").replace("_", "-")
-        first_quality =  results[projector_type][percentage[0]]["objective"] / results["original"]["objective"] * 100
-        second_quality = results[projector_type][percentage[1]]["objective"] / results["original"]["objective"] * 100        
+        first_quality = (
+            results[projector_type][percentage[0]]["objective"]
+            / results["original"]["objective"]
+            * 100
+        )
+        second_quality = (
+            results[projector_type][percentage[1]]["objective"]
+            / results["original"]["objective"]
+            * 100
+        )
         print(
             "             {:8} & {:8} & {:8} & {:8f} & {:8.2f} & {:8.2f} & & {:8f} & {:8.2f} & {:8.2f} & {:8.2f} & & {:8f} & {:8.2f} & {:8.2f} & {:8.2f}  \\\\".format(
                 "f-" + name,
@@ -328,7 +389,7 @@ def maxsat_to_latex(directory, projector_type="sparse", percentage=[0.1, 0.2]):
                 results[projector_type][percentage[1]]["objective"],
                 results[projector_type][percentage[1]]["computation_time"],
                 second_quality,
-        )
+            )
         )
 
     table_footer = r"""
@@ -338,6 +399,87 @@ def maxsat_to_latex(directory, projector_type="sparse", percentage=[0.1, 0.2]):
     \end{table}
     """
     print(table_footer)
+
+
+def maxsat_to_latex_simplified(directory, projector_type="sparse", percentage=[0.1, 0.2]):
+    """
+    Convert the results of the maxsat problem to a LaTeX table.
+    """
+
+    # Create the table header
+    table_header = r"""
+    \begin{table}[!htbp]
+        \centering
+        \captionof{table}{Computational results \textsc{max-2-sat}}
+        \resizebox{\textwidth}{!}{%
+        \begin{tabular}{lrrrrrrrrrrrrrrr} 
+            \toprule
+            & & & && \multicolumn{2}{c}{10\% projection} && \multicolumn{2}{c}{20\% projection} \\
+            \cmidrule{5-6} \cmidrule{8-9}
+            \rule{0pt}{10pt} % Adding space of 10pt between lines and text below
+            Instance & n & C & clauses && Time & Quality && Time & Quality \\
+            \midrule
+    """
+    print(table_header)
+
+    alphabetical_dir = sorted(
+        [file for file in os.listdir(directory) if file.endswith(".pkl")],
+        key=lambda x: int("".join([i for i in x if i.isdigit()])),
+    )
+    alphabetical_dir = [
+        file
+        for file in os.listdir(directory)
+        if file.endswith(".pkl") and "1000" in file
+    ]
+
+    for name in alphabetical_dir:
+        file_path = os.path.join(directory, name)
+        with open(file_path, "rb") as file:
+            results = pickle.load(file)
+        name = name.strip(".pkl").replace("_", "-")
+        first_quality = (
+            results[projector_type][percentage[0]]["objective"]
+            / results["original"]["objective"]
+            * 100
+        )
+        first_time = (
+                results[projector_type][percentage[0]]["computation_time"]
+                / results["original"]["computation_time"]
+                * 100
+            )
+        second_quality = (
+            results[projector_type][percentage[1]]["objective"]
+            / results["original"]["objective"]
+            * 100
+        )
+        second_time = (
+                results[projector_type][percentage[1]]["computation_time"]
+                / results["original"]["computation_time"]
+                * 100
+            )
+        print(
+            "             {:8} & {:5} & {:8} & {:8.2f} && {:6.2f} & {:2.2f} && {:6.2f} & {:2.2f}  \\\\".format(
+                "f-" + name,
+                int(name.split("-")[0]),
+                results["original"]["C"],
+                int(int(results["original"]["C"]) * float(name.split("-")[0])),
+                first_time,
+                first_quality,
+                second_time,
+                second_quality,
+            )
+        )
+
+    table_footer = r"""
+            \bottomrule
+        \end{tabular}}
+        \label{tab:my_label}
+    \end{table}
+    """
+    print(table_footer)
+
+
+
 
 with open("config.yml", "r") as file:
     config = yaml.safe_load(file)
@@ -349,4 +491,5 @@ with open("config.yml", "r") as file:
 # stable_set_to_latex("results/stable_set")
 # maxsat_to_latex("results/maxsat", "sparse", [0.1, 0.2])
 # maxsat_to_latex("results/maxsat", "sparse", [0.1, 0.2])
-maxcut_to_latex_single_simplified("results/maxcut", config, "sparse", 0.1)
+# maxcut_to_latex_single_simplified("results/maxcut", config, "0.05_density", 0.1)
+# maxsat_to_latex_simplified(("results/maxsat", "sparse", [0.1, 0.2]))

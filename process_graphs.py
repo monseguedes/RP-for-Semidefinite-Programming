@@ -126,7 +126,7 @@ if __name__ == "__main__":
     #     file = File(file_name)
     #     file.store_graph(graph)
 
-    for graph in [name for name in os.listdir("graphs/maxcut/out") if "7000_30" in name or "7000_40" in name]:
+    for graph in [name for name in os.listdir("graphs/maxcut/out")]: #if "7000_30" in name or "7000_40" in name]:
         file_name = "graphs/maxcut/out/" + graph
         print(file_name)
         file = File(file_name)

@@ -479,6 +479,40 @@ def maxsat_to_latex_simplified(directory, percentage=[0.1, 0.2]):
     print(table_footer)
 
 
+def sparsity_test_to_latex(directory, percentage=[0.05, 0.1]):
+    table_header = r"""
+    \begin{table}[!htbp]
+    \captionof{table}{Comparison of relative time (\%) and relative quality (\%) with respect to the original SDP relaxation for different sparsities (\%) of sparse projectors from \cite{DAmbrosio2020} for a 5\% and 10\% projection of a 10.000 nodes  rudy graph with 20\% edge density} 
+    \begin{tabular}{rrrrrrrrrrrrrrrr} 
+    \toprule
+        && \multicolumn{2}{c}{5\% projection} && \multicolumn{2}{c}{10\% projection} \\
+        \cmidrule{3-4}\cmidrule{6-7}
+        \rule{0pt}{10pt} % Adding space of 10pt between lines and text below
+        Sparsity && Time & Quality && Time & Quality \\
+        \midrule
+        """
+    print(table_header)
+
+    with open(os.path.join(directory, "results.pkl"), "rb") as file:
+        results = pickle.load(file)
+
+    for sparsity in [density for density in results.keys() if density != "original"]:
+        print(
+            "             {:8} && {:8.2f} & {:8.2f} && {:8.2f} & {:8.2f} \\\\".format(
+                (1 - float(sparsity.split("_")[0])) * 100,
+                results[sparsity][percentage[0]]["time"] / results["original"]["time"] * 100,
+                results[sparsity][percentage[0]]["quality"] / results["original"]["quality"] * 100,
+                results[sparsity][percentage[1]]["time"] / results["original"]["time"] * 100,
+                results[sparsity][percentage[1]]["quality"] / results["original"]["quality"] * 100,
+            )
+        )
+
+    
+    table_footer = r"""
+        \bottomrule
+        \end{tabular}
+        \label{tab:main rudy-7000}
+    \end{table}"""
 
 
 with open("config.yml", "r") as file:
@@ -492,4 +526,5 @@ with open("config.yml", "r") as file:
 # maxsat_to_latex("results/maxsat", "sparse", [0.1, 0.2])
 # maxsat_to_latex("results/maxsat", "sparse", [0.1, 0.2])
 # maxcut_to_latex_single_simplified("results/maxcut", config, "0.05_density", 0.1)
-maxsat_to_latex_simplified("results/maxsat", [0.1, 0.2])
+# maxsat_to_latex_simplified("results/maxsat", [0.1, 0.2])
+sparsity_test_to_latex("results/sparsity_test")

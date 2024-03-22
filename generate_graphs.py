@@ -92,37 +92,36 @@ class Graph:
         """
         if verbose:
             print("Building monomial matrix for level 2")
+        start = time.time()
         monomial_matrix = monomials.stable_set_monomial_matrix(
             self.edges, self.n, level=2
         )
+        print("Time taken building monomial matrix for level 2:", time.time() - start)
         if verbose:
             print("SIZE OF MONOMIAL MATRIX:", len(monomial_matrix))
-            print("Done building monomial matrix for level 2")
-            print("Building distinct monomials for level 2")
+            print("Building distinct monomials for level 2...")
         self.distinct_monomials_L2 = monomials.stable_set_distinct_monomials(
             self.edges, self.n, level=2
         )
         if verbose:
             print("Done building distinct monomials for level 2")
 
-        # # Picking monomials of degree 2 or less
-        # monomials_free_polynomials = [monomial for monomial in self.distinct_monomials_L2 if sum(monomial) <= 2]
-        # self.monomials_free_polynomials = monomials_free_polynomials
-
         if verbose:
             print("Building Ai matrices for level 2")
         # Picking SOS monomials
+        start = time.time()
         self.A_L2 = {}
         for i, monomial in enumerate(self.distinct_monomials_L2):
             if verbose:
                 print(
                     "Picking monomial: {} out of {}".format(
                         i, len(self.distinct_monomials_L2)
-                    )
+                    ), end="\r"
                 )
             self.A_L2[monomial] = monomials.pick_specific_monomial(
                 monomial_matrix, monomial
             )
+        print("Time taken building Ai matrices for level 2:", time.time() - start)
 
         if verbose:
             print("Done building Ai matrices for level 2")
@@ -295,17 +294,22 @@ def generate_cordones(n, complement=False, save=False):
         cordones.edges_complement_graph()
         cordones.get_matrix_from_edges()
     # cordones.plot_graph()
+    print("-" * 50)
     print("Picking for level 1...")
-    cordones.get_picking_SOS(verbose=False)
+    start = time.time()
+    cordones.get_picking_SOS(verbose=True)
+    print("Time taken building level 1:", time.time() - start)
+    print("-" * 50)
     print("Picking for level 2...")
     start = time.time()
-    cordones.picking_for_level_two(verbose=False)
+    cordones.picking_for_level_two(verbose=True)
     print("Time taken building level 2:", time.time() - start)
     if save:
         if complement:
             cordones.store_graph("cordones_{}_complement".format(n))
         else:
             cordones.store_graph("cordones_{}".format(n))
+    print("-" * 50)
     print("Graph cordones graph with n={} generated!".format(n))
 
     return cordones
@@ -389,5 +393,5 @@ def generate_probability_graph(n, p, seed=0):
 
 if __name__ == "__main__":
     # generate_pentagon()
-    generate_generalised_petersen(30, 2, complement=True)
-    # generate_cordones(5, complement=False)
+    # generate_generalised_petersen(30, 2, complement=True)
+    generate_cordones(15, complement=True)

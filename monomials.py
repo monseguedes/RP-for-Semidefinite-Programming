@@ -297,12 +297,21 @@ def pick_specific_monomial(monomials_matrix, monomial, vector=False):
             if monomials_matrix[i] == monomial:
                 monomial_matrix[i] = 1
 
+    # OLD METHOD
     else:
+        start = time.time()
         monomial_matrix = np.zeros((len(monomials_matrix), len(monomials_matrix)))
         for i in range(len(monomials_matrix)):
             for j in range(len(monomials_matrix)):
                 if monomials_matrix[i][j] == monomial:
                     monomial_matrix[i][j] = 1
+        # print("Time elapsed picking monomial Ai old method: {}".format(time.time() - start))
+
+        # # NEW METHOD
+        # start = time.time()
+        # monomial_matrix = monomials_matrix[monomials_matrix != monomial] = 0
+        # monomial_matrix[monomial_matrix == monomial] = 1
+        # print("Time elapsed picking monomial Ai new method: {}".format(time.time() - start))
 
     return monomial_matrix
 

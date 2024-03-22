@@ -170,8 +170,8 @@ def projected_sdp_relaxation(graph, projector, verbose=False, slack=True):
 
         # Lower and upper bounds of the dual variables
         epsilon = 0.00001
-        dual_lower_bound = -100000000 - epsilon
-        dual_upper_bound = 1000000000 + epsilon
+        dual_lower_bound = -1000000000 - epsilon
+        dual_upper_bound =  1000000000 + epsilon
 
         # Objective:
         # M.objective(mf.ObjectiveSense.Maximize, mf.Expr.mul(1 / 4, mf.Expr.dot(L, X)))

@@ -401,7 +401,7 @@ def maxsat_to_latex(directory, projector_type="sparse", percentage=[0.1, 0.2]):
     print(table_footer)
 
 
-def maxsat_to_latex_simplified(directory, projector_type="sparse", percentage=[0.1, 0.2]):
+def maxsat_to_latex_simplified(directory, percentage=[0.1, 0.2]):
     """
     Convert the results of the maxsat problem to a LaTeX table.
     """
@@ -411,13 +411,12 @@ def maxsat_to_latex_simplified(directory, projector_type="sparse", percentage=[0
     \begin{table}[!htbp]
         \centering
         \captionof{table}{Computational results \textsc{max-2-sat}}
-        \resizebox{\textwidth}{!}{%
         \begin{tabular}{lrrrrrrrrrrrrrrr} 
             \toprule
-            & & & && \multicolumn{2}{c}{10\% projection} && \multicolumn{2}{c}{20\% projection} \\
+            & & && \multicolumn{2}{c}{10\% projection} && \multicolumn{2}{c}{20\% projection} \\
             \cmidrule{5-6} \cmidrule{8-9}
             \rule{0pt}{10pt} % Adding space of 10pt between lines and text below
-            Instance & n & C & clauses && Time & Quality && Time & Quality \\
+            Instance & n & C && Time & Quality && Time & Quality \\
             \midrule
     """
     print(table_header)
@@ -429,7 +428,7 @@ def maxsat_to_latex_simplified(directory, projector_type="sparse", percentage=[0
     alphabetical_dir = [
         file
         for file in os.listdir(directory)
-        if file.endswith(".pkl") and "1000" in file
+        if file.endswith(".pkl")
     ]
 
     for name in alphabetical_dir:
@@ -437,6 +436,7 @@ def maxsat_to_latex_simplified(directory, projector_type="sparse", percentage=[0
         with open(file_path, "rb") as file:
             results = pickle.load(file)
         name = name.strip(".pkl").replace("_", "-")
+        projector_type = config["densities"][results["original"]["size_psd_variable"] - 1][0]
         first_quality = (
             results[projector_type][percentage[0]]["objective"]
             / results["original"]["objective"]
@@ -472,7 +472,7 @@ def maxsat_to_latex_simplified(directory, projector_type="sparse", percentage=[0
 
     table_footer = r"""
             \bottomrule
-        \end{tabular}}
+        \end{tabular}
         \label{tab:my_label}
     \end{table}
     """
@@ -492,4 +492,4 @@ with open("config.yml", "r") as file:
 # maxsat_to_latex("results/maxsat", "sparse", [0.1, 0.2])
 # maxsat_to_latex("results/maxsat", "sparse", [0.1, 0.2])
 # maxcut_to_latex_single_simplified("results/maxcut", config, "0.05_density", 0.1)
-# maxsat_to_latex_simplified(("results/maxsat", "sparse", [0.1, 0.2]))
+maxsat_to_latex_simplified("results/maxsat", [0.1, 0.2])

@@ -287,6 +287,9 @@ def maxcut_experiments_graph(directory, graph):
         results = maxcut.sdp_relaxation(graph)
         sol_dict = {"original": results}
         print(f"    Finished original sdp maxcut, took {time.time() - start} seconds")
+        # Save as pickle
+        with open(directory, "wb") as f:
+            pickle.dump(sol_dict, f)
 
     for projector_type in list(config["densities"][sol_dict["original"]["size_psd_variable"]]):  # Run projection for different projectors only if not stored
         if projector_type not in sol_dict:

@@ -129,25 +129,16 @@ def run_stable_set_experiments(config):
 
     # Create folder for petersen results
     os.makedirs("results/stable_set/petersen", exist_ok=True)
-
     for i, graph in enumerate(config["petersen_n_k"]):
         n = graph["n"]
         k = graph["k"]
         print(f"Scanning petersen graph {i + 1} of {len(config['petersen_n_k'])}")
         if 2 * graph["n"] <= config["stable_set"]["max_vertices"]:
             print(f"    Running experiments for petersen {n}_{k} complement...")
-            # if not os.path.isfile(
-            #     f"graphs/generalised_petersen_{n}_{k}_complement/graph.pkl"
-            # ):
+
             graph = generate_graphs.generate_generalised_petersen(
                 n, k, complement=True, save=False
             )
-
-            # directory = f"graphs/generalised_petersen_{n}_{k}_complement"
-            # file_path = directory + "/graph.pkl"
-
-            # with open(file_path, "rb") as file:
-            #     graph = pickle.load(file)
 
             stable_set_experiments_graph(
                 f"results/stable_set/petersen/{n}_{k}_complement.pkl",
@@ -158,21 +149,13 @@ def run_stable_set_experiments(config):
 
     # Create folder for cordones results
     os.makedirs("results/stable_set/cordones", exist_ok=True)
-
     for i, graph in enumerate(config["cordones"]):
         n = graph["n"]
         print(f"Scanning cordones graph {i + 1} of {len(config['cordones'])}")
         if 2 * graph["n"] <= config["stable_set"]["max_vertices"]:
             print(f"    Running experiments for cordones {n} complement")
-            # if not os.path.isfile(f"graphs/cordones_{n}_complement/graph.pkl"):
 
             graph = generate_graphs.generate_cordones(n, complement=True, save=False)
-
-            # directory = f"graphs/cordones_{n}_complement"
-            # file_path = directory + "/graph.pkl"
-
-            # with open(file_path, "rb") as file:
-            #     graph = pickle.load(file)
 
             stable_set_experiments_graph(
                 f"results/stable_set/cordones/{n}_complement.pkl",
@@ -196,39 +179,43 @@ def stable_set_experiments_graph(directory, graph, complement=False):
 
     """
 
-    L1_results = first_level_stable_set.stable_set_problem_sdp(graph)
-    sol_dict = {"L1": L1_results}
+    if os.path.exists(directory):  # Load previous results if available
+        with open(directory, "rb") as f:
+            sol_dict = pickle.load(f)
+    else:
+        sol_dict = {}
 
-    L2_results = second_level_stable_set.second_level_stable_set_problem_sdp(graph)
-    sol_dict["L2"] = L2_results
+    if "L1" not in sol_dict:  # Run original sdp stable set only if not stored
+        L1_results = first_level_stable_set.stable_set_problem_sdp(graph)
+        sol_dict = {"L1": L1_results}
 
-    if 0 <= L2_results["size_psd_variable"] <= 1000:
-        projector_type = "sparse"
-    elif 1000 < L2_results["size_psd_variable"] <= 2500:
-        projector_type = "0.2_density"
-    elif 2500 < L2_results["size_psd_variable"] <= 4000:
-        projector_type = "0.1_density"
-    elif 4000 < L2_results["size_psd_variable"]:
-        projector_type = "0.05_density"
+    if "L2" not in sol_dict:  # Run second level sdp stable set only if not stored
+        L2_results = second_level_stable_set.second_level_stable_set_problem_sdp(graph)
+        sol_dict["L2"] = L2_results
+        
+    # Save as pickle
+    with open(directory, "wb") as f:
+        pickle.dump(sol_dict, f)
 
     if complement:
         projections = config["stable_set"]["c_projection"]
     else:
         projections = config["stable_set"]["projection"]
 
-    if L2_results["size_psd_variable"] <= config["stable_set"]["max_matrix"]:
-        for projection in projections:
-            projector = rp.RandomProjector(
-                round(projection * L2_results["size_psd_variable"]),
-                L2_results["size_psd_variable"],
-                projector_type,
+    projector_type = min(config["densities"], key=lambda x:abs(x - sol_dict["L2"]["size_psd_variable"])) 
+    sol_dict[projector_type] = {}
+    for projection in projections:
+        projector = rp.RandomProjector(
+            round(projection * L2_results["size_psd_variable"]),
+            L2_results["size_psd_variable"],
+            projector_type,
+        )
+        results = (
+            second_level_stable_set.projected_second_level_stable_set_problem_sdp(
+                graph, projector
             )
-            results = (
-                second_level_stable_set.projected_second_level_stable_set_problem_sdp(
-                    graph, projector
-                )
-            )
-            sol_dict[projection] = results
+        )
+        sol_dict[projector_type][projection] = results
 
     # Save as pickle
     with open(directory, "wb") as f:
@@ -429,7 +416,7 @@ if __name__ == "__main__":
     with open("config.yml", "r") as config_file:
         config = yaml.safe_load(config_file)
 
-    # run_stable_set_experiments(config)
+    run_stable_set_experiments(config)
     # run_maxcut_experiments(config)
-    run_max_sat_experiments(config)
+    # run_max_sat_experiments(config)
     # quality_plot_computational_experiments_maxcut()

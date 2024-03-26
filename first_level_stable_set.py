@@ -293,6 +293,106 @@ def projected_stable_set_problem_sdp(graph, random_projector, verbose=False):
 
         return solution
 
+def stable_set_problem_sdp_extension(graph: Graph, verbose=False):
+    """
+    Parameters
+    ----------
+    graph : Graph
+        Graph object.
+    verbose : bool
+        If True, print the log of the Mosek solver.
+
+    Returns
+    -------
+    dict
+        Dictionary with the solutions of the sdp relaxation.
+
+    """
+
+    distinct_monomials = graph.distinct_monomials_L1
+    edges = graph.edges
+    A = graph.A
+   # Expand all matrices with a row and column of 0s
+    for matrix in A.keys():
+        A[matrix] = np.vstack((A[matrix], np.zeros(A[matrix].shape[1])))
+        A[matrix] = np.column_stack((A[matrix], np.zeros(A[matrix].shape[0])))
+    # Add a matrix per entry in the new row and column
+    new_length = list(A.values())[0].shape[0]
+    for i in range(new_length - 1):
+        matrix = np.zeros((new_length, new_length))
+        matrix[i, -1] = 1
+        A[i] = matrix
+    for i in range(new_length - 1):
+        matrix = np.zeros((new_length, new_length))
+        matrix[-1, i] = 1
+        A[i + new_length - 1] = matrix
+
+    # Coefficients of objective
+    C = {monomial: -1 if sum(monomial) == 1 else 0 for monomial in distinct_monomials}
+
+    with mf.Model("SDP") as M:
+        # PSD variable X
+        size_psd_variable = new_length
+        X = M.variable(mf.Domain.inPSDCone(size_psd_variable))
+
+        # Objective: maximize a (scalar)
+        A_objective = np.zeros((size_psd_variable, size_psd_variable))
+        A_objective[-1, -1] = 1
+        M.objective(mf.ObjectiveSense.Maximize, mf.Expr.dot(A_objective, X))
+
+        tuple_of_constant = tuple([0 for i in range(len(distinct_monomials[0]))])
+        # Constraints:
+        # Monomial constraints
+        constraints = []
+        for i, monomial in enumerate(
+            [m for m in distinct_monomials if m != tuple_of_constant]
+        ):
+            SOS_dot_X = mf.Expr.dot(A[monomial], X)
+            M.constraint(
+                SOS_dot_X,
+                mf.Domain.equalsTo(C[monomial]),
+            )
+        # Scalar constraint
+        A_constant = A[tuple_of_constant]
+        A_constant[-1, -1] = 1
+        M.constraint(
+            mf.Expr.dot(A_constant, X),
+            mf.Domain.equalsTo(C[tuple_of_constant]),
+        )
+        # Last row and column constraints
+        for i in range(2 * new_length - 2):
+            matrix_inner_product = mf.Expr.dot(A[i], X)
+            M.constraint(
+                matrix_inner_product,
+                mf.Domain.equalsTo(0),
+            )
+        # for i in range(new_length - 1):
+        #     M.constraint(X.index(i, -1), mf.Domain.equalsTo(0))
+        #     M.constraint(X.index(-1, i), mf.Domain.equalsTo(0))
+                
+        if verbose:
+            # Increase verbosity
+            M.setLogHandler(sys.stdout)
+
+        start_time = time.time()
+        # Solve the problem
+        M.solve()
+        end_time = time.time()
+
+        # Get the solution
+        X_sol = X.level()
+        X_sol = X_sol.reshape(size_psd_variable, size_psd_variable)
+        objective = X_sol[-1, -1]
+        computation_time = end_time - start_time
+
+        solution = {
+            # "X": X_sol,
+            "objective": objective,
+            "computation_time": computation_time,
+            "size_psd_variable": size_psd_variable,
+        }
+
+        return solution
 
 def random_constraint_aggregation_sdp(graph, projector, verbose=False):
     """
@@ -340,7 +440,7 @@ def random_constraint_aggregation_sdp(graph, projector, verbose=False):
         i: sum(
             [
                 projector.projector[i, j] * A[monomial]
-                for j, monomial in enumerate(distinct_monomials) if monomial != tuple([0 for i in range(len(distinct_monomials[0]))])
+                for j, monomial in enumerate(distinct_monomials)
             ]
         )
         for i in range(projector.k)
@@ -391,13 +491,13 @@ def random_constraint_aggregation_sdp(graph, projector, verbose=False):
         size_psd_variable = int(np.sqrt(X_sol.shape[0]))
         computation_time = end_time - start_time
 
-    # except:
-    #     print("Mosek error")
-    #     X_sol = None
-    #     b_sol = None
-    #     objective = None
-    #     size_psd_variable = None
-    #     computation_time = None
+        # except:
+        #     print("Mosek error")
+        #     X_sol = None
+        #     b_sol = None
+        #     objective = None
+        #     size_psd_variable = None
+        #     computation_time = None
 
         solution = {
             # "X": X_sol,
@@ -530,13 +630,16 @@ if __name__ == "__main__":
     # with open(file_path, "rb") as file:
     #     graph = pickle.load(file)
 
-    graph = generate_graphs.generate_cordones(15, complement=False, save=False, level=1)
+    graph = generate_graphs.generate_cordones(5, complement=False, save=False, level=1)
     # graph = generate_graphs.generate_pentagon(complement=True)
     # graph = generate_graphs.generate_generalised_petersen(10, 2, complement=True, save=False, level=1)
     matrix_size = graph.graph.shape[0] + 1
     print("Matrix size: {}".format(matrix_size))
 
     # single_graph_results(graph, type="sparse")
+    results = stable_set_problem_sdp_extension(graph)
+
+    raise SystemExit
     projection = 0.1
     print("No. distinct monomials: ", len(graph.distinct_monomials_L1))
     projector = rp.RandomProjector(round(len(graph.distinct_monomials_L1) * projection), len(graph.distinct_monomials_L1), type="sparse", seed=seed)

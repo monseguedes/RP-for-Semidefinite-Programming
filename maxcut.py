@@ -164,50 +164,54 @@ def projected_sdp_relaxation(graph, projector, verbose=False, slack=True):
         # PSD variable X
         X = M.variable(mf.Domain.inPSDCone(n))
 
-        lb_variables = M.variable(original_dimension, mf.Domain.greaterThan(0))
-        ub_variables = M.variable(original_dimension, mf.Domain.greaterThan(0))
-        ones_vector = np.ones(original_dimension)
+        # lb_variables = M.variable(original_dimension, mf.Domain.greaterThan(0))
+        # ub_variables = M.variable(original_dimension, mf.Domain.greaterThan(0))
+        # ones_vector = np.ones(original_dimension)
 
-        # Lower and upper bounds of the dual variables
-        epsilon = 0.00001
-        dual_lower_bound = -1000000000 - epsilon
-        dual_upper_bound =  1000000000 + epsilon
+        # # Lower and upper bounds of the dual variables
+        # epsilon = 0.00001
+        # dual_lower_bound = -1000000000 - epsilon
+        # dual_upper_bound =  1000000000 + epsilon
 
         # Objective:
-        # M.objective(mf.ObjectiveSense.Maximize, mf.Expr.mul(1 / 4, mf.Expr.dot(L, X)))
-        M.objective(
-            mf.ObjectiveSense.Maximize,
-            mf.Expr.add(
-                mf.Expr.mul(1 / 4, mf.Expr.dot(L, X)),
-                mf.Expr.sub(
-                    mf.Expr.mul(
-                        dual_lower_bound,
-                        mf.Expr.dot(lb_variables, ones_vector),
-                    ),
-                    mf.Expr.mul(
-                        dual_upper_bound,
-                        mf.Expr.dot(ub_variables, ones_vector),
-                    ),
-                ),
-            ),
-        )
+        M.objective(mf.ObjectiveSense.Maximize, mf.Expr.mul(1 / 4, mf.Expr.dot(L, X)))
+        # M.objective(
+        #     mf.ObjectiveSense.Maximize,
+        #     mf.Expr.add(
+        #         mf.Expr.mul(1 / 4, mf.Expr.dot(L, X)),
+        #         mf.Expr.sub(
+        #             mf.Expr.mul(
+        #                 dual_lower_bound,
+        #                 mf.Expr.dot(lb_variables, ones_vector),
+        #             ),
+        #             mf.Expr.mul(
+        #                 dual_upper_bound,
+        #                 mf.Expr.dot(ub_variables, ones_vector),
+        #             ),
+        #         ),
+        #     ),
+        # )
 
         # Constraints:
         # constraints = []
         for i in range(original_dimension):
             print("Adding constraints... {}/{}          ".format(i + 1, original_dimension), end="\r")
-            difference_slacks = mf.Expr.sub(
-                lb_variables.index(i),
-                ub_variables.index(i),
-            )
+            # difference_slacks = mf.Expr.sub(
+            #     lb_variables.index(i),
+            #     ub_variables.index(i),
+            # )
             # constraints.append(
             #     M.constraint(
             #         mf.Expr.add(mf.Expr.dot(projector.apply_rp_map(A[i]), X), difference_slacks),
             #         mf.Domain.equalsTo(1),
             #     )
             # )
+            # M.constraint(
+            #         mf.Expr.add(mf.Expr.dot(projected_A[i], X), difference_slacks),
+            #         mf.Domain.equalsTo(1),
+            #     )
             M.constraint(
-                    mf.Expr.add(mf.Expr.dot(projected_A[i], X), difference_slacks),
+                    mf.Expr.dot(projected_A[i], X),
                     mf.Domain.equalsTo(1),
                 )
         
@@ -215,19 +219,25 @@ def projected_sdp_relaxation(graph, projector, verbose=False, slack=True):
         start_time = time.time()
         # Solve the problem
         print(f"Solving the problem of size {n}         " , end="\r")
-        M.solve()
+        try:
+            M.solve()
+            # Get the solution
+            X_sol = X.level()
+            X_sol = X_sol.reshape((n, n))
+            objective = M.primalObjValue()
+        except: 
+            X_sol = 0
+            print("The projected problem is infeasible")
+            objective = 0
+
         end_time = time.time()
 
-        # Get the solution
-        X_sol = X.level()
         computation_time = end_time - start_time
-
-        X_sol = X_sol.reshape((n, n))
 
         solution = {
             # "X_sol": X_sol,
             "computation_time": computation_time,
-            "objective": M.primalObjValue(),
+            "objective": objective,
             "size_psd_variable": n,
         }
 

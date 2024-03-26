@@ -5,8 +5,9 @@ import os
 import pickle
 import sys
 import seaborn as sns
+import yaml
 
-SMALL_SIZE = 14
+SMALL_SIZE = 12
 MEDIUM_SIZE = 16
 BIGGER_SIZE = 20
 
@@ -23,7 +24,7 @@ matplotlib.rcParams["font.family"] = "STIXGeneral"
 # sns.set_style("whitegrid")
 
 
-def plot_quality():
+def plot_quality(config):
     directory = "results/maxcut/plot"
     if not os.path.exists(directory):
         print("No results to plot")
@@ -34,16 +35,7 @@ def plot_quality():
             results = pickle.load(file)
             print(results)
 
-            if 0 <= results["original"]["size_psd_variable"] <= 1000:
-                projector_type = "sparse"
-            elif 2000 <= results["original"]["size_psd_variable"] <= 3000:
-                projector_type = "0.2_density"
-            elif results["original"]["size_psd_variable"] == 4000:
-                projector_type = "0.1_density"
-            elif 5000 <= results["original"]["size_psd_variable"] <= 6000:
-                projector_type = "0.05_density"
-            elif 7000 <= results["original"]["size_psd_variable"]:
-                projector_type = "0.04_density"
+            projector_type = config["densities"][results["original"]["size_psd_variable"]][0]
 
             quality = (
                 results[projector_type][0.1]["objective"]
@@ -58,12 +50,13 @@ def plot_quality():
         marker="o",
         color="black",
         markersize=3,
-        linewidth=1,
+        linewidth=1
     )
     plt.xlabel("Number of nodes")
     plt.ylabel("Quality (%)")
     # plt.title('Approximation Quality of Projection')
     # plt.hlines(y=100, xmin=500, xmax=4000, color='b', linestyles='dotted')
+    plt.xticks([key for key in dict.keys() if key != 500])
     plt.savefig(
         "plots/quality.pdf",
         bbox_inches="tight",
@@ -74,8 +67,10 @@ def plot_quality():
         "plots/quality.png",
         bbox_inches="tight",
         dpi=300,
-        transparent=True,
+        transparent=False,
     )
 
+with open("config.yml", "r") as file:
+    config = yaml.safe_load(file)
 
-plot_quality()
+plot_quality(config=config)

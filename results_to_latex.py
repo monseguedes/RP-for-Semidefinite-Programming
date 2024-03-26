@@ -300,23 +300,41 @@ def stable_set_to_latex(directory, projector_type="sparse"):
         file_path = os.path.join(cordones_dir, name)
         with open(file_path, "rb") as file:
             results = pickle.load(file)
-
         key = 0.2
-        print(
-            "             {:8} & {:8} & {:8} & {:8.2f} & {:8} & {:8.2f} & {:8.2f} & & {:8} & {:8.2f} & {:8.2f} \\\\".format(
-                "c-cordones-"
-                + name.strip(".pkl").replace("_", "-").strip("-complement"),
-                results["L1"]["size_psd_variable"] - 1,
-                len(results["L2"]["edges"]),
-                abs(results["L1"]["objective"]),
-                results["L2"]["size_psd_variable"],
-                abs(results["L2"]["objective"]),
-                results["L2"]["computation_time"],
-                results[key]["size_psd_variable"],
-                abs(results[key]["objective"]),
-                results[key]["computation_time"],
+        try:
+            print(
+                "             {:8} & {:8} & {:8} & {:8.2f} & {:8} & {:8.2f} & {:8.2f} & & {:8} & {:8.2f} & {:8.2f} \\\\".format(
+                    "c-cordones-"
+                    + name.strip(".pkl").replace("_", "-").strip("-complement"),
+                    results["L1"]["size_psd_variable"] - 1,
+                    len(results["L2"]["edges"]),
+                    abs(results["L1"]["objective"]),
+                    results["L2"]["size_psd_variable"],
+                    abs(results["L2"]["objective"]),
+                    results["L2"]["computation_time"],
+                    results[key]["size_psd_variable"],
+                    abs(results[key]["objective"]),
+                    results[key]["computation_time"],
+                )
             )
-        )
+        except:
+            projector_type = config["densities"][min(config["densities"], key=lambda x:abs(x - results["L2"]["size_psd_variable"]))][0] 
+            print(
+                "             {:8} & {:8} & {:8} & {:8.2f} & {:8} & {:8.2f} & {:8.2f} & & {:8} & {:8.2f} & {:8.2f} \\\\".format(
+                    "c-cordones-"
+                    + name.strip(".pkl").replace("_", "-").strip("-complement"),
+                    results["L1"]["size_psd_variable"] - 1,
+                    len(results["L2"]["edges"]),
+                    abs(results["L1"]["objective"]),
+                    results["L2"]["size_psd_variable"],
+                    abs(results["L2"]["objective"]),
+                    results["L2"]["computation_time"],
+                    results[projector_type][key]["size_psd_variable"],
+                    abs(results[projector_type][key]["objective"]),
+                    results[projector_type][key]["computation_time"],
+                )
+            )
+
 
     table_footer = r"""
             \bottomrule
@@ -493,17 +511,17 @@ def sparsity_test_to_latex(directory, percentage=[0.05, 0.1]):
         """
     print(table_header)
 
-    with open(os.path.join(directory, "results.pkl"), "rb") as file:
+    with open(os.path.join(directory, "mcp_10000_20_1.pkl"), "rb") as file:
         results = pickle.load(file)
-
-    for sparsity in [density for density in results.keys() if density != "original"]:
+    
+    for sparsity in sorted([density for density in results.keys() if density != "original"]):
         print(
             "             {:8} && {:8.2f} & {:8.2f} && {:8.2f} & {:8.2f} \\\\".format(
-                (1 - float(sparsity.split("_")[0])) * 100,
-                results[sparsity][percentage[0]]["time"] / results["original"]["time"] * 100,
-                results[sparsity][percentage[0]]["quality"] / results["original"]["quality"] * 100,
-                results[sparsity][percentage[1]]["time"] / results["original"]["time"] * 100,
-                results[sparsity][percentage[1]]["quality"] / results["original"]["quality"] * 100,
+                int((1 - float(sparsity.split("_")[0])) * 100),
+                results[sparsity][percentage[0]]["computation_time"] / results["original"]["computation_time"] * 100,
+                results[sparsity][percentage[0]]["objective"] / results["original"]["objective"] * 100,
+                results[sparsity][percentage[1]]["computation_time"] / results["original"]["computation_time"] * 100,
+                results[sparsity][percentage[1]]["objective"] / results["original"]["objective"] * 100,
             )
         )
 
@@ -514,17 +532,15 @@ def sparsity_test_to_latex(directory, percentage=[0.05, 0.1]):
         \label{tab:main rudy-7000}
     \end{table}"""
 
+    print(table_footer)
 
 with open("config.yml", "r") as file:
     config = yaml.safe_load(file)
 
-# maxcut_to_latex("results/maxcut", config, "sparse", [0.1, 0.2])
 # maxcut_to_latex("results/maxcut", config, "0.05_density", [0.1, 0.1])
 # maxcut_to_latex_single("results/maxcut", config, "0.04_density", 0.1)
-# maxcut_to_latex("results/maxcut", config, "sparse", [0.1, 0.2])
-# stable_set_to_latex("results/stable_set")
+# maxcut_to_latex_single_simplified("results/maxcut", config, "0.04_density", 0.1)
+stable_set_to_latex("results/stable_set")
 # maxsat_to_latex("results/maxsat", "sparse", [0.1, 0.2])
-# maxsat_to_latex("results/maxsat", "sparse", [0.1, 0.2])
-# maxcut_to_latex_single_simplified("results/maxcut", config, "0.05_density", 0.1)
 # maxsat_to_latex_simplified("results/maxsat", [0.1, 0.2])
-sparsity_test_to_latex("results/sparsity_test")
+# sparsity_test_to_latex("results/maxcut")

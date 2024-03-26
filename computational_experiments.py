@@ -202,12 +202,12 @@ def stable_set_experiments_graph(directory, graph, complement=False):
     else:
         projections = config["stable_set"]["projection"]
 
-    projector_type = min(config["densities"], key=lambda x:abs(x - sol_dict["L2"]["size_psd_variable"])) 
+    projector_type = config["densities"][min(config["densities"], key=lambda x:abs(x - sol_dict["L2"]["size_psd_variable"]))][0] 
     sol_dict[projector_type] = {}
     for projection in projections:
         projector = rp.RandomProjector(
-            round(projection * L2_results["size_psd_variable"]),
-            L2_results["size_psd_variable"],
+            round(projection * sol_dict["L2"]["size_psd_variable"]),
+            sol_dict["L2"]["size_psd_variable"],
             projector_type,
         )
         results = (
@@ -277,6 +277,8 @@ def maxcut_experiments_graph(directory, graph):
         # Save as pickle
         with open(directory, "wb") as f:
             pickle.dump(sol_dict, f)
+    else:
+        results = sol_dict["original"]
 
     for projector_type in list(config["densities"][sol_dict["original"]["size_psd_variable"]]):  # Run projection for different projectors only if not stored
         if projector_type not in sol_dict:
@@ -356,7 +358,7 @@ def quality_plot_computational_experiments_maxcut():
     if not os.path.exists("results/maxcut/plot"):
         os.makedirs("results/maxcut/plot")
 
-    names = [name for name in os.listdir("graphs/maxcut/plot")]
+    names = [name for name in os.listdir("graphs/maxcut/plot") if ".txt" in name]
 
     for i, name in enumerate(names):
         print(f"Scanning graph {i + 1} of {len(names)}        ")
@@ -416,7 +418,7 @@ if __name__ == "__main__":
     with open("config.yml", "r") as config_file:
         config = yaml.safe_load(config_file)
 
-    run_stable_set_experiments(config)
-    # run_maxcut_experiments(config)
+    # run_stable_set_experiments(config)
+    run_maxcut_experiments(config)
     # run_max_sat_experiments(config)
     # quality_plot_computational_experiments_maxcut()

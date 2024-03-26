@@ -353,6 +353,56 @@ def run_max_sat_experiments(config):
                 pickle.dump(sol_dict, f)
 
 
+def sat_feasibility(config):
+    """
+
+    """
+
+    # Create folder for max sat results
+    if not os.path.exists("results/sat"):
+        os.makedirs("results/sat", exist_ok=True)
+
+    for variables in config["sat"]["variables"]:
+        for C in config["sat"]["C"]:
+            print(
+                f"Running SAT instance {variables} variables and {variables * C} clauses, with C = {C}"
+            )
+            # Create intance.
+            formula = maxsat.Formula(variables, variables * C)
+
+            if os.path.exists(f"results/sat/{variables}_{C}.pkl"):
+                sol_dict = pickle.load(open(f"results/sat/{variables}_{C}.pkl", "rb"))
+            else:
+                sol_dict = {}
+
+            if "original" not in sol_dict:
+                results = maxsat.satisfiability_feasibility(formula)
+                sol_dict = {"original": results}
+            
+            for projector_type in config["densities"][results["size_psd_variable"] - 1]:
+                if projector_type not in sol_dict:
+                    sol_dict[projector_type] = {}
+                gen = (
+                    projection
+                    for projection in config["sat"]["projection"]
+                    if projection not in sol_dict[projector_type]
+                )
+                for projection in gen:
+                    projector = rp.RandomProjector(
+                        round(projection * results["size_psd_variable"]),
+                        results["size_psd_variable"],
+                        projector_type,
+                    )
+                    p_results = maxsat.projected_sat_feasibility(formula, projector)
+                    sol_dict[projector_type][projection] = p_results
+
+            # Store sat instance.
+            with open(f"results/sat/{variables}_{C}.pkl", "wb") as f:
+                pickle.dump(sol_dict, f)
+
+    
+
+
 def quality_plot_computational_experiments_maxcut():
     # Create folder for maxcut results
     if not os.path.exists("results/maxcut/plot"):

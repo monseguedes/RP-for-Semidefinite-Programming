@@ -366,7 +366,167 @@ def projected_sdp_relaxation(formula, projector, verbose=False, slack=True):
         return solution
 
 
-def single_formula_results(formula, type="sparse", range=(0.1, 0.5), iterations=5):
+def satisfiability_feasibility(formula: Formula):
+    """
+    Solves the 2-SAT staisfiability problem using the SDP relaxation
+    method.
+
+    This problem is formulated as a semidefinite program
+    as follows:
+    find X
+    s.t. X is PSD
+         X_ii = 1 for all i
+         sign(x) * X_0x + sign(y) * X_0y - sign(xy) * X_xy = 1 for all clauses (x v y)
+
+    Parameters
+    ----------
+    formula : Formula
+        The formula representing the MAX-2-SAT problem.
+
+    Returns
+    -------
+    numpy.ndarray
+        The solution to the 2-SAT problem.
+    """
+
+    clauses = formula.list_of_clauses
+
+    with mf.Model("SDP") as M:
+        # PSD variable X
+        matrix_size = formula.n + 1
+        X = M.variable(mf.Domain.inPSDCone(matrix_size))
+
+        # Constant objective:
+        M.objective(mf.ObjectiveSense.Maximize, 1)
+
+        # Constraints:
+        constraints = []
+        # Diagonal equal to 1
+        # for i in range(matrix_size):
+        #     print("Adding constraints... {}/{}              ".format(i + 1, matrix_size), end="\r")
+        #     constraints.append(M.constraint(X.index(i, i), mf.Domain.equalsTo(1)))
+        # Alternative for diagonal
+        for i in range(matrix_size):
+            matrix = np.zeros((matrix_size, matrix_size))
+            matrix[i, i] = 1
+            constraints.append(M.constraint(mf.Expr.dot(matrix, X), mf.Domain.equalsTo(1)))
+        # Clauses
+        for clause in clauses:
+            matrix = np.zeros((matrix_size, matrix_size))
+            # First clause
+            matrix[abs(clause[0]), 0] = np.sign(clause[0])
+            matrix[0, abs(clause[0])] = np.sign(clause[0])
+            # Second clause
+            matrix[0, abs(clause[1])] = np.sign(clause[1])
+            matrix[abs(clause[1]), 0] = np.sign(clause[1])
+            # Combined 
+            matrix[abs(clause[0]), abs(clause[1])] = -1 * np.sign(clause[0]) * np.sign(clause[1])
+            matrix[abs(clause[1]), abs(clause[0])] = -1 * np.sign(clause[0]) * np.sign(clause[1])
+            constraints.append(M.constraint(mf.Expr.dot(matrix, X), mf.Domain.equalsTo(1)))
+
+        start_time = time.time()
+        try:                
+            M.solve()
+            end_time = time.time()
+            objective = M.primalObjValue()
+        except:
+            objective = 0
+            end_time = time.time()                   
+        
+
+        solution = {
+            "objective": objective,
+            "size_psd_variable": matrix_size,
+            "computation_time": end_time - start_time,
+            "C": formula.c / formula.n,
+            "n": formula.n,
+        }
+
+        return solution
+    
+def projected_sat_feasibility(formula, projector):
+    """ 
+    Solves the 2-SAT problem projecting the SDP relaxation
+    using a random projector.
+
+    This problem is formulated as a semidefinite program
+    as follows:
+    find X
+    s.t. X is PSD
+         X_ii = 1 for all i PROJECTING THE CONSTRAINTS
+         sign(x) * X_0x + sign(y) * X_0y - sign(xy) * X_xy = 1 for all clauses (x v y) PROJECTING THE CONSTRAINTS
+
+    Parameters
+    ----------
+    formula : Formula
+        The formula representing the MAX-2-SAT problem.
+    projector : RandomProjector
+        The random projector to be used.
+    verbose : bool, optional
+        Whether to print the progress of the algorithm. Defaults to False.
+    slack : bool, optional
+        Whether to add slack variables to the constraints. Defaults to True.
+
+    """
+
+    clauses = formula.list_of_clauses
+
+    with mf.Model("SDP") as M:
+        # PSD variable X
+        matrix_size = formula.n + 1
+        projected_size = projector.k
+        X = M.variable(mf.Domain.inPSDCone(matrix_size))
+
+        # Constant objective:
+        M.objective(mf.ObjectiveSense.Maximize, 1)
+
+        # Constraints:
+        constraints = []
+        # Diagonal equal to 1
+        for i in range(matrix_size):
+            matrix = np.zeros((matrix_size, matrix_size))
+            matrix[i, i] = 1
+            matrix = projector.apply_rp_map(matrix)
+            constraints.append(M.constraint(mf.Expr.dot(matrix, X), mf.Domain.equalsTo(1)))
+        # Clauses
+        for i, clause in enumerate(clauses):
+            # print("Adding clause constraints... {}/{}              ".format(i + 1, len(clauses), end="\r"))
+            matrix = np.zeros((matrix_size, matrix_size))
+            # First clause
+            matrix[abs(clause[0]), 0] = np.sign(clause[0])
+            matrix[0, abs(clause[0])] = np.sign(clause[0])
+            # Second clause
+            matrix[0, abs(clause[1])] = np.sign(clause[1])
+            matrix[abs(clause[1]), 0] = np.sign(clause[1])
+            # Combined 
+            matrix[abs(clause[0]), abs(clause[1])] = -1 * np.sign(clause[0]) * np.sign(clause[1])
+            matrix[abs(clause[1]), abs(clause[0])] = -1 * np.sign(clause[0]) * np.sign(clause[1])
+            matrix = projector.apply_rp_map(matrix)
+            constraints.append(M.constraint(mf.Expr.dot(matrix, X), mf.Domain.equalsTo(1)))
+
+        start_time = time.time()
+        try:                 
+            M.solve()
+            end_time = time.time()
+            objective = M.primalObjValue()
+        except:
+            objective = 0
+            end_time = time.time()
+
+
+        solution = {
+            "objective": objective,
+            "size_psd_variable": projected_size,
+            "computation_time": end_time - start_time,
+            "C": formula.c / formula.n,
+            "n": formula.n,
+        }
+
+        return solution
+    
+
+
+def single_formula_results(formula, type="sparse", range=(0.1, 0.5), iterations=5, problem="max"):
     """
     Get the results for a single graph.
 
@@ -394,7 +554,10 @@ def single_formula_results(formula, type="sparse", range=(0.1, 0.5), iterations=
     )
     print("-" * 80)
 
-    sdp_solution = sdp_relaxation(formula)
+    if problem == "max":
+        sdp_solution = sdp_relaxation(formula)
+    elif problem == "sat":
+        sdp_solution = satisfiability_feasibility(formula)
     print(
         "{: <18} {: >10} {: >8.2f} {: >12} {: >8.2f}".format(
             "SDP Relaxation",
@@ -414,37 +577,42 @@ def single_formula_results(formula, type="sparse", range=(0.1, 0.5), iterations=
         random_projector = rp.RandomProjector(
             round(matrix_size * rate), matrix_size, type=type
         )
-        rp_solution = projected_sdp_relaxation(
-            formula, random_projector, verbose=False, slack=slack
-        )
-        quality = rp_solution["objective"] / sdp_solution["objective"] * 100
+        if problem == "max":
+            rp_solution = projected_sdp_relaxation(
+                formula, random_projector, verbose=False, slack=slack
+            )
+            quality = rp_solution["objective"] / sdp_solution["objective"] * 100
+            quality = str(round(quality, 2)) + "%"
+        elif problem == "sat":
+            rp_solution = projected_sat_feasibility(formula, random_projector)
+            quality = "N/A"
        
         print(
             "{: <18} {: >10} {: >8.2f} {: >12} {: >8.2f}".format(
                 "Projection " + str(round(rate, 2)),
                 rp_solution["size_psd_variable"],
                 rp_solution["objective"],
-                str(round(quality, 2)) + "%",
+                quality,
                 rp_solution["computation_time"],
             )
         )
 
-    # Solve identity projector
-    # ----------------------------------------
-    id_random_projector = rp.RandomProjector(matrix_size, matrix_size, type="identity")
-    id_rp_solution = projected_sdp_relaxation(
-        formula, id_random_projector, verbose=False, slack=False
-    )
-    quality = id_rp_solution["objective"] / sdp_solution["objective"] * 100
-    print(
-        "{: <18} {: >10} {: >8.2f} {:>12} {: >8.2f}".format(
-            "Identity",
-            id_rp_solution["size_psd_variable"],
-            id_rp_solution["objective"],
-            str(round(quality, 2)) + "%",
-            id_rp_solution["computation_time"],
-        )
-    )
+    # # Solve identity projector
+    # # ----------------------------------------
+    # id_random_projector = rp.RandomProjector(matrix_size, matrix_size, type="identity")
+    # id_rp_solution = projected_sdp_relaxation(
+    #     formula, id_random_projector, verbose=False, slack=False
+    # )
+    # quality = id_rp_solution["objective"] / sdp_solution["objective"] * 100
+    # print(
+    #     "{: <18} {: >10} {: >8.2f} {:>12} {: >8.2f}".format(
+    #         "Identity",
+    #         id_rp_solution["size_psd_variable"],
+    #         id_rp_solution["objective"],
+    #         str(round(quality, 2)) + "%",
+    #         id_rp_solution["computation_time"],
+    #     )
+    # )
 
     print()
 
@@ -452,9 +620,13 @@ def single_formula_results(formula, type="sparse", range=(0.1, 0.5), iterations=
 
 if __name__ == "__main__":
     # Create a formula
-    variables = 1000
+    variables = 500
     C = 2
     formula = Formula(variables, variables * C)
-    print(formula.list_of_clauses)
+    # print(formula.list_of_clauses)
 
-    single_formula_results(formula, type="sparse", range=(0.1, 0.9), iterations=9)
+    # single_formula_results(formula, type="sparse", range=(0.1, 0.9), iterations=9)
+    # satisfiability_feasibility(formula)
+    # projector = rp.RandomProjector(50, 101, type="sparse")
+    # projected_sat_feasibility(formula, projector)
+    single_formula_results(formula, type="0.1_density", range=(0.1, 0.3), iterations=3, problem="sat")

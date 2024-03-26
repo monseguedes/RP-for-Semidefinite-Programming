@@ -35,9 +35,12 @@ class Polynomial:
         self.n = n
         self.d = d
         A = {}
+        print("Generating monomials matrix")
         self.monomial_matrix = monomials.generate_monomials_matrix(self.n, self.d)
+        print("Getting distinct monomials")
         self.distinct_monomials = monomials.get_list_of_distinct_monomials(self.monomial_matrix)
-        for monomial in self.distinct_monomials:
+        for i, monomial in enumerate(self.distinct_monomials):
+            print("Picking monomial {}/{}".format(i, len(self.distinct_monomials)), end="\r")
             A[monomial] = monomials.pick_specific_monomial(self.monomial_matrix, monomial)
         self.A = A
 

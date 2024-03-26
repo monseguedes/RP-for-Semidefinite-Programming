@@ -802,12 +802,12 @@ if __name__ == "__main__":
     # Possible polynomials
     # ----------------------------------------
     # polynomial = poly.Polynomial("x1^2 + x2^2 + 2x1x2", 2, 2)
-    polynomial = poly.Polynomial("random", 4, 4, seed=seed)
+    polynomial = poly.Polynomial("random", 20, 4, seed=seed)
     # polynomial = poly.Polynomial("normal_form", 10, 4, seed=seed)
 
     # Run the table
     # ----------------------------------------
-    single_polynomial_table(polynomial, "sparse", [0.1, 0.9], 9, form=False)
+    single_polynomial_table(polynomial, "0.2_density", [0.1, 0.9], 9, form=False)
 
     
    

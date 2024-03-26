@@ -10,6 +10,7 @@ import optimization_unit_sphere as ous
 import matplotlib.pyplot as plt
 import networkx as nx
 import time
+import random
 
 
 class Graph:
@@ -30,14 +31,19 @@ class Graph:
 
         """
 
+        seed = 0
+        random.seed(seed)
+
         complement = []
+
+        print(sorted(self.edges))
 
         for i in range(self.n):
             for j in range(i + 1, self.n):
-                if (i, j) not in self.edges and (j, i) not in self.edges:
+                if (i, j) not in sorted(self.edges) + complement and (j, i) not in sorted(self.edges) + complement:
                     complement.append((i, j))
-
         self.edges = complement
+
 
     def get_picking_SOS(self, verbose=False):
         """ """
@@ -61,10 +67,15 @@ class Graph:
         if verbose:
             print("Building Ai matrices for level 1")
         # Picking monomials from SOS polynomial
-        A = {
-            monomial: monomials.pick_specific_monomial(monomial_matrix, monomial)
-            for monomial in distinct_monomials
-        }
+        A = {}
+        for i, monomial in enumerate(distinct_monomials):
+            if verbose:
+                print(
+                    "Picking monomial: {} out of {}".format(i, len(distinct_monomials)),
+                    end="\r",
+                )
+            A[monomial] = monomials.pick_specific_monomial(monomial_matrix, monomial)
+       
         if verbose:
             print("Done building Ai matrices for level 1")
 
@@ -191,13 +202,13 @@ class Graph:
         self.graph = graph
 
 
-def generate_pentagon():
+def generate_pentagon(complement=False):
     """
     Generate a pentagon graph.
     """
     pentagon = Graph()
     pentagon.n = 5
-    pentagon.edges = [(0, 1), (1, 2), (2, 3), (3, 4), (4, 0)]
+    pentagon.edges = [(0, 1), (1, 2), (2, 3), (3, 4), (0, 4)]
     # Get namtrix representation of the graph
     pentagon.graph = np.array(
         [[0 for i in range(pentagon.n)] for j in range(pentagon.n)]
@@ -205,10 +216,16 @@ def generate_pentagon():
     for i, j in pentagon.edges:
         pentagon.graph[i][j] = 1
         pentagon.graph[j][i] = 1
+    if complement:
+        pentagon.edges_complement_graph()
+        pentagon.get_matrix_from_edges()
+    pentagon.plot_graph()
     pentagon.get_picking_SOS()
     pentagon.get_picking_edges()
     pentagon.picking_for_level_two()
     pentagon.store_graph("pentagon")
+
+    return pentagon
 
 
 def generate_petersen_graph():
@@ -249,7 +266,7 @@ def generate_petersen_graph():
     petersen.store_graph("petersen")
 
 
-def generate_cordones(n, complement=False, save=False):
+def generate_cordones(n, complement=False, save=False, level=2):
     """ 
     Generate a cordones graph.
 
@@ -290,6 +307,8 @@ def generate_cordones(n, complement=False, save=False):
     cordones.n = A.shape[0]
     cordones.graph = A
     cordones.get_edges_from_matrix()
+    # Make sure that all tuples in edges are ordered (i, j) with i < j
+    cordones.edges = [tuple(sorted(edge)) for edge in cordones.edges]
     if complement:
         cordones.edges_complement_graph()
         cordones.get_matrix_from_edges()
@@ -300,10 +319,11 @@ def generate_cordones(n, complement=False, save=False):
     cordones.get_picking_SOS(verbose=True)
     print("Time taken building level 1:", time.time() - start)
     print("-" * 50)
-    print("Picking for level 2...")
-    start = time.time()
-    cordones.picking_for_level_two(verbose=True)
-    print("Time taken building level 2:", time.time() - start)
+    if level == 2:
+        print("Picking for level 2...")
+        start = time.time()
+        cordones.picking_for_level_two(verbose=True)
+        print("Time taken building level 2:", time.time() - start)
     if save:
         if complement:
             cordones.store_graph("cordones_{}_complement".format(n))
@@ -315,7 +335,7 @@ def generate_cordones(n, complement=False, save=False):
     return cordones
 
 
-def generate_generalised_petersen(n, k, complement=False, save=False):
+def generate_generalised_petersen(n, k, complement=False, save=False, level=2):
     """
     Generate a generalised petersen graph.
     """
@@ -325,6 +345,8 @@ def generate_generalised_petersen(n, k, complement=False, save=False):
     outer_star_edges = [(i, i + 1) for i in range(n, 2 * n - 1)] + [(2 * n - 1, n)]
     connecting_edges = [element for element in zip(range(n + 1), range(n, 2 * n))]
     petersen.edges = inner_star_edges + outer_star_edges + connecting_edges
+    # Make sure that all tuples in edges are ordered (i, j) with i < j
+    petersen.edges = [tuple(sorted(edge)) for edge in petersen.edges]
     if complement:
         petersen.edges_complement_graph()
     # Make sure that all tuples in edges are ordered (i, j) with i < j
@@ -341,11 +363,12 @@ def generate_generalised_petersen(n, k, complement=False, save=False):
     print("Generating peteresen graph with n={} and k={}...".format(n, k))
     print("Picking for level 1...")
     # petersen.plot_graph()
-    petersen.get_picking_SOS(verbose=False)
-    print("Picking for level 2...")
-    start = time.time()
-    petersen.picking_for_level_two(verbose=False)
-    print("Time taken building level 2:", time.time() - start)
+    petersen.get_picking_SOS(verbose=True)
+    if level == 2:
+        print("Picking for level 2...")
+        start = time.time()
+        petersen.picking_for_level_two(verbose=True)
+        print("Time taken building level 2:", time.time() - start)
     if save: 
         if complement:
             petersen.store_graph("generalised_petersen_{}_{}_complement".format(n, k))

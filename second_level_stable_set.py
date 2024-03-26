@@ -12,6 +12,7 @@ from generate_graphs import Graph
 from process_DIMACS_data import Graph_File
 import first_level_stable_set as ssp
 import random_projections as rp
+import generate_graphs
 
 
 def second_level_stable_set_problem_sdp(graph, verbose=False):
@@ -338,12 +339,15 @@ def projected_dimension(epsilon, probability, ranks_Ai, rank_solution):
 
 
 if __name__ == "__main__":
-    directory = "graphs/generalised_petersen_20_2_complement"
-    file_path = directory + "/graph.pkl"
-    with open(file_path, "rb") as file:
-        graph = pickle.load(file)
+    # directory = "graphs/generalised_petersen_20_2_complement"
+    # file_path = directory + "/graph.pkl"
+    # with open(file_path, "rb") as file:
+    #     graph = pickle.load(file)
 
-    projected_dimension(0.0005, 0.9, [6 for i in range(500)], 66)
+    # graph = generate_graphs.generate_cordones(100, complement=True, save=False, level=1)
+    graph = generate_graphs.generate_generalised_petersen(10, 2, complement=True, save=False, level=2)
+    matrix_size = graph.graph.shape[0] + 1
+    print("Matrix size: {}".format(matrix_size))
 
     single_graph_results(graph, type="sparse", range=(0.1, 0.8), iterations=8)
     print("No. distinct monomials: ", len(graph.distinct_monomials_L2))

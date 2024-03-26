@@ -644,15 +644,40 @@ def stable_set_distinct_monomials(edges, n, level=1):
         #     ):
         #         filtered_degree_2.append(monomial)
 
-        print("Generating distinct monomials level 1 degree 1...")
+        # print("Generating distinct monomials level 1 degree 1...")
+        # ordered_edges = sorted(edges)
+        # distinct_monomials = [tuple(0 for _ in range(n))]
+        # monomials_degree_1 = []
+        # for i in range(n):
+        #     monomials_degree_1.append(tuple(1 if j == i else 0 for j in range(n)))
+        #     distinct_monomials.append(tuple(1 if j == i else 0 for j in range(n)))
+
+        # print("Generating distinct monomials level 1 degree 2...")
+        # monomials_degree_2 = []
+        # edge_tracker = 0
+        # for monomial in monomials_degree_1:
+        #     i = monomial.index(1)
+        #     for j in range(i + 1, n):
+        #         if (i, j) != ordered_edges[edge_tracker]:
+        #             monomials_degree_2.append(tuple(1 if k in [i, j] else 0 for k in range(n)))
+        #             distinct_monomials.append(tuple(1 if k in [i, j] else 0 for k in range(n)))
+        #         else:
+        #             if edge_tracker < len(ordered_edges) - 1:
+        #                 edge_tracker += 1
+
         ordered_edges = sorted(edges)
+
+        print("Generating distinct monomials level 2 degree 1...")
+        start = time.time()
         distinct_monomials = [tuple(0 for _ in range(n))]
         monomials_degree_1 = []
         for i in range(n):
             monomials_degree_1.append(tuple(1 if j == i else 0 for j in range(n)))
             distinct_monomials.append(tuple(1 if j == i else 0 for j in range(n)))
+        # print("Monomials degree 1: {}".format(monomials_degree_1))
+        # print("Number of monomials degree 1: {}".format(len(monomials_degree_1)))
 
-        print("Generating distinct monomials level 1 degree 2...")
+        print("Generating distinct monomials level 2 degree 2...")
         monomials_degree_2 = []
         edge_tracker = 0
         for monomial in monomials_degree_1:
@@ -664,7 +689,6 @@ def stable_set_distinct_monomials(edges, n, level=1):
                 else:
                     if edge_tracker < len(ordered_edges) - 1:
                         edge_tracker += 1
-
             
     if level == 2:
         # # NEW OLD METHOD----------------------------------------------------------------

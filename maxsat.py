@@ -405,11 +405,12 @@ def satisfiability_feasibility(formula: Formula):
         # for i in range(matrix_size):
         #     print("Adding constraints... {}/{}              ".format(i + 1, matrix_size), end="\r")
         #     constraints.append(M.constraint(X.index(i, i), mf.Domain.equalsTo(1)))
-        # Alternative for diagonal
+        # # Alternative for diagonal
         for i in range(matrix_size):
             matrix = np.zeros((matrix_size, matrix_size))
             matrix[i, i] = 1
             constraints.append(M.constraint(mf.Expr.dot(matrix, X), mf.Domain.equalsTo(1)))
+            print("Adding constraints... {}/{}              ".format(i + 1, matrix_size), end="\r")
         # Clauses
         for clause in clauses:
             matrix = np.zeros((matrix_size, matrix_size))
@@ -423,6 +424,7 @@ def satisfiability_feasibility(formula: Formula):
             matrix[abs(clause[0]), abs(clause[1])] = -1 * np.sign(clause[0]) * np.sign(clause[1])
             matrix[abs(clause[1]), abs(clause[0])] = -1 * np.sign(clause[0]) * np.sign(clause[1])
             constraints.append(M.constraint(mf.Expr.dot(matrix, X), mf.Domain.equalsTo(1)))
+            print("Adding constraints... {}/{}              ".format(i + 1, len(clauses)), end="\r")
 
         start_time = time.time()
         try:                
@@ -475,7 +477,7 @@ def projected_sat_feasibility(formula, projector):
         # PSD variable X
         matrix_size = formula.n + 1
         projected_size = projector.k
-        X = M.variable(mf.Domain.inPSDCone(matrix_size))
+        X = M.variable(mf.Domain.inPSDCone(projected_size))
 
         # Constant objective:
         M.objective(mf.ObjectiveSense.Maximize, 1)
@@ -486,8 +488,9 @@ def projected_sat_feasibility(formula, projector):
         for i in range(matrix_size):
             matrix = np.zeros((matrix_size, matrix_size))
             matrix[i, i] = 1
-            matrix = projector.apply_rp_map(matrix)
+            matrix = np.outer(projector.projector[:, i], projector.projector[:, i])
             constraints.append(M.constraint(mf.Expr.dot(matrix, X), mf.Domain.equalsTo(1)))
+            print("Adding constraints... {}/{}              ".format(i + 1, matrix_size), end="\r")
         # Clauses
         for i, clause in enumerate(clauses):
             # print("Adding clause constraints... {}/{}              ".format(i + 1, len(clauses), end="\r"))
@@ -503,6 +506,7 @@ def projected_sat_feasibility(formula, projector):
             matrix[abs(clause[1]), abs(clause[0])] = -1 * np.sign(clause[0]) * np.sign(clause[1])
             matrix = projector.apply_rp_map(matrix)
             constraints.append(M.constraint(mf.Expr.dot(matrix, X), mf.Domain.equalsTo(1)))
+            print("Adding constraints... {}/{}              ".format(i + 1, len(clauses)), end="\r")
 
         start_time = time.time()
         try:                 

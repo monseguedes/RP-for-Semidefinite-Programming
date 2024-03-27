@@ -376,10 +376,12 @@ def sat_feasibility(config):
                 sol_dict = {}
 
             if "original" not in sol_dict:
+                print("Running original SAT instance")
                 results = maxsat.satisfiability_feasibility(formula)
                 sol_dict = {"original": results}
+                print("Finished original SAT instance with size {}, took {} seconds".format(results["size_psd_variable"], results["computation_time"]))
             
-            for projector_type in config["densities"][results["size_psd_variable"] - 1]:
+            for projector_type in config["densities"][sol_dict["original"]["size_psd_variable"] - 1]:
                 if projector_type not in sol_dict:
                     sol_dict[projector_type] = {}
                 gen = (
@@ -393,7 +395,9 @@ def sat_feasibility(config):
                         results["size_psd_variable"],
                         projector_type,
                     )
+                    print(f"Running SAT instance with projector {projector_type} and projection {projection}")
                     p_results = maxsat.projected_sat_feasibility(formula, projector)
+                    print("Finished SAT instance with size {}, took {} seconds".format(p_results["size_psd_variable"], p_results["computation_time"]))
                     sol_dict[projector_type][projection] = p_results
 
             # Store sat instance.

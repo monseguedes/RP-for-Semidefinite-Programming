@@ -404,8 +404,6 @@ def sat_feasibility(config):
             with open(f"results/sat/{variables}_{C}.pkl", "wb") as f:
                 pickle.dump(sol_dict, f)
 
-    
-
 
 def quality_plot_computational_experiments_maxcut():
     # Create folder for maxcut results

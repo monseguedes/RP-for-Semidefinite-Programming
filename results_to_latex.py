@@ -496,7 +496,8 @@ def maxsat_to_latex_simplified(directory, percentage=[0.1, 0.2]):
     """
     print(table_footer)
 
-def sat_to_latex_simplified(directory, config, percentage=[0.1, 0.2]):
+
+def sat_to_latex_simplified(config, percentage=[0.1, 0.2]):
     """
     Convert the results of the 2-SAT problem to a LaTeX table.
     """
@@ -504,63 +505,78 @@ def sat_to_latex_simplified(directory, config, percentage=[0.1, 0.2]):
     # Create the table header
     table_header = r"""
     \begin{table}[!htbp]
-        \centering
-        \captionof{table}{Computational results \textsc{2-sat}}
-        \begin{tabular}{lrrrrrrrrrrrrrrr} 
-            \toprule
-            & & & && \multicolumn{2}{c}{10\% projection} && \multicolumn{2}{c}{20\% projection} \\
-            \cmidrule{6-7} \cmidrule{9-10}
-            \rule{0pt}{10pt} % Adding space of 10pt between lines and text below
-            Instance & n & C & Feasible && Time & Feasible && Time & Feasible \\
-            \midrule
+    \centering
+    \captionof{table}{Proportion (\%) of feasible (satisfiable) instances of \textsc{2-sat} that are also feasible after projection}
+    \begin{tabular}{lrrrrrrrrrrrrrrr} 
+        \toprule
+        n & C & 20\% projection & 50\% projection \\
+        \midrule
     """
     print(table_header)
 
-    alphabetical_dir = sorted(
-        [file for file in os.listdir(directory) if file.endswith(".pkl")],
-        key=lambda x: int("".join([i for i in x if i.isdigit()])),
-    )
-    alphabetical_dir = [
-        file
-        for file in os.listdir(directory)
-        if file.endswith(".pkl")
-    ]
+    def number(string):
+        try:
+            return int(string)
+        except:
+            return float(string)
 
-    for name in alphabetical_dir:
-        file_path = os.path.join(directory, name)
-        with open(file_path, "rb") as file:
-            results = pickle.load(file)
-        name = name.strip(".pkl").replace("_", "-")
-        projector_type = config["densities"][results["original"]["size_psd_variable"] - 1][0]
-        first_time = (
-                results[projector_type][percentage[0]]["computation_time"]
-                / results["original"]["computation_time"]
-                * 100
-            )
-        second_time = (
-                results[projector_type][percentage[1]]["computation_time"]
-                / results["original"]["computation_time"]
-                * 100
-            )
-        print(
-            "             {:8} & {:5} & {:8} & {:8} && {:6.2f} & {:2} && {:6.2f} & {:2}  \\\\".format(
-                "f-" + name,
-                int(name.split("-")[0]),
-                results["original"]["C"],
-                int(results["original"]["objective"]),
-                first_time,
-                int(results[projector_type][percentage[0]]["objective"]),
-                second_time,
-                int(results[projector_type][percentage[1]]["objective"]),
-            )
-        )
+    dir_list = [file for file in os.listdir("results/sat") if file.endswith(".pkl")]
+    n_list = set([int(file.split("_")[0]) for file in dir_list])
+    C_list = set([number(file.split("_")[1]) for file in dir_list])
+
+    
+    for n in sorted(n_list):
+        round = 0
+        for C in sorted(C_list):
+            seeds = [file.split("_")[2] for file in dir_list if f"{n}_{C}" in file]
+            no_feasible = 0
+            first_no_projected_feasible = 0
+            second_no_projected_feasible = 0
+            for seed in seeds:
+                file_path = os.path.join("results/sat", f"{n}_{C}_{seed}")
+                with open(file_path, "rb") as file:
+                    results = pickle.load(file)
+                if results["original"]["objective"] == 1:
+                    no_feasible += 1
+                    if results["sparse"][percentage[0]]["objective"] == 1:
+                        first_no_projected_feasible += 1
+                    if results["sparse"][percentage[1]]["objective"] == 1:
+                        second_no_projected_feasible += 1
+
+            if no_feasible == 0:
+                first_proportion = 'N/A'
+                second_proportion = 'N/A'
+            else:
+                first_proportion = first_no_projected_feasible / no_feasible * 100
+                second_proportion = second_no_projected_feasible / no_feasible * 100
+
+            if round == 0:
+                print(
+                    "             {:8} & {:8} & {:8} & {:8} \\\\".format(
+                        n,
+                        C,
+                        str(first_proportion) + " ({}/{})".format(first_no_projected_feasible, no_feasible),
+                        str(second_proportion) + " ({}/{})".format(second_no_projected_feasible, no_feasible)
+                    )
+                )
+            else:
+                print(
+                    "             {:8} & {:8} & {:8} & {:8} \\\\".format(
+                        " ",
+                        C,
+                        str(first_proportion) + " ({}/{})".format(first_no_projected_feasible, no_feasible),
+                        str(second_proportion) + " ({}/{})".format(second_no_projected_feasible, no_feasible)
+                    )
+                )
+            round += 1
 
     table_footer = r"""
             \bottomrule
         \end{tabular}
-        \label{tab:my_label}
+        \label{tab:sat feasibility}
     \end{table}
     """
+        
     print(table_footer)
 
 
@@ -611,4 +627,4 @@ with open("config.yml", "r") as file:
 # maxsat_to_latex("results/maxsat", "sparse", [0.1, 0.2])
 # maxsat_to_latex_simplified("results/maxsat", [0.1, 0.2])
 # sparsity_test_to_latex("results/maxcut")
-sat_to_latex_simplified("results/sat", config, [0.1, 0.2])
+sat_to_latex_simplified(config, [0.2, 0.5])

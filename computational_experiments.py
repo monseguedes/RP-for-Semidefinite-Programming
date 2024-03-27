@@ -364,45 +364,51 @@ def sat_feasibility(config):
 
     for variables in config["sat"]["variables"]:
         for C in config["sat"]["C"]:
+            print("-" * 40)
             print(
                 f"Running SAT instance {variables} variables and {variables * C} clauses, with C = {C}"
             )
-            # Create intance.
-            formula = maxsat.Formula(variables, variables * C)
+            for i in range(config["sat"]["repetitions"]):
+                print("-" * 20)
+                print(f"Repetition {i + 1} of {config['sat']['repetitions']}")
+                # Create intance.
+                formula = maxsat.Formula(variables, variables * C, seed=i)
 
-            if os.path.exists(f"results/sat/{variables}_{C}.pkl"):
-                sol_dict = pickle.load(open(f"results/sat/{variables}_{C}.pkl", "rb"))
-            else:
-                sol_dict = {}
+                if os.path.exists(f"results/sat/{variables}_{C}_{i}.pkl"):
+                    sol_dict = pickle.load(open(f"results/sat/{variables}_{C}_{i}.pkl", "rb"))
+                else:
+                    sol_dict = {}
 
-            if "original" not in sol_dict:
-                print("Running original SAT instance")
-                results = maxsat.satisfiability_feasibility(formula)
-                sol_dict = {"original": results}
-                print("Finished original SAT instance with size {}, took {} seconds".format(results["size_psd_variable"], results["computation_time"]))
-            
-            for projector_type in config["densities"][sol_dict["original"]["size_psd_variable"] - 1]:
-                if projector_type not in sol_dict:
-                    sol_dict[projector_type] = {}
-                gen = (
-                    projection
-                    for projection in config["sat"]["projection"]
-                    if projection not in sol_dict[projector_type]
-                )
-                for projection in gen:
-                    projector = rp.RandomProjector(
-                        round(projection * results["size_psd_variable"]),
-                        results["size_psd_variable"],
-                        projector_type,
+                if "original" not in sol_dict:
+                    print("Running original SAT instance")
+                    results = maxsat.satisfiability_feasibility(formula)
+                    sol_dict = {"original": results}
+                    print("Finished original SAT instance with size {}, took {} seconds".format(results["size_psd_variable"], results["computation_time"]))
+                
+                for projector_type in config["densities"][sol_dict["original"]["size_psd_variable"] - 1]:
+                    if projector_type not in sol_dict:
+                        sol_dict[projector_type] = {}
+                    gen = (
+                        projection
+                        for projection in config["sat"]["projection"]
+                        if projection not in sol_dict[projector_type]
                     )
-                    print(f"Running SAT instance with projector {projector_type} and projection {projection}")
-                    p_results = maxsat.projected_sat_feasibility(formula, projector)
-                    print("Finished SAT instance with size {}, took {} seconds".format(p_results["size_psd_variable"], p_results["computation_time"]))
-                    sol_dict[projector_type][projection] = p_results
+                    for projection in gen:
+                        projector = rp.RandomProjector(
+                            round(projection * results["size_psd_variable"]),
+                            results["size_psd_variable"],
+                            projector_type,
+                        )
+                        print(f"Running SAT instance with projector {projector_type} and projection {projection}")
+                        p_results = maxsat.projected_sat_feasibility(formula, projector)
+                        print("Finished SAT instance with size {}, took {} seconds".format(p_results["size_psd_variable"], p_results["computation_time"]))
+                        sol_dict[projector_type][projection] = p_results
 
-            # Store sat instance.
-            with open(f"results/sat/{variables}_{C}.pkl", "wb") as f:
-                pickle.dump(sol_dict, f)
+                # Store sat instance.
+                with open(f"results/sat/{variables}_{C}_{i}.pkl", "wb") as f:
+                    pickle.dump(sol_dict, f)
+
+            print()
 
 
 def quality_plot_computational_experiments_maxcut():

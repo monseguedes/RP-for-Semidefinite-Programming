@@ -87,6 +87,8 @@ def stable_set_problem_sdp(graph: Graph, verbose=False):
     #     print("A_{}: {}".format(monomial, A[monomial]))
 
     # Coefficients of objective
+    densities_A = [np.count_nonzero(A[monomial]) / A[monomial].size for monomial in distinct_monomials]
+    print("Densities of A: ", densities_A)
     C = {monomial: -1 if sum(monomial) == 1 else 0 for monomial in distinct_monomials}
 
     time_start = time.time()
@@ -524,18 +526,22 @@ def alternating_projection_sdp(graph, solution_matrix, objective):
     psd_X = solution_matrix
     tuple_of_constant = tuple([0 for i in list(graph.A.keys())[0]])
     b = {monomial: -1 if sum(monomial) == 1 else 0 for monomial in graph.A.keys()}
-    b[tuple_of_constant] = b[tuple_of_constant] - objective
+    old_b = b.copy()
+    b.pop(tuple_of_constant)
+    Ai = graph.A.copy()
+    Ai.pop(tuple_of_constant)
+    # b[tuple_of_constant] = b[tuple_of_constant] - objective
     while iter < 1000:
         # Check if linear constraints are satisfied
-        for monomial in graph.A.keys():
-            if np.all(np.dot(graph.A[monomial], psd_X) == b[monomial]):
-                print("Linear constraints satisfied for psd matrix")
-                return psd_X
+        for monomial in Ai.keys():
+            if np.all(np.dot(Ai[monomial], psd_X) == b[monomial]):
+                print("Linear constraints satisfied for psd matrix at iteration {}".format(iter))
+                return psd_X, old_b[tuple_of_constant] - psd_X[0,0]
             
         # Project onto the original affine subspace with orthogonal projection
-        A = np.array([graph.A[monomial].flatten() for monomial in graph.A.keys()])
+        A = np.array([Ai[monomial].flatten() for monomial in Ai.keys()])
         inverse_AA = np.linalg.inv(A @ A.T)
-        b_AX = np.array([b[monomial] - np.trace(graph.A[monomial].T @ psd_X) for monomial in graph.A.keys()])
+        b_AX = np.array([b[monomial] - np.trace(Ai[monomial].T @ psd_X) for monomial in Ai.keys()])
         ATAATbAX = A.T @ inverse_AA @ b_AX
         affine_X = psd_X + ATAATbAX.reshape(psd_X.shape)
         affine_X.reshape(psd_X.shape)
@@ -543,19 +549,20 @@ def alternating_projection_sdp(graph, solution_matrix, objective):
         # Check if the projection is psd
         eigenvalues = np.linalg.eigvals(affine_X)
         if np.all(eigenvalues >= -0.0001):
-            print("Projection onto affine subspace is psd")
-            return affine_X
+            print("Projection onto affine subspace is psd at iteration {}".format(iter))
+            return affine_X, old_b[tuple_of_constant] - affine_X[0,0]
         else:
             # Project onto the psd cone
             # Spectral decomposition (eigenvalue decomposition)
-            U, S, V = np.linalg.svd(affine_X)
+            eigenvalues, eigenvectors = np.linalg.eig(affine_X)
+            V = eigenvectors
+            S = np.diag(eigenvalues)
+            V_inv = np.linalg.inv(V)
             S = np.maximum(S, 0)
-            psd_X = U @ np.diag(S) @ V
-            print("Projection onto psd cone")
-            print("Eigenvalues: ", np.linalg.eigvals(psd_X))
+            psd_X = V @ S @ V_inv
             iter += 1
 
-    return psd_X
+    return psd_X, old_b[tuple_of_constant] - psd_X[0,0]
 
 
 def single_graph_results(graph, type="sparse", project="variables", range=(0.4, 0.8), iterations=5):
@@ -687,17 +694,14 @@ if __name__ == "__main__":
     results = stable_set_problem_sdp(graph)
     print("Objective: ", results["objective"])
 
-    projection = 0.9
+    projection = 0.5
     print("No. distinct monomials: ", len(graph.distinct_monomials_L1))
-    projector = rp.RandomProjector(round(len(graph.distinct_monomials_L1) * projection), len(graph.distinct_monomials_L1), type="sparse", seed=seed)
+    projector = rp.RandomProjector(round(len(graph.distinct_monomials_L1) * projection), len(graph.distinct_monomials_L1), type="0.05_density", seed=seed)
     contraintagg = random_constraint_aggregation_sdp(graph, projector, verbose=False)
     print("Objective: ", contraintagg["objective"])
 
-    alternated_X = alternating_projection_sdp(graph, contraintagg["X"], contraintagg["objective"])
-
-
-
-
+    alternated_X, bound = alternating_projection_sdp(graph, contraintagg["X"], contraintagg["objective"])
+    print("Bound: ", bound)
 
     # graphs_list = []
     # for i in [file for file in os.listdir("graphs") if file != ".DS_Store"]:

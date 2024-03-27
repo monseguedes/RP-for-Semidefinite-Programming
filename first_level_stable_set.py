@@ -293,6 +293,7 @@ def projected_stable_set_problem_sdp(graph, random_projector, verbose=False):
 
         return solution
 
+
 def stable_set_problem_sdp_extension(graph: Graph, verbose=False):
     """
     Parameters
@@ -308,6 +309,8 @@ def stable_set_problem_sdp_extension(graph: Graph, verbose=False):
         Dictionary with the solutions of the sdp relaxation.
 
     """
+
+    raise NotImplementedError
 
     distinct_monomials = graph.distinct_monomials_L1
     edges = graph.edges
@@ -394,6 +397,7 @@ def stable_set_problem_sdp_extension(graph: Graph, verbose=False):
 
         return solution
 
+
 def random_constraint_aggregation_sdp(graph, projector, verbose=False):
     """
     Parameters
@@ -410,6 +414,7 @@ def random_constraint_aggregation_sdp(graph, projector, verbose=False):
 
     distinct_monomials = graph.distinct_monomials_L1
     edges = graph.edges
+    tuple_of_constant = tuple([0 for i in range(len(distinct_monomials[0]))])
 
     # Coefficients of objective
     C = {monomial: -1 if sum(monomial) == 1 else 0 for monomial in distinct_monomials}
@@ -418,61 +423,56 @@ def random_constraint_aggregation_sdp(graph, projector, verbose=False):
     C_old = C
     C = {}
     for i in range(projector.k):
+        C[i] = 0
         for j, monomial in enumerate(distinct_monomials):
-            if monomial != tuple([0 for i in range(len(distinct_monomials[0]))]):
-                C[i] = projector.projector[i, j] * C_old[monomial]
+            # if monomial != tuple_of_constant:
+            C[i] += projector.projector[i, j] * C_old[monomial]
        
     A = graph.A
-    # Expand all matrices with a row and column of 0s
-    for matrix in A.keys():
-        A[matrix] = np.vstack((A[matrix], np.zeros(A[matrix].shape[1])))
-        A[matrix] = np.column_stack((A[matrix], np.zeros(A[matrix].shape[0])))
-    for i in range(list(A.values())[0].shape[0]):
-        matrix = np.zeros((list(A.values())[0].shape[0], list(A.values())[0].shape[1]))
-        matrix[i, -1] = 1
-        A[i] = matrix
-    for i in range(list(A.values())[0].shape[1]):
-        matrix = np.zeros((list(A.values())[0].shape[0], list(A.values())[0].shape[1]))
-        matrix[-1, i] = 1
-        A[i + list(A.values())[0].shape[0]] = matrix   
     A_old = A
-    A = {
-        i: sum(
-            [
-                projector.projector[i, j] * A[monomial]
-                for j, monomial in enumerate(distinct_monomials)
-            ]
-        )
-        for i in range(projector.k)
-    }
+    A = {}
+    for i in range(projector.k):
+        A[i] = np.zeros((A_old[tuple_of_constant].shape[0], A_old[tuple_of_constant].shape[1]))
+        for j, monomial in enumerate(distinct_monomials):
+            # if monomial != tuple_of_constant:
+            A[i] += projector.projector[i, j] * A_old[monomial]
+
+    b = {monomial: 0 for monomial in distinct_monomials}
+    b[tuple_of_constant] = 1
+    b_old = b
+    b = {}
+    for i in range(projector.k):
+        b[i] = 0
+        for j, monomial in enumerate(distinct_monomials):
+            b[i] += projector.projector[i, j] * b_old[monomial]
+
 
     with mf.Model("SDP") as M:
         # PSD variable X
         size_psd_variable = list(A.values())[0].shape[0]
-        X = M.variable(mf.Domain.inPSDCone(list(A.values())[0].shape[0]))
+        X = M.variable(mf.Domain.inPSDCone(size_psd_variable))
 
         # Objective
-        b = M.variable()
-        M.objective(mf.ObjectiveSense.Maximize, b)
+        gamma = M.variable()
+        M.objective(mf.ObjectiveSense.Maximize, gamma)
 
         # Constraints:
         # A_i · X  = c_i
         for i in A.keys():
             matrix_inner_product = mf.Expr.dot(A[i], X)
             M.constraint(
-                matrix_inner_product,
+                mf.Expr.add(matrix_inner_product, mf.Expr.mul(b[i],gamma)),
                 mf.Domain.equalsTo(C[i]),
             )
            
-        # Constraint:
-        # A_0 · X + b = c_0
-        tuple_of_constant = tuple([0 for i in range(len(distinct_monomials[0]))])
-        matrix_inner_product = mf.Expr.dot(A_old[tuple_of_constant], X)
-        M.constraint(
-            mf.Expr.add(matrix_inner_product, b),
-            mf.Domain.equalsTo(C_old[tuple_of_constant]),
-        )
-
+        # # Constraint:
+        # # A_0 · X + b = c_0
+        # matrix_inner_product = mf.Expr.dot(A_old[tuple_of_constant], X)
+        # M.constraint(
+        #     mf.Expr.add(matrix_inner_product, gamma),
+        #     mf.Domain.equalsTo(C_old[tuple_of_constant]),
+        # )
+        
         print("Number of constraints: ", len(A.keys()) + 1)
 
         if verbose:
@@ -480,27 +480,28 @@ def random_constraint_aggregation_sdp(graph, projector, verbose=False):
             M.setLogHandler(sys.stdout)
 
         # Optimize
-        # try:
-        start_time = time.time()
-        M.solve()
-        end_time = time.time()
-            # Get the solution
-        X_sol = X.level()
-        b_sol = b.level()
-        objective = M.primalObjValue()
-        size_psd_variable = int(np.sqrt(X_sol.shape[0]))
-        computation_time = end_time - start_time
+        try:
+            start_time = time.time()
+            M.solve()
+            end_time = time.time()
+                # Get the solution
+            X_sol = X.level()
+            X_sol = X_sol.reshape(size_psd_variable, size_psd_variable)
+            gamma_sol = gamma.level()
+            objective = M.primalObjValue()
+            size_psd_variable = int(np.sqrt(X_sol.shape[0]))
+            computation_time = end_time - start_time
 
-        # except:
-        #     print("Mosek error")
-        #     X_sol = None
-        #     b_sol = None
-        #     objective = None
-        #     size_psd_variable = None
-        #     computation_time = None
+        except:
+            print("Unbounded relaxation")
+            X_sol = None
+            gamma_sol = None
+            objective = None
+            size_psd_variable = None
+            computation_time = None
 
         solution = {
-            # "X": X_sol,
+            "X": X_sol,
             # "b": b_sol,
             "objective": objective,
             "computation_time": computation_time,
@@ -509,6 +510,52 @@ def random_constraint_aggregation_sdp(graph, projector, verbose=False):
         }
 
         return solution
+
+
+def alternating_projection_sdp(graph, solution_matrix, objective):
+    """
+    Alternating projection method to alternate between the
+    SDP solution found in the constraint aggregation and the
+    original affine subspace.
+
+    """
+
+    iter = 0
+    psd_X = solution_matrix
+    tuple_of_constant = tuple([0 for i in list(graph.A.keys())[0]])
+    b = {monomial: -1 if sum(monomial) == 1 else 0 for monomial in graph.A.keys()}
+    b[tuple_of_constant] = b[tuple_of_constant] - objective
+    while iter < 1000:
+        # Check if linear constraints are satisfied
+        for monomial in graph.A.keys():
+            if np.all(np.dot(graph.A[monomial], psd_X) == b[monomial]):
+                print("Linear constraints satisfied for psd matrix")
+                return psd_X
+            
+        # Project onto the original affine subspace with orthogonal projection
+        A = np.array([graph.A[monomial].flatten() for monomial in graph.A.keys()])
+        inverse_AA = np.linalg.inv(A @ A.T)
+        b_AX = np.array([b[monomial] - np.trace(graph.A[monomial].T @ psd_X) for monomial in graph.A.keys()])
+        ATAATbAX = A.T @ inverse_AA @ b_AX
+        affine_X = psd_X + ATAATbAX.reshape(psd_X.shape)
+        affine_X.reshape(psd_X.shape)
+
+        # Check if the projection is psd
+        eigenvalues = np.linalg.eigvals(affine_X)
+        if np.all(eigenvalues >= -0.0001):
+            print("Projection onto affine subspace is psd")
+            return affine_X
+        else:
+            # Project onto the psd cone
+            # Spectral decomposition (eigenvalue decomposition)
+            U, S, V = np.linalg.svd(affine_X)
+            S = np.maximum(S, 0)
+            psd_X = U @ np.diag(S) @ V
+            print("Projection onto psd cone")
+            print("Eigenvalues: ", np.linalg.eigvals(psd_X))
+            iter += 1
+
+    return psd_X
 
 
 def single_graph_results(graph, type="sparse", project="variables", range=(0.4, 0.8), iterations=5):
@@ -630,21 +677,26 @@ if __name__ == "__main__":
     # with open(file_path, "rb") as file:
     #     graph = pickle.load(file)
 
-    graph = generate_graphs.generate_cordones(5, complement=False, save=False, level=1)
+    graph = generate_graphs.generate_cordones(8, complement=False, save=False, level=1)
     # graph = generate_graphs.generate_pentagon(complement=True)
     # graph = generate_graphs.generate_generalised_petersen(10, 2, complement=True, save=False, level=1)
     matrix_size = graph.graph.shape[0] + 1
     print("Matrix size: {}".format(matrix_size))
 
     # single_graph_results(graph, type="sparse")
-    results = stable_set_problem_sdp_extension(graph)
+    results = stable_set_problem_sdp(graph)
+    print("Objective: ", results["objective"])
 
-    raise SystemExit
-    projection = 0.1
+    projection = 0.9
     print("No. distinct monomials: ", len(graph.distinct_monomials_L1))
     projector = rp.RandomProjector(round(len(graph.distinct_monomials_L1) * projection), len(graph.distinct_monomials_L1), type="sparse", seed=seed)
     contraintagg = random_constraint_aggregation_sdp(graph, projector, verbose=False)
     print("Objective: ", contraintagg["objective"])
+
+    alternated_X = alternating_projection_sdp(graph, contraintagg["X"], contraintagg["objective"])
+
+
+
 
 
     # graphs_list = []

@@ -496,6 +496,65 @@ def maxsat_to_latex_simplified(directory, percentage=[0.1, 0.2]):
     """
     print(table_footer)
 
+def sat_to_latex_simplified(directory, config, percentage=[0.1, 0.2]):
+    """
+    Convert the results of the 2-SAT problem to a LaTeX table.
+    """
+
+    # Create the table header
+    table_header = r"""
+    \begin{table}[!htbp]
+        \centering
+        \captionof{table}{Computational results \textsc{2-sat}}
+        \begin{tabular}{lrrrrrrrrrrrrrrr} 
+            \toprule
+            & & & && \multicolumn{2}{c}{10\% projection} && \multicolumn{2}{c}{20\% projection} \\
+            \cmidrule{6-7} \cmidrule{9-10}
+            \rule{0pt}{10pt} % Adding space of 10pt between lines and text below
+            Instance & n & C & Feasible && Time & Feasible && Time & Feasible \\
+            \midrule
+    """
+    print(table_header)
+
+    alphabetical_dir = sorted(
+        [file for file in os.listdir(directory) if file.endswith(".pkl")],
+        key=lambda x: int("".join([i for i in x if i.isdigit()])),
+    )
+    alphabetical_dir = [
+        file
+        for file in os.listdir(directory)
+        if file.endswith(".pkl")
+    ]
+
+    for name in alphabetical_dir:
+        file_path = os.path.join(directory, name)
+        with open(file_path, "rb") as file:
+            results = pickle.load(file)
+        name = name.strip(".pkl").replace("_", "-")
+        projector_type = config["densities"][results["original"]["size_psd_variable"] - 1][0]
+        first_time = (
+                results[projector_type][percentage[0]]["computation_time"]
+                / results["original"]["computation_time"]
+                * 100
+            )
+        second_time = (
+                results[projector_type][percentage[1]]["computation_time"]
+                / results["original"]["computation_time"]
+                * 100
+            )
+        print(
+            "             {:8} & {:5} & {:8} & {:8} && {:6.2f} & {:2} && {:6.2f} & {:2}  \\\\".format(
+                "f-" + name,
+                int(name.split("-")[0]),
+                results["original"]["C"],
+                results["original"]["objective"],
+                first_time,
+                results[projector_type][percentage[0]]["objective"],
+                second_time,
+                results[projector_type][percentage[1]]["objective"],
+            )
+        )
+
 
 def sparsity_test_to_latex(directory, percentage=[0.05, 0.1]):
     table_header = r"""

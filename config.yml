@@ -78,8 +78,7 @@ maxsat:
   # SAT
 sat:
   variables:
-    - 5000
-    - 7000
+    - 1000
   C:
     - 0.5
     - 1

@@ -318,7 +318,8 @@ def stable_set_to_latex(directory, projector_type="sparse"):
                 )
             )
         except:
-            projector_type = config["densities"][min(config["densities"], key=lambda x:abs(x - results["L2"]["size_psd_variable"]))][0] 
+            projector_type = config["densities"][min(config["densities"], key=lambda x:abs(x - results["L2"]["size_psd_variable"]))][0]
+            projector_type = "sparse" 
             print(
                 "             {:8} & {:8} & {:8} & {:8.2f} & {:8} & {:8.2f} & {:8.2f} & & {:8} & {:8.2f} & {:8.2f} \\\\".format(
                     "c-cordones-"

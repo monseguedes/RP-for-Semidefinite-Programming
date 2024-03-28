@@ -318,7 +318,8 @@ def stable_set_to_latex(directory, projector_type="sparse"):
                 )
             )
         except:
-            projector_type = config["densities"][min(config["densities"], key=lambda x:abs(x - results["L2"]["size_psd_variable"]))][0] 
+            projector_type = config["densities"][min(config["densities"], key=lambda x:abs(x - results["L2"]["size_psd_variable"]))][0]
+            projector_type = "sparse" 
             print(
                 "             {:8} & {:8} & {:8} & {:8.2f} & {:8} & {:8.2f} & {:8.2f} & & {:8} & {:8.2f} & {:8.2f} \\\\".format(
                     "c-cordones-"
@@ -547,8 +548,8 @@ def sat_to_latex_simplified(config, percentage=[0.1, 0.2]):
                 first_proportion = 'N/A'
                 second_proportion = 'N/A'
             else:
-                first_proportion = first_no_projected_feasible / no_feasible * 100
-                second_proportion = second_no_projected_feasible / no_feasible * 100
+                first_proportion = int(first_no_projected_feasible / no_feasible * 100)
+                second_proportion = int(second_no_projected_feasible / no_feasible * 100)
 
             if round == 0:
                 print(

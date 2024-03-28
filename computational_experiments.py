@@ -386,6 +386,7 @@ def sat_feasibility(config):
                     print("Finished original SAT instance with size {}, took {} seconds".format(results["size_psd_variable"], results["computation_time"]))
                 
                 for projector_type in config["densities"][sol_dict["original"]["size_psd_variable"] - 1]:
+                    # projector_type = "sparse"
                     if projector_type not in sol_dict:
                         sol_dict[projector_type] = {}
                     gen = (

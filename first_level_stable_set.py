@@ -88,7 +88,7 @@ def stable_set_problem_sdp(graph: Graph, verbose=False):
 
     # Coefficients of objective
     densities_A = [np.count_nonzero(A[monomial]) / A[monomial].size for monomial in distinct_monomials]
-    print("Densities of A: ", densities_A)
+    # print("Densities of A: ", densities_A)
     C = {monomial: -1 if sum(monomial) == 1 else 0 for monomial in distinct_monomials}
 
     time_start = time.time()
@@ -684,7 +684,7 @@ if __name__ == "__main__":
     # with open(file_path, "rb") as file:
     #     graph = pickle.load(file)
 
-    graph = generate_graphs.generate_cordones(8, complement=False, save=False, level=1)
+    graph = generate_graphs.generate_cordones(5, complement=False, save=False, level=1)
     # graph = generate_graphs.generate_pentagon(complement=True)
     # graph = generate_graphs.generate_generalised_petersen(10, 2, complement=True, save=False, level=1)
     matrix_size = graph.graph.shape[0] + 1
@@ -694,9 +694,9 @@ if __name__ == "__main__":
     results = stable_set_problem_sdp(graph)
     print("Objective: ", results["objective"])
 
-    projection = 0.5
+    projection = 0.9
     print("No. distinct monomials: ", len(graph.distinct_monomials_L1))
-    projector = rp.RandomProjector(round(len(graph.distinct_monomials_L1) * projection), len(graph.distinct_monomials_L1), type="0.05_density", seed=seed)
+    projector = rp.RandomProjector(round(len(graph.distinct_monomials_L1) * projection), len(graph.distinct_monomials_L1), type="0.1_density", seed=seed)
     contraintagg = random_constraint_aggregation_sdp(graph, projector, verbose=False)
     print("Objective: ", contraintagg["objective"])
 

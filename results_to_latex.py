@@ -510,7 +510,6 @@ def sat_to_latex_simplified(config, percentage=[0.1, 0.2]):
     \begin{tabular}{lrrrrrrrrrrrrrrr} 
         \toprule
         n & C & 20\% projection & 50\% projection \\
-        \midrule
     """
     print(table_header)
 
@@ -526,7 +525,8 @@ def sat_to_latex_simplified(config, percentage=[0.1, 0.2]):
 
     
     for n in sorted(n_list):
-        round = 0
+        epoch = 0
+        print("             \midrule")
         for C in sorted(C_list):
             seeds = [file.split("_")[2] for file in dir_list if f"{n}_{C}" in file]
             no_feasible = 0
@@ -538,19 +538,20 @@ def sat_to_latex_simplified(config, percentage=[0.1, 0.2]):
                     results = pickle.load(file)
                 if results["original"]["objective"] == 1:
                     no_feasible += 1
-                    if results["sparse"][percentage[0]]["objective"] == 1:
+                    projector_type = config["densities"][results["original"]["size_psd_variable"] - 1][0]
+                    if results[projector_type][percentage[0]]["objective"] == 1:
                         first_no_projected_feasible += 1
-                    if results["sparse"][percentage[1]]["objective"] == 1:
+                    if results[projector_type][percentage[1]]["objective"] == 1:
                         second_no_projected_feasible += 1
 
             if no_feasible == 0:
                 first_proportion = 'N/A'
                 second_proportion = 'N/A'
             else:
-                first_proportion = first_no_projected_feasible / no_feasible * 100
-                second_proportion = second_no_projected_feasible / no_feasible * 100
+                first_proportion = round(first_no_projected_feasible / no_feasible * 100)
+                second_proportion = round(second_no_projected_feasible / no_feasible * 100)
 
-            if round == 0:
+            if epoch == 0:
                 print(
                     "             {:8} & {:8} & {:8} & {:8} \\\\".format(
                         n,
@@ -568,7 +569,9 @@ def sat_to_latex_simplified(config, percentage=[0.1, 0.2]):
                         str(second_proportion) + " ({}/{})".format(second_no_projected_feasible, no_feasible)
                     )
                 )
-            round += 1
+            
+            epoch += 1
+        
 
     table_footer = r"""
             \bottomrule

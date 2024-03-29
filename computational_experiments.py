@@ -314,44 +314,65 @@ def run_max_sat_experiments(config):
     if not os.path.exists("results/maxsat"):
         os.makedirs("results/maxsat", exist_ok=True)
 
-    for variables in config["maxsat"]["variables"]:
-        for C in config["maxsat"]["C"]:
-            print(
-                f"Running maxsat instance {variables} variables and {variables * C} clauses, with C = {C}"
-            )
-            # Create maxsat intance.
-            formula = maxsat.Formula(variables, variables * C)
-
-            if os.path.exists(f"results/maxsat/{variables}_{C}.pkl"):
-                sol_dict = pickle.load(open(f"results/maxsat/{variables}_{C}.pkl", "rb"))
-            else:
-                sol_dict = {}
-
-            if "original" not in sol_dict:
-                results = maxsat.sdp_relaxation(formula)
-                sol_dict = {"original": results}
-            
-            for projector_type in config["densities"][results["size_psd_variable"] - 1]:
-                if projector_type not in sol_dict:
-                    sol_dict[projector_type] = {}
-                gen = (
-                    projection
-                    for projection in config["maxsat"]["projection"]
-                    if projection not in sol_dict[projector_type]
+    if config["maxsat"]["random"]:
+        for variables in config["maxsat"]["variables"]:
+            for C in config["maxsat"]["C"]:
+                print(
+                    f"Running maxsat instance {variables} variables and {variables * C} clauses, with C = {C}"
                 )
-                for projection in gen:
-                    projector = rp.RandomProjector(
-                        round(projection * results["size_psd_variable"]),
-                        results["size_psd_variable"],
-                        projector_type,
-                    )
-                    p_results = maxsat.projected_sdp_relaxation(formula, projector)
-                    sol_dict[projector_type][projection] = p_results
+                file_name = f"{variables}_{C}.pkl"
+                c = variables * C
+                max_sat_experiments_formula(file_name, variables, c)
 
-            # Store maxsat instance.
-            with open(f"results/maxsat/{variables}_{C}.pkl", "wb") as f:
+    else:
+        for i, file_name in enumerate([file for file in os.listdir("datasets/pmax2sat") if config["maxsat"]["min_variables"] <= file.split("_")[1] <= config["maxsat"]["max_variables"]]):
+            with open(f"datasets/pmax2sat/{file_name}", "rb") as f:
+                formula = pickle.load(f)
+            print(f"Running maxsat instance {file_name}, number {i + 1} of {len(os.listdir('datasets/pmax2sat'))}")
+            max_sat_experiments_formula(file_name, formula.n, formula.c, formula.list_of_clauses)
+
+def max_sat_experiments_formula(file_name, n, c, clauses_list=[]):
+    """
+    Run the experiments and store them in files.
+
+    """
+
+    # Create maxsat intance.
+    formula = maxsat.Formula(n, c, list_of_clauses=clauses_list)
+
+    if os.path.exists(f"results/maxsat/{file_name}"):
+        sol_dict = pickle.load(open(f"results/maxsat/{file_name}", "rb"))
+    else:
+        sol_dict = {}
+
+    if "original" not in sol_dict:
+        results = maxsat.sdp_relaxation(formula)
+        sol_dict = {"original": results}
+        with open(f"results/maxsat/{file_name}", "wb") as f:
+            pickle.dump(sol_dict, f)
+    
+    for projector_type in config["densities"][results["size_psd_variable"] - 1]:
+        if projector_type not in sol_dict:
+            sol_dict[projector_type] = {}
+        gen = (
+            projection
+            for projection in config["maxsat"]["projection"]
+            if projection not in sol_dict[projector_type]
+        )
+        for projection in gen:
+            projector = rp.RandomProjector(
+                round(projection * results["size_psd_variable"]),
+                results["size_psd_variable"],
+                projector_type,
+            )
+            p_results = maxsat.projected_sdp_relaxation(formula, projector)
+            sol_dict[projector_type][projection] = p_results
+            with open(f"results/maxsat/{file_name}", "wb") as f:
                 pickle.dump(sol_dict, f)
 
+    # Store maxsat instance.
+    with open(f"results/maxsat/{file_name}", "wb") as f:
+        pickle.dump(sol_dict, f)
 
 def sat_feasibility(config):
     """

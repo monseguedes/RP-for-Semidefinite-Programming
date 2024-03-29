@@ -58,6 +58,9 @@ maxcut:
 
 # Maxsat
 maxsat:
+  random: False
+  min_variables: 500
+  max_variables: 1000
   variables:
     # - 1000
     # - 1500

@@ -87,14 +87,20 @@ class Formula():
 
         np.random.seed(self.seed)
 
+        improved_list_of_clauses = []
         # Check that all tuples are orderes from smaller to larger index        
         for clause in list_of_clauses:
             if abs(clause[0]) > abs(clause[1]):
-                raise ValueError("The variables in the clause are not ordered from smaller to larger index.")
+                clause = (clause[1], clause[0])
+                improved_list_of_clauses.append(clause)            
             if abs(clause[0]) == abs(clause[1]):
-                raise ValueError("Two variables in the clause are the same.")
+                print("Two variables in the clause are the same.")
             if abs(clause[0]) > self.n or abs(clause[1]) > self.n:
-                raise ValueError("The variables in the clause are greater than the number of variables in the formula.")
+                print("The variables in the clause are greater than the number of variables in the formula.")
+            else:
+                improved_list_of_clauses.append(clause)
+
+        list_of_clauses = improved_list_of_clauses
         
         if list_of_clauses != []:
             list_of_clauses = list_of_clauses
@@ -168,6 +174,7 @@ class Formula():
         for clause in self.list_of_clauses:
             clause_coefficients = self.get_coefficients_clause(clause)
             for key, value in clause_coefficients.items():
+                # print(coefficients)
                 coefficients[key] += value
 
         return coefficients
@@ -445,7 +452,8 @@ def satisfiability_feasibility(formula: Formula):
         }
 
         return solution
-    
+
+
 def projected_sat_feasibility(formula, projector):
     """ 
     Solves the 2-SAT problem projecting the SDP relaxation
@@ -528,7 +536,6 @@ def projected_sat_feasibility(formula, projector):
 
         return solution
     
-
 
 def single_formula_results(formula, type="sparse", range=(0.1, 0.5), iterations=5, problem="max"):
     """

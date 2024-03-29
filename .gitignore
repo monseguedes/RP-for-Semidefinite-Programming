@@ -18,6 +18,7 @@ vimquickrun.sh
 *.clq
 *.pkl
 *.txt
+*.wcnf
 
 # ignore in folder ruby
 rudy/

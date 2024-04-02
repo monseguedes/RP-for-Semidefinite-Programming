@@ -43,6 +43,7 @@ import json
 import maxsat
 import datetime
 import time
+import process_max2sat
 
 
 def download_datasets(config):
@@ -306,7 +307,6 @@ def maxcut_experiments_graph(directory, graph):
     with open(directory, "wb") as f:
         pickle.dump(sol_dict, f)
 
-
 def run_max_sat_experiments(config):
     """ """
 
@@ -325,10 +325,15 @@ def run_max_sat_experiments(config):
                 max_sat_experiments_formula(file_name, variables, c)
 
     else:
-        for i, file_name in enumerate([file for file in os.listdir("datasets/pmax2sat") if config["maxsat"]["min_variables"] <= file.split("_")[1] <= config["maxsat"]["max_variables"]]):
-            with open(f"datasets/pmax2sat/{file_name}", "rb") as f:
-                formula = pickle.load(f)
-            print(f"Running maxsat instance {file_name}, number {i + 1} of {len(os.listdir('datasets/pmax2sat'))}")
+        files = [file for file in os.listdir("datasets/MAX2SAT") if ".wcnf" in file and "-" not in file] #config["maxsat"]["min_variables"] <= int(file.split("_")[1]) <= config["maxsat"]["max_variables"]]
+        files = [file for file in files if config["maxsat"]["min_variables"] <= int(file.split("_")[1]) <= config["maxsat"]["max_variables"]]
+        for i, file_name in enumerate(files):
+
+            # with open(f"datasets/pmax2sat/{file_name}", "rb") as f:
+            #     formula = pickle.load(f)
+            formula = process_max2sat.process_max2sat(file_name)
+            print(f"Running maxsat instance {file_name}, number {i + 1} of {len(os.listdir('datasets/MAX2SAT'))}")
+            file_name = file_name.replace(".wcnf", ".pkl")
             max_sat_experiments_formula(file_name, formula.n, formula.c, formula.list_of_clauses)
 
 def max_sat_experiments_formula(file_name, n, c, clauses_list=[]):
@@ -350,6 +355,8 @@ def max_sat_experiments_formula(file_name, n, c, clauses_list=[]):
         sol_dict = {"original": results}
         with open(f"results/maxsat/{file_name}", "wb") as f:
             pickle.dump(sol_dict, f)
+    else:
+        results = sol_dict["original"]
     
     for projector_type in config["densities"][results["size_psd_variable"] - 1]:
         if projector_type not in sol_dict:
@@ -373,6 +380,7 @@ def max_sat_experiments_formula(file_name, n, c, clauses_list=[]):
     # Store maxsat instance.
     with open(f"results/maxsat/{file_name}", "wb") as f:
         pickle.dump(sol_dict, f)
+
 
 def sat_feasibility(config):
     """
@@ -500,6 +508,6 @@ if __name__ == "__main__":
 
     # run_stable_set_experiments(config)
     # run_maxcut_experiments(config)
-    # run_max_sat_experiments(config)
+    run_max_sat_experiments(config)
     # quality_plot_computational_experiments_maxcut()
-    sat_feasibility(config)
+    # sat_feasibility(config)

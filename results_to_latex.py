@@ -444,50 +444,59 @@ def maxsat_to_latex_simplified(directory, percentage=[0.1, 0.2]):
         [file for file in os.listdir(directory) if file.endswith(".pkl")],
         key=lambda x: int("".join([i for i in x if i.isdigit()])),
     )
-    alphabetical_dir = [
-        file
-        for file in os.listdir(directory)
-        if file.endswith(".pkl")
-    ]
-
-    for name in alphabetical_dir:
+    gen = (name for name in alphabetical_dir if "urand" in name)
+    for name in gen:
         file_path = os.path.join(directory, name)
         with open(file_path, "rb") as file:
             results = pickle.load(file)
-        name = name.strip(".pkl").replace("_", "-")
-        projector_type = config["densities"][results["original"]["size_psd_variable"] - 1][0]
-        first_quality = (
-            results[projector_type][percentage[0]]["objective"]
-            / results["original"]["objective"]
-            * 100
-        )
-        first_time = (
-                results[projector_type][percentage[0]]["computation_time"]
-                / results["original"]["computation_time"]
+        try:
+            n = int(name.split("_")[0])
+            c = int(float(results["original"]["C"]) * float(name.split("_")[0]))
+            name = "f-" + name.split(".pkl")[0].replace("_", "-")
+        except:
+            name = name.split(".pkl")[0]
+            n = name.split("_")[1]
+            c = name.split("_")[2].split(".")[0]
+            name = name.replace("_", "-")
+            
+        first_projector_type = config["densities"][results["original"]["size_psd_variable"] - 1][0]
+        # second_projector_type = config["densities"][min(config["densities"], key=lambda x:abs(x - results["original"]["size_psd_variable"] + 1000))][0] # Flawed
+        second_projector_type = "0.03_density"
+        try:
+            first_quality = (
+                results[first_projector_type][percentage[0]]["objective"]
+                / results["original"]["objective"]
                 * 100
             )
-        second_quality = (
-            results[projector_type][percentage[1]]["objective"]
-            / results["original"]["objective"]
-            * 100
-        )
-        second_time = (
-                results[projector_type][percentage[1]]["computation_time"]
-                / results["original"]["computation_time"]
+            first_time = (
+                    results[first_projector_type][percentage[0]]["computation_time"]
+                    / results["original"]["computation_time"]
+                    * 100
+                )
+            second_quality = (
+                results[second_projector_type][percentage[1]]["objective"]
+                / results["original"]["objective"]
                 * 100
             )
-        print(
-            "             {:8} & {:5} & {:8} & {:8.2f} && {:6.2f} & {:2.2f} && {:6.2f} & {:2.2f}  \\\\".format(
-                "f-" + name,
-                int(name.split("-")[0]),
-                results["original"]["C"],
-                int(int(results["original"]["C"]) * float(name.split("-")[0])),
-                first_time,
-                first_quality,
-                second_time,
-                second_quality,
+            second_time = (
+                    results[second_projector_type][percentage[1]]["computation_time"]
+                    / results["original"]["computation_time"]
+                    * 100
+                )
+            print(
+                "             {:8} & {:5} & {:8} && {:6.2f} & {:2.2f} && {:6.2f} & {:2.2f}  \\\\".format(
+                    name,
+                    n,
+                    results["original"]["C"],
+                    # c,
+                    first_time,
+                    first_quality,
+                    second_time,
+                    second_quality,
+                )
             )
-        )
+        except:
+            pass
 
     table_footer = r"""
             \bottomrule
@@ -621,6 +630,7 @@ def sparsity_test_to_latex(directory, percentage=[0.05, 0.1]):
 
     print(table_footer)
 
+
 with open("config.yml", "r") as file:
     config = yaml.safe_load(file)
 
@@ -629,6 +639,6 @@ with open("config.yml", "r") as file:
 # maxcut_to_latex_single_simplified("results/maxcut", config, "0.04_density", 0.1)
 # stable_set_to_latex("results/stable_set")
 # maxsat_to_latex("results/maxsat", "sparse", [0.1, 0.2])
-# maxsat_to_latex_simplified("results/maxsat", [0.1, 0.2])
+maxsat_to_latex_simplified("results/maxsat", [0.1, 0.2])
 # sparsity_test_to_latex("results/maxcut")
-sat_to_latex_simplified(config, [0.2, 0.5])
+# sat_to_latex_simplified(config, [0.2, 0.5])

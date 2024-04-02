@@ -40,17 +40,20 @@ def process_max2sat(file_name, separator='_'):
 
     formula = Formula(n_vars, n_clauses, clauses)
 
-    # Store the formula
-    if not os.path.exists("datasets/pmax2sat/processed"):
-        os.makedirs("datasets/pmax2sat/processed")
+    # # Store the formula
+    # if not os.path.exists("datasets/pmax2sat"):
+    #     os.makedirs("datasets/pmax2sat")
 
-    with open("datasets/pmax2sat/processed/" + file_name.split('.')[0] + ".pkl", 'wb') as f:
-        pickle.dump(formula, f)
+    # with open("datasets/pmax2sat/" + file_name.split('.')[0] + ".pkl", 'wb') as f:
+    #     pickle.dump(formula, f)
+
+    return formula
 
 if __name__ == '__main__':
-    for file_name in [file for file in os.listdir("datasets/MAX2SAT/")if "-" not in file and ".wcnf" in file]:
-        if  500 <= int(file_name.split("_")[1]) <= 5000:
+    for i, file_name in enumerate([file for file in os.listdir("datasets/MAX2SAT/")if "-" not in file and ".wcnf" in file]):
+        if  5000 <= int(file_name.split("_")[1]) <= 5000 and not os.path.exists("datasets/pmax2sat/" + file_name.split('.')[0] + ".pkl"):
             process_max2sat(file_name)
+            print(f"Finished processing {file_name}, which is {i}/{len([file for file in os.listdir('datasets/MAX2SAT/')if '-' not in file and '.wcnf' in file])}")
     for file_name in [file for file in os.listdir("datasets/MAX2SAT/")if "-" in file and ".wcnf" in file]:
         if  100 <= int(file_name.split("-")[1]) <= 1000:
             process_max2sat(file_name, separator='-')

@@ -80,6 +80,9 @@ maxsat:
 
   # SAT
 sat:
+  random: False
+  min_variables: 5000
+  max_variables: 5000
   variables:
     - 500
     - 1000

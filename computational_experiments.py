@@ -391,20 +391,70 @@ def sat_feasibility(config):
     if not os.path.exists("results/sat"):
         os.makedirs("results/sat", exist_ok=True)
 
-    for variables in config["sat"]["variables"]:
-        for C in config["sat"]["C"]:
-            print("-" * 40)
-            print(
-                f"Running SAT instance {variables} variables and {variables * C} clauses, with C = {C}"
-            )
-            for i in range(config["sat"]["repetitions"]):
-                print("-" * 20)
-                print(f"Repetition {i + 1} of {config['sat']['repetitions']}")
-                # Create intance.
-                formula = maxsat.Formula(variables, variables * C, seed=i)
+    if config["sat"]["random"]:
+        for variables in config["sat"]["variables"]:
+            for C in config["sat"]["C"]:
+                print("-" * 40)
+                print(
+                    f"Running SAT instance {variables} variables and {variables * C} clauses, with C = {C}"
+                )
+                for i in range(config["sat"]["repetitions"]):
+                    print("-" * 20)
+                    print(f"Repetition {i + 1} of {config['sat']['repetitions']}")
+                    # Create intance.
+                    formula = maxsat.Formula(variables, variables * C, seed=i)
 
-                if os.path.exists(f"results/sat/{variables}_{C}_{i}.pkl"):
-                    sol_dict = pickle.load(open(f"results/sat/{variables}_{C}_{i}.pkl", "rb"))
+                    if os.path.exists(f"results/sat/{variables}_{C}_{i}.pkl"):
+                        sol_dict = pickle.load(open(f"results/sat/{variables}_{C}_{i}.pkl", "rb"))
+                    else:
+                        sol_dict = {}
+
+                    if "original" not in sol_dict:
+                        print("Running original SAT instance")
+                        results = maxsat.satisfiability_feasibility(formula)
+                        sol_dict = {"original": results}
+                        print("Finished original SAT instance with size {}, took {} seconds".format(results["size_psd_variable"], results["computation_time"]))
+
+                        with open(f"results/sat/{variables}_{C}_{i}.pkl", "wb") as f:
+                            pickle.dump(sol_dict, f)
+                    
+                    for projector_type in config["densities"][sol_dict["original"]["size_psd_variable"] - 1]:
+                        # projector_type = "sparse"
+                        if projector_type not in sol_dict:
+                            sol_dict[projector_type] = {}
+                        gen = (
+                            projection
+                            for projection in config["sat"]["projection"]
+                            if projection not in sol_dict[projector_type]
+                        )
+                        for projection in gen:
+                            projector = rp.RandomProjector(
+                                round(projection * results["size_psd_variable"]),
+                                results["size_psd_variable"],
+                                projector_type,
+                            )
+                            print(f"Running SAT instance with projector {projector_type} and projection {projection}")
+                            p_results = maxsat.projected_sat_feasibility(formula, projector)
+                            print("Finished SAT instance with size {}, took {} seconds".format(p_results["size_psd_variable"], p_results["computation_time"]))
+                            sol_dict[projector_type][projection] = p_results
+
+                            with open(f"results/sat/{variables}_{C}_{i}.pkl", "wb") as f:
+                                pickle.dump(sol_dict, f)
+
+                    # Store sat instance.
+                    with open(f"results/sat/{variables}_{C}_{i}.pkl", "wb") as f:
+                        pickle.dump(sol_dict, f)
+
+            print()
+
+    else:
+        files = [file for file in os.listdir("datasets/MAX2SAT") if ".wcnf" in file and "-" not in file] #config["maxsat"]["min_variables"] <= int(file.split("_")[1]) <= config["maxsat"]["max_variables"]]
+        files = [file for file in files if config["sat"]["min_variables"] <= int(file.split("_")[1]) <= config["sat"]["max_variables"]]
+        for i, file_name in enumerate(files):
+                formula = process_max2sat.process_max2sat(file_name)
+                file_name = file_name.replace(".wcnf", ".pkl")
+                if os.path.exists(f"results/sat/{file_name}.pkl"):
+                        sol_dict = pickle.load(open(f"results/sat/{file_name}.pkl", "rb"))
                 else:
                     sol_dict = {}
 
@@ -414,6 +464,9 @@ def sat_feasibility(config):
                     sol_dict = {"original": results}
                     print("Finished original SAT instance with size {}, took {} seconds".format(results["size_psd_variable"], results["computation_time"]))
                 
+                    with open(f"results/sat/{file_name}.pkl", "wb") as f:
+                        pickle.dump(sol_dict, f)
+
                 for projector_type in config["densities"][sol_dict["original"]["size_psd_variable"] - 1]:
                     # projector_type = "sparse"
                     if projector_type not in sol_dict:
@@ -434,11 +487,8 @@ def sat_feasibility(config):
                         print("Finished SAT instance with size {}, took {} seconds".format(p_results["size_psd_variable"], p_results["computation_time"]))
                         sol_dict[projector_type][projection] = p_results
 
-                # Store sat instance.
-                with open(f"results/sat/{variables}_{C}_{i}.pkl", "wb") as f:
-                    pickle.dump(sol_dict, f)
-
-            print()
+                        with open(f"results/sat/{file_name}.pkl", "wb") as f:
+                            pickle.dump(sol_dict, f)
 
 
 def quality_plot_computational_experiments_maxcut():

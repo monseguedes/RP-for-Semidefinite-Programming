@@ -248,15 +248,15 @@ def stable_set_to_latex(directory, projector_type="sparse"):
     table_header = r"""
     \begin{table}[!htbp]
         \centering
-        \captionof{table}{Computational results Stable Set Problem}
+        \captionof{table}{Relative time (\%) and relative quality (\%) with respect to the second level of the Stable Set Problem for dense imperfect graphs with $n$ vertices, $m$ edges and $c$ constraints}
         \resizebox{\textwidth}{!}{%
-        \begin{tabular}{lrrrrrrrrrrr} 
-            \toprule
-            & & & & \multicolumn{3}{c}{original 2\textsuperscript{nd} level} && \multicolumn{3}{c}{projected 2\textsuperscript{nd} level} \\
-            \cmidrule{5-7} \cmidrule{9-11}
-            \rule{0pt}{10pt} % Adding space of 10pt between lines and text below
-            Graph & n & m & 1\textsuperscript{st} level  & Size & Value & CPU Time && Size & Value & CPU Time \\
-            \midrule
+       \begin{tabular}{lrrrrrrrrrrr} 
+        \toprule
+        & & & & \multicolumn{1}{c}{original 2\textsuperscript{nd} level} && \multicolumn{3}{c}{projected 2\textsuperscript{nd} level} \\
+        \cmidrule{5-5} \cmidrule{7-9}
+        \rule{0pt}{10pt} % Adding space of 10pt between lines and text below
+        Graph & n & m & c  & Size && Size & Qlt & Time \\
+        \midrule
     """
     print(table_header)
 
@@ -273,21 +273,30 @@ def stable_set_to_latex(directory, projector_type="sparse"):
         with open(file_path, "rb") as file:
             results = pickle.load(file)
 
+        quality = (
+            results[projector_type][0.1]["objective"]
+            / results["L1"]["objective"]
+            * 100
+        )
+        time_relative = (
+            results[projector_type][0.1]["computation_time"]
+            / results["L1"]["computation_time"]
+            * 100
+        )
+
         key = 0.1
 
         print(
-            "             {:8} & {:8} & {:8} & {:8.2f} & {:8} & {:8.2f} & {:8.2f} & & {:8} & {:8.2f} & {:8.2f} \\\\".format(
+            "             {:8} & {:8} & {:8} & {:8} & {:8} && {:8} & {:8.2f} & {:8.2f} \\\\".format(
                 "c-petersen-"
                 + name.strip(".pkl").replace("_", "-").strip("-complement"),
                 results["L1"]["size_psd_variable"] - 1,
                 len(results["L2"]["edges"]),
-                abs(results["L1"]["objective"]),
+                "-",
                 results["L2"]["size_psd_variable"],
-                abs(results["L2"]["objective"]),
-                results["L2"]["computation_time"],
                 results[key]["size_psd_variable"],
-                abs(results[key]["objective"]),
-                results[key]["computation_time"],
+                quality,
+                time_relative,
             )
         )
 
@@ -303,38 +312,21 @@ def stable_set_to_latex(directory, projector_type="sparse"):
         key = 0.2
         try:
             print(
-                "             {:8} & {:8} & {:8} & {:8.2f} & {:8} & {:8.2f} & {:8.2f} & & {:8} & {:8.2f} & {:8.2f} \\\\".format(
-                    "c-cordones-"
-                    + name.strip(".pkl").replace("_", "-").strip("-complement"),
+                "             {:8} & {:8} & {:8} & {:8} & {:8} && {:8} & {:8.2f} & {:8.2f} \\\\".format(
+                    "c-cordones-" + name.strip(".pkl").replace("_", "-"),
                     results["L1"]["size_psd_variable"] - 1,
                     len(results["L2"]["edges"]),
-                    abs(results["L1"]["objective"]),
+                    "-",
                     results["L2"]["size_psd_variable"],
-                    abs(results["L2"]["objective"]),
-                    results["L2"]["computation_time"],
                     results[key]["size_psd_variable"],
-                    abs(results[key]["objective"]),
-                    results[key]["computation_time"],
+                    results[key]["objective"] / results["L1"]["objective"] * 100,
+                    results[key]["computation_time"]
+                    / results["L1"]["computation_time"]
+                    * 100,
                 )
             )
         except:
-            projector_type = config["densities"][min(config["densities"], key=lambda x:abs(x - results["L2"]["size_psd_variable"]))][0]
-            projector_type = "sparse" 
-            print(
-                "             {:8} & {:8} & {:8} & {:8.2f} & {:8} & {:8.2f} & {:8.2f} & & {:8} & {:8.2f} & {:8.2f} \\\\".format(
-                    "c-cordones-"
-                    + name.strip(".pkl").replace("_", "-").strip("-complement"),
-                    results["L1"]["size_psd_variable"] - 1,
-                    len(results["L2"]["edges"]),
-                    abs(results["L1"]["objective"]),
-                    results["L2"]["size_psd_variable"],
-                    abs(results["L2"]["objective"]),
-                    results["L2"]["computation_time"],
-                    results[projector_type][key]["size_psd_variable"],
-                    abs(results[projector_type][key]["objective"]),
-                    results[projector_type][key]["computation_time"],
-                )
-            )
+            pass
 
 
     table_footer = r"""

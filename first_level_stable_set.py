@@ -63,29 +63,10 @@ def stable_set_problem_sdp(graph: Graph, verbose=False):
     """
 
     distinct_monomials = graph.distinct_monomials_L1
-    # print("Number of distinct monomials: ", len(distinct_monomials)
-    # )
-    # print("Distinct monomials degree 0: {}".format(
-    #     [m for m in distinct_monomials if sum(m) == 0]
-    # ))
-    # print("Distinct monomials degree 1: {}".format(
-    #     [m for m in distinct_monomials if sum(m) == 1]
-    # ))
-    # print("Length of distinct monomials degree 1: {}".format(
-    #     len([m for m in distinct_monomials if sum(m) == 1])
-    # ))
-    # print("Distinct monomials degree 2: {}".format(
-    #     [m for m in distinct_monomials if sum(m) == 2]
-    # ))
-    # print("Length of distinct monomials degree 2: {}".format(
-    #     len([m for m in distinct_monomials if sum(m) == 2])
-    # ))
+
     edges = graph.edges
     A = graph.A
-    # print("Length of A: ", len(A.keys()))
-    # for monomial in distinct_monomials:
-    #     print("A_{}: {}".format(monomial, A[monomial]))
-
+   
     # Coefficients of objective
     densities_A = [np.count_nonzero(A[monomial]) / A[monomial].size for monomial in distinct_monomials]
     # print("Densities of A: ", densities_A)
@@ -135,30 +116,6 @@ def stable_set_problem_sdp(graph: Graph, verbose=False):
         X_sol = X.level()
         b_sol = b.level()
         computation_time = end_time - start_time
-
-        # PRINTING RANKS AND NORMS----------------------------------------------
-        # ----------------------------------------------------------------------
-        # for i, monomial in enumerate(A.keys()):
-        #     print(
-        #         "Frobenious norm of A{}: {}".format(
-        #             i, np.linalg.norm(A[monomial], ord="fro")
-        #         )
-        #     )
-        #     print("Rank of A{}: {}".format(i, np.linalg.matrix_rank(A[monomial])))
-        # print("Number of distinct monomials: ", len(distinct_monomials))
-        # print(
-        #     "Rank of solution matrix: ",
-        #     np.linalg.matrix_rank(X_sol.reshape(size_psd_variable, size_psd_variable)),
-        # )
-        # print(
-        #     "Nuclear norm of solution matrix: ",
-        #     np.linalg.norm(
-        #         X_sol.reshape(size_psd_variable, size_psd_variable), ord="nuc"
-        #     ),
-        # )
-        # print("Frobenious norm of X: ", np.linalg.norm(X_sol.reshape(size_psd_variable, size_psd_variable), ord="fro"))
-        # ----------------------------------------------------------------------
-        # ----------------------------------------------------------------------
 
         solution = {
             # "X": X_sol,
@@ -422,7 +379,7 @@ def random_constraint_aggregation_sdp(graph, projector, verbose=False):
     C = {monomial: -1 if sum(monomial) == 1 else 0 for monomial in distinct_monomials}
     
     # Get new set of rhs by randomly combining previous ones
-    C_old = C
+    C_old = C.copy()
     C = {}
     for i in range(projector.k):
         C[i] = 0
@@ -431,7 +388,7 @@ def random_constraint_aggregation_sdp(graph, projector, verbose=False):
             C[i] += projector.projector[i, j] * C_old[monomial]
        
     A = graph.A
-    A_old = A
+    A_old = A.copy()
     A = {}
     for i in range(projector.k):
         A[i] = np.zeros((A_old[tuple_of_constant].shape[0], A_old[tuple_of_constant].shape[1]))
@@ -441,7 +398,7 @@ def random_constraint_aggregation_sdp(graph, projector, verbose=False):
 
     b = {monomial: 0 for monomial in distinct_monomials}
     b[tuple_of_constant] = 1
-    b_old = b
+    b_old = b.copy()
     b = {}
     for i in range(projector.k):
         b[i] = 0
@@ -466,14 +423,6 @@ def random_constraint_aggregation_sdp(graph, projector, verbose=False):
                 mf.Expr.add(matrix_inner_product, mf.Expr.mul(b[i],gamma)),
                 mf.Domain.equalsTo(C[i]),
             )
-           
-        # # Constraint:
-        # # A_0 · X + b = c_0
-        # matrix_inner_product = mf.Expr.dot(A_old[tuple_of_constant], X)
-        # M.constraint(
-        #     mf.Expr.add(matrix_inner_product, gamma),
-        #     mf.Domain.equalsTo(C_old[tuple_of_constant]),
-        # )
         
         print("Number of constraints: ", len(A.keys()) + 1)
 
@@ -694,9 +643,9 @@ if __name__ == "__main__":
     results = stable_set_problem_sdp(graph)
     print("Objective: ", results["objective"])
 
-    projection = 0.9
+    projection = 0.8
     print("No. distinct monomials: ", len(graph.distinct_monomials_L1))
-    projector = rp.RandomProjector(round(len(graph.distinct_monomials_L1) * projection), len(graph.distinct_monomials_L1), type="0.1_density", seed=seed)
+    projector = rp.RandomProjector(round(len(graph.distinct_monomials_L1) * projection), len(graph.distinct_monomials_L1), type="sparse", seed=seed)
     contraintagg = random_constraint_aggregation_sdp(graph, projector, verbose=False)
     print("Objective: ", contraintagg["objective"])
 

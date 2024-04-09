@@ -80,6 +80,7 @@ def second_level_stable_set_problem_sdp(graph, verbose=False):
             mf.Expr.add(mf.Expr.dot(A[tuple_of_constant], X), b),
             mf.Domain.equalsTo(C[tuple_of_constant]),
         )
+        constraints.append(c0)
         time_end = time.time()
         # print("Time to build Mosek model: {}".format(time_end - time_start))
 
@@ -105,7 +106,8 @@ def second_level_stable_set_problem_sdp(graph, verbose=False):
             "computation_time": computation_time,
             "size_psd_variable": size_psd_variable,
             # "no_linear_variables": "TBC",
-            "edges": edges,
+            "edges": len(edges),
+            "no_constraints": len(constraints) + 1,
         }
 
         return solution
@@ -202,6 +204,7 @@ def projected_second_level_stable_set_problem_sdp(
             mf.Expr.add(mf.Expr.dot(A[tuple_of_constant], X), b),
             mf.Domain.equalsTo(C[tuple_of_constant]),
         )
+        constraints.append(c0)
         time_end = time.time()
         # print("Time to build Mosek model: {}".format(time_end - time_start))
 
@@ -232,10 +235,105 @@ def projected_second_level_stable_set_problem_sdp(
             "computation_time": computation_time,
             "size_psd_variable": size_psd_variable,
             # "no_linear_variables": "TBC",
+            "edges": len(edges),
+            "no_constraints": len(constraints) + 1,
         }
 
         return solution
 
+
+def constraint_aggregation(graph, projector, verbose=False):
+    """ 
+    """
+    
+    distinct_monomials = graph.distinct_monomials_L2
+    edges = graph.edges
+
+    # Coefficients of objective
+    C = {monomial: -1 if sum(monomial) == 1 else 0 for monomial in distinct_monomials}
+    C_old = C.copy()
+    for i in range(projector.k):
+        C[i] = 0
+        for j, monomial in enumerate(distinct_monomials):
+            # if monomial != tuple_of_constant:
+            C[i] += projector.projector[i, j] * C_old[monomial]
+
+    # Picking SOS monomials
+    A = graph.A_L2
+    A_old = A.copy()
+    for i in range(projector.k):
+        A[i] = np.zeros((A_old[tuple_of_constant].shape[0], A_old[tuple_of_constant].shape[1]))
+        for j, monomial in enumerate(distinct_monomials):
+            # if monomial != tuple_of_constant:
+            A[i] += projector.projector[i, j] * A_old[monomial]
+
+    # print("Starting Mosek")
+    time_start = time.time()
+    with mf.Model("SDP") as M:
+        # PSD variable X
+        size_psd_variable = A[distinct_monomials[0]].shape[0]
+        X = M.variable(mf.Domain.inPSDCone(size_psd_variable))
+
+        # Objective: maximize a (scalar)
+        b = M.variable()
+        M.objective(mf.ObjectiveSense.Maximize, b)
+
+        tuple_of_constant = tuple([0 for i in range(len(distinct_monomials[0]))])
+
+        # Constraints:
+        # A_i · X  = c_i
+        constraints = []
+        for i, monomial in enumerate(
+            [m for m in distinct_monomials if m != tuple_of_constant]
+        ):
+            print("Adding constraints... {}/{}          ".format(i + 1, len(distinct_monomials) - 1), end="\r")
+            # print("Building constraint for monomial {} out of {}".format(i, len(distinct_monomials)))
+            SOS_dot_X = mf.Expr.dot(A[monomial], X)
+
+            constraint = M.constraint(
+                SOS_dot_X,
+                mf.Domain.equalsTo(C[monomial]),
+            )
+            constraints.append(constraint)
+
+        # Constraint:
+        # A_0 · X + b = c_0
+        c0 = M.constraint(
+            mf.Expr.add(mf.Expr.dot(A[tuple_of_constant], X), b),
+            mf.Domain.equalsTo(C[tuple_of_constant]),
+        )
+        constraints.append(c0)
+        time_end = time.time()
+        # print("Time to build Mosek model: {}".format(time_end - time_start))
+
+        if verbose:
+            # Increase verbosity
+            M.setLogHandler(sys.stdout)
+
+        start_time = time.time()
+        # Solve the problem
+        print(f"Solving the problem of size {size_psd_variable}         " , end="\r")
+        M.solve()
+        end_time = time.time()
+
+        # Get the solution
+        X_sol = X.level()
+        b_sol = b.level()
+        computation_time = end_time - start_time
+
+        solution = {
+            # "X": X_sol,
+            # "b": b_sol,
+            "objective": M.primalObjValue(),
+            "computation_time": computation_time,
+            "size_psd_variable": size_psd_variable,
+            # "no_linear_variables": "TBC",
+            "edges": edges,
+            "no_constraints": len(constraints) + 1,
+        }
+
+        return solution
+    
 
 def single_graph_results(graph: Graph, type="sparse", range=(0.1, 0.6), iterations=5):
     """
@@ -345,7 +443,7 @@ if __name__ == "__main__":
     #     graph = pickle.load(file)
 
     # graph = generate_graphs.generate_cordones(100, complement=True, save=False, level=1)
-    graph = generate_graphs.generate_generalised_petersen(10, 2, complement=True, save=False, level=2)
+    graph = generate_graphs.generate_generalised_petersen(10, 2, complement=False, save=False, level=2)
     matrix_size = graph.graph.shape[0] + 1
     print("Matrix size: {}".format(matrix_size))
 

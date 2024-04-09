@@ -29,13 +29,10 @@ petersen_n_k:
     k: 2
   - n: 40
     k: 2
-  - n: 50
-    k: 2
 cordones:
-  # - n: 20
-  # - n: 30
+  - n: 20
+  - n: 30
   - n: 40
-  - n: 50
 
 
 # Maxcut

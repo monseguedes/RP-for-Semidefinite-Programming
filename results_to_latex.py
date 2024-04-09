@@ -239,7 +239,7 @@ def maxcut_to_latex_single_simplified(
     print(table_footer)
 
 
-def stable_set_to_latex(directory, projector_type="sparse"):
+def stable_set_to_latex(directory):
     """
     Convert the results of the stable set problem to a LaTeX table.
     """
@@ -272,6 +272,8 @@ def stable_set_to_latex(directory, projector_type="sparse"):
         file_path = os.path.join(petersen_dir, name)
         with open(file_path, "rb") as file:
             results = pickle.load(file)
+
+        projector_type = config["densities"][min(config["densities"], key=lambda x:abs(x - results["L2"]["size_psd_variable"]))][0]
 
         quality = (
             results[projector_type][0.1]["objective"]

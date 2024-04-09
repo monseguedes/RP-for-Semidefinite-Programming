@@ -204,8 +204,6 @@ def stable_set_experiments_graph(directory, graph, complement=False):
         projections = config["stable_set"]["projection"]
 
     projector_type = config["densities"][min(config["densities"], key=lambda x:abs(x - sol_dict["L2"]["size_psd_variable"]))][0]
-    print(projector_type)
-    raise SystemExit
     sol_dict[projector_type] = {}
     for projection in projections:
         projector = rp.RandomProjector(

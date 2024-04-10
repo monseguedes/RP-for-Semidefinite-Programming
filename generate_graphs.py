@@ -380,7 +380,7 @@ def generate_generalised_petersen(n, k, complement=False, save=False, level=2):
     return petersen
 
 
-def generate_probability_graph(n, p, seed=0):
+def generate_probability_graph(n, p, seed=0, save=False):
     """
     Generate a random graph with n vertices and edge probability p.
 
@@ -407,10 +407,13 @@ def generate_probability_graph(n, p, seed=0):
     prob.graph = np.triu(prob.graph, k=1) + np.triu(prob.graph, k=1).T
 
     prob.get_edges_from_matrix()
-    prob.plot_graph()
-    # prob.get_picking_SOS(verbose=True)
-    # prob.picking_for_level_two(verbose=True)
-    prob.store_graph("{}_vertices_{}_probability".format(n, p))
+    # prob.plot_graph()
+    prob.get_picking_SOS(verbose=False)
+    prob.picking_for_level_two(verbose=False)
+    if save:
+        prob.store_graph("{}_vertices_{}_probability".format(n, p))
+
+    return prob
 
 
 

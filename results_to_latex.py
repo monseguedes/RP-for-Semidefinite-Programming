@@ -249,7 +249,6 @@ def stable_set_to_latex(directory):
     \begin{table}[!htbp]
         \centering
         \captionof{table}{Relative time (\%) and relative quality (\%) with respect to the second level of the Stable Set Problem for dense imperfect graphs with $n$ vertices, $m$ edges and $c$ constraints}
-        \resizebox{\textwidth}{!}{%
        \begin{tabular}{lrrrrrrrrrrr} 
         \toprule
         & & & & \multicolumn{1}{c}{original 2\textsuperscript{nd} level} && \multicolumn{3}{c}{projected 2\textsuperscript{nd} level} \\
@@ -276,31 +275,33 @@ def stable_set_to_latex(directory):
         projector_type = config["densities"][min(config["densities"], key=lambda x:abs(x - results["L2"]["size_psd_variable"]))][0]
 
         quality = (
-            results[projector_type][0.1]["objective"]
-            / results["L1"]["objective"]
+            results["L2"]["objective"]
+            / results[projector_type][0.1]["objective"]
             * 100
         )
         time_relative = (
             results[projector_type][0.1]["computation_time"]
-            / results["L1"]["computation_time"]
+            / results["L2"]["computation_time"]
             * 100
         )
 
         key = 0.1
 
         print(
-            "             {:8} & {:8} & {:8} & {:8} & {:8} && {:8} & {:8.2f} & {:8.2f} \\\\".format(
+            "             {:8} & {:8} & {:8} & {:8} & {:8} && {:8} & {:8} & {:8.2f} \\\\".format(
                 "c-petersen-"
                 + name.strip(".pkl").replace("_", "-").strip("-complement"),
                 results["L1"]["size_psd_variable"] - 1,
-                len(results["L2"]["edges"]),
-                "-",
+                results["L2"]["edges"],
+                results["L2"]["no_constraints"],
                 results["L2"]["size_psd_variable"],
-                results[key]["size_psd_variable"],
-                quality,
+                results[projector_type][key]["size_psd_variable"],
+                int(quality),
                 time_relative,
             )
         )
+        # except:
+        #     pass
 
     # Cordones
     alphabetical_dir = sorted(
@@ -311,20 +312,33 @@ def stable_set_to_latex(directory):
         file_path = os.path.join(cordones_dir, name)
         with open(file_path, "rb") as file:
             results = pickle.load(file)
+
+        projector_type = config["densities"][min(config["densities"], key=lambda x:abs(x - results["L2"]["size_psd_variable"]))][0]
+
         key = 0.2
+        
+        quality = (
+            results["L2"]["objective"]
+            / results[projector_type][key]["objective"]
+            * 100
+        )
+        time_relative = (
+            results[projector_type][key]["computation_time"]
+            / results["L2"]["computation_time"]
+            * 100
+        )
+
         try:
             print(
-                "             {:8} & {:8} & {:8} & {:8} & {:8} && {:8} & {:8.2f} & {:8.2f} \\\\".format(
+                "             {:8} & {:8} & {:8} & {:8} & {:8} && {:8} & {:8} & {:8.2f} \\\\".format(
                     "c-cordones-" + name.strip(".pkl").replace("_", "-"),
                     results["L1"]["size_psd_variable"] - 1,
-                    len(results["L2"]["edges"]),
-                    "-",
+                    results["L2"]["edges"],
+                    results["L2"]["no_constraints"],
                     results["L2"]["size_psd_variable"],
-                    results[key]["size_psd_variable"],
-                    results[key]["objective"] / results["L1"]["objective"] * 100,
-                    results[key]["computation_time"]
-                    / results["L1"]["computation_time"]
-                    * 100,
+                    results[projector_type][key]["size_psd_variable"],
+                    int(quality),
+                    time_relative,
                 )
             )
         except:
@@ -333,7 +347,7 @@ def stable_set_to_latex(directory):
 
     table_footer = r"""
             \bottomrule
-        \end{tabular}}
+        \end{tabular}
         \label{tab:my_label}
     \end{table}
     """
@@ -631,8 +645,8 @@ with open("config.yml", "r") as file:
 # maxcut_to_latex("results/maxcut", config, "0.05_density", [0.1, 0.1])
 # maxcut_to_latex_single("results/maxcut", config, "0.04_density", 0.1)
 # maxcut_to_latex_single_simplified("results/maxcut", config, "0.04_density", 0.1)
-# stable_set_to_latex("results/stable_set")
+stable_set_to_latex("results/stable_set")
 # maxsat_to_latex("results/maxsat", "sparse", [0.1, 0.2])
-maxsat_to_latex_simplified("results/maxsat", [0.1, 0.2])
+# maxsat_to_latex_simplified("results/maxsat", [0.1, 0.2])
 # sparsity_test_to_latex("results/maxcut")
 # sat_to_latex_simplified(config, [0.2, 0.5])

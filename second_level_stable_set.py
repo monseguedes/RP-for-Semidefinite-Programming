@@ -443,7 +443,8 @@ if __name__ == "__main__":
     #     graph = pickle.load(file)
 
     # graph = generate_graphs.generate_cordones(100, complement=True, save=False, level=1)
-    graph = generate_graphs.generate_generalised_petersen(10, 2, complement=False, save=False, level=2)
+    # graph = generate_graphs.generate_generalised_petersen(10, 2, complement=False, save=False, level=2)
+    graph = generate_graphs.generate_helm_graph(13, complement=True, save=False, level=2)
     matrix_size = graph.graph.shape[0] + 1
     print("Matrix size: {}".format(matrix_size))
 

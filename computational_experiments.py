@@ -165,6 +165,21 @@ def run_stable_set_experiments(config):
             )
             print("Done!")
 
+    # Create folder for helm results
+    os.makedirs("results/stable_set/helm", exist_ok=True)
+    for i, graph in enumerate(config["helm"]):
+        n = graph["n"]
+        print(f"Scanning helm graph {i + 1} of {len(config['helm'])}")
+        if 2 * graph["n"] <= config["stable_set"]["max_vertices"]:
+            print(f"    Running experiments for helm {n} complement")
+
+            graph = generate_graphs.generate_helm_graph(n, complement=True, save=False)
+
+            stable_set_experiments_graph(
+                f"results/stable_set/helm/{n}_complement.pkl", graph, complement=True
+            )
+            print("Done!")
+
 
 def stable_set_experiments_graph(directory, graph, complement=False):
     """
@@ -217,6 +232,9 @@ def stable_set_experiments_graph(directory, graph, complement=False):
             )
         )
         sol_dict[projector_type][projection] = results
+
+        with open(directory, "wb") as f:
+            pickle.dump(sol_dict, f)
 
     # Save as pickle
     with open(directory, "wb") as f:
@@ -561,8 +579,8 @@ if __name__ == "__main__":
     with open("config.yml", "r") as config_file:
         config = yaml.safe_load(config_file)
 
-    # run_stable_set_experiments(config)
+    run_stable_set_experiments(config)
     # run_maxcut_experiments(config)
     # run_max_sat_experiments(config)
     # quality_plot_computational_experiments_maxcut()
-    sat_feasibility(config)
+    # sat_feasibility(config)

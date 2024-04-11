@@ -416,8 +416,50 @@ def generate_probability_graph(n, p, seed=0, save=False):
     return prob
 
 
+def generate_helm_graph(n, complement=False, save=False, level=2):
+    """
+    Generate a helm graph.
+    """
+    helm = Graph()
+    helm.n = 2 * n + 1
+    inner_star_edges = [(i, i + 1) for i in range(n - 1)] + [(0,n - 1)]
+    outer_star_edges = [(i, i + n) for i in range(n)]
+    inner_point_edges = [(i, 2*n) for i in range(n)]
+    helm.edges = inner_star_edges + outer_star_edges + inner_point_edges
+    # Make sure that all tuples in edges are ordered (i, j) with i < j
+    helm.edges = [tuple(sorted(edge)) for edge in helm.edges]
+    if complement:
+        helm.edges_complement_graph()
+    # Make sure that all tuples in edges are ordered (i, j) with i < j
+    helm.edges = [tuple(sorted(edge)) for edge in helm.edges]
+
+    # Get matrix representation of the graph
+    helm.graph = np.array([[0 for i in range(helm.n)] for j in range(helm.n)])
+    for i, j in helm.edges:
+        helm.graph[i][j] = 1
+        helm.graph[j][i] = 1
+
+    print("Generating helm graph with n={}...".format(n))
+    print("Picking for level 1...")
+    helm.plot_graph()
+    helm.get_picking_SOS(verbose=True)
+    if level == 2:
+        print("Picking for level 2...")
+        start = time.time()
+        helm.picking_for_level_two(verbose=True)
+        print("Time taken building level 2:", time.time() - start)
+    if save:
+        if complement:
+            helm.store_graph("helm_{}_complement".format(n))
+        else:
+            helm.store_graph("helm_{}".format(n))
+
+    print("Graph helm graph with n={} generated!".format(n))
+
+    return helm
 
 if __name__ == "__main__":
     # generate_pentagon()
     # generate_generalised_petersen(30, 2, complement=True)
-    generate_cordones(15, complement=True)
+    # generate_cordones(15, complement=True)
+    generate_helm_graph(5, complement=False, level=1)

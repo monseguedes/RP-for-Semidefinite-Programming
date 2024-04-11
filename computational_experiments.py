@@ -136,16 +136,17 @@ def run_stable_set_experiments(config):
         print(f"Scanning petersen graph {i + 1} of {len(config['petersen_n_k'])}")
         if 2 * graph["n"] <= config["stable_set"]["max_vertices"]:
             print(f"    Running experiments for petersen {n}_{k} complement...")
+            if not os.path.exists(f"results/stable_set/petersen/{n}_{k}_complement.pkl"):
+                graph = generate_graphs.generate_generalised_petersen(
+                    n, k, complement=True, save=False
+                )
 
-            graph = generate_graphs.generate_generalised_petersen(
-                n, k, complement=True, save=False
-            )
-
-            stable_set_experiments_graph(
-                f"results/stable_set/petersen/{n}_{k}_complement.pkl",
-                graph,
-                complement=True,
-            )
+                stable_set_experiments_graph(
+                    f"results/stable_set/petersen/{n}_{k}_complement.pkl",
+                    graph,
+                    complement=True,
+                )
+        
             print("Done!")
 
     # Create folder for cordones results
@@ -155,14 +156,14 @@ def run_stable_set_experiments(config):
         print(f"Scanning cordones graph {i + 1} of {len(config['cordones'])}")
         if 2 * graph["n"] <= config["stable_set"]["max_vertices"]:
             print(f"    Running experiments for cordones {n} complement")
+            if not os.path.exists(f"results/stable_set/cordones/{n}_complement.pkl"):
+                graph = generate_graphs.generate_cordones(n, complement=True, save=False)
 
-            graph = generate_graphs.generate_cordones(n, complement=True, save=False)
-
-            stable_set_experiments_graph(
-                f"results/stable_set/cordones/{n}_complement.pkl",
-                graph,
-                complement=True,
-            )
+                stable_set_experiments_graph(
+                    f"results/stable_set/cordones/{n}_complement.pkl",
+                    graph,
+                    complement=True,
+                )
             print("Done!")
 
     # Create folder for helm results
@@ -172,12 +173,12 @@ def run_stable_set_experiments(config):
         print(f"Scanning helm graph {i + 1} of {len(config['helm'])}")
         if 2 * graph["n"] <= config["stable_set"]["max_vertices"]:
             print(f"    Running experiments for helm {n} complement")
+            if not os.path.exists(f"results/stable_set/helm/{n}_complement.pkl"):
+                graph = generate_graphs.generate_helm_graph(n, complement=True, save=False)
 
-            graph = generate_graphs.generate_helm_graph(n, complement=True, save=False)
-
-            stable_set_experiments_graph(
-                f"results/stable_set/helm/{n}_complement.pkl", graph, complement=True
-            )
+                stable_set_experiments_graph(
+                    f"results/stable_set/helm/{n}_complement.pkl", graph, complement=True
+                )
             print("Done!")
 
 

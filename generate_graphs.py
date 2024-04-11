@@ -36,8 +36,6 @@ class Graph:
 
         complement = []
 
-        print(sorted(self.edges))
-
         for i in range(self.n):
             for j in range(i + 1, self.n):
                 if (i, j) not in sorted(self.edges) + complement and (j, i) not in sorted(self.edges) + complement:
@@ -312,7 +310,6 @@ def generate_cordones(n, complement=False, save=False, level=2):
     if complement:
         cordones.edges_complement_graph()
         cordones.get_matrix_from_edges()
-    # cordones.plot_graph()
     print("-" * 50)
     print("Picking for level 1...")
     start = time.time()

@@ -35,12 +35,12 @@ cordones:
   # - n: 5
   - n: 20
   - n: 30
-  - n: 40
+  # - n: 40
 helm:
   # - n: 5
   - n: 21
   - n: 31
-  - n: 41
+  # - n: 41
 
 # Maxcut
 maxcut:

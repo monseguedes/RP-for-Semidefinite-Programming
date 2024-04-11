@@ -315,8 +315,8 @@ def stable_set_to_latex(directory):
 
         projector_type = config["densities"][min(config["densities"], key=lambda x:abs(x - results["L2"]["size_psd_variable"]))][0]
 
-        key = 0.2
-        
+        key = 0.1
+
         quality = (
             results["L2"]["objective"]
             / results[projector_type][key]["objective"]
@@ -645,8 +645,8 @@ with open("config.yml", "r") as file:
 # maxcut_to_latex("results/maxcut", config, "0.05_density", [0.1, 0.1])
 # maxcut_to_latex_single("results/maxcut", config, "0.04_density", 0.1)
 # maxcut_to_latex_single_simplified("results/maxcut", config, "0.04_density", 0.1)
-stable_set_to_latex("results/stable_set")
+# stable_set_to_latex("results/stable_set")
 # maxsat_to_latex("results/maxsat", "sparse", [0.1, 0.2])
 # maxsat_to_latex_simplified("results/maxsat", [0.1, 0.2])
 # sparsity_test_to_latex("results/maxcut")
-# sat_to_latex_simplified(config, [0.2, 0.5])
+sat_to_latex_simplified(config, [0.2, 0.5])

@@ -77,7 +77,7 @@ maxsat:
 
   # SAT
 sat:
-  random: False
+  random: True
   min_variables: 5000
   max_variables: 5000
   variables:
@@ -102,9 +102,9 @@ densities:
   800: 
     - "sparse"
   1000:
-    # - "sparse"
-    - "0.2_density"
-    - "0.15_density"
+    - "sparse"
+    # - "0.2_density"
+    # - "0.15_density"
   2000:
     # - "0.2_density"
     # - "0.05_density"

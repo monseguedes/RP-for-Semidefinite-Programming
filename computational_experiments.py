@@ -406,8 +406,8 @@ def sat_feasibility(config):
                     # Create intance.
                     formula = maxsat.Formula(variables, variables * C, seed=i)
 
-                    if os.path.exists(f"results/sat/f_{variables}_{C}_{i}.pkl"):
-                        sol_dict = pickle.load(open(f"results/sat/f_{variables}_{C}_{i}.pkl", "rb"))
+                    if os.path.exists(f"results/sat/{variables}_{C}_{i}.pkl"):
+                        sol_dict = pickle.load(open(f"results/sat/{variables}_{C}_{i}.pkl", "rb"))
                     else:
                         sol_dict = {}
 
@@ -416,8 +416,11 @@ def sat_feasibility(config):
                         results = maxsat.satisfiability_feasibility(formula)
                         sol_dict = {"original": results}
                         print("Finished original SAT instance with size {}, took {} seconds".format(results["size_psd_variable"], results["computation_time"]))
+                    
+                    else:
+                        results = sol_dict["original"]
 
-                        with open(f"results/sat/f_{variables}_{C}_{i}.pkl", "wb") as f:
+                        with open(f"results/sat/{variables}_{C}_{i}.pkl", "wb") as f:
                             pickle.dump(sol_dict, f)
                     
                     for projector_type in config["densities"][sol_dict["original"]["size_psd_variable"] - 1]:
@@ -440,7 +443,7 @@ def sat_feasibility(config):
                             print("Finished SAT instance with size {}, took {} seconds".format(p_results["size_psd_variable"], p_results["computation_time"]))
                             sol_dict[projector_type][projection] = p_results
 
-                            with open(f"results/sat/f_{variables}_{C}_{i}.pkl", "wb") as f:
+                            with open(f"results/sat/{variables}_{C}_{i}.pkl", "wb") as f:
                                 pickle.dump(sol_dict, f)
 
                     # Store sat instance.
@@ -558,8 +561,8 @@ if __name__ == "__main__":
     with open("config.yml", "r") as config_file:
         config = yaml.safe_load(config_file)
 
-    run_stable_set_experiments(config)
+    # run_stable_set_experiments(config)
     # run_maxcut_experiments(config)
     # run_max_sat_experiments(config)
     # quality_plot_computational_experiments_maxcut()
-    # sat_feasibility(config)
+    sat_feasibility(config)

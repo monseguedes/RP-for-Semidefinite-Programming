@@ -23,24 +23,24 @@ stable_set:
     - "0.1_density"
     - "0.2_density"
 petersen_n_k:
-  - n: 5
+  # - n: 5
+  #   k: 2
+  - n: 20
     k: 2
-  # - n: 20
-  #   k: 2
-  # - n: 30
-  #   k: 2
-  # - n: 40
-  #   k: 2
+  - n: 30
+    k: 2
+  - n: 40
+    k: 2
 cordones:
-  - n: 5
-  # - n: 20
-  # - n: 30
-  # - n: 40
+  # - n: 5
+  - n: 20
+  - n: 30
+  - n: 40
 helm:
-  - n: 5
-  # - n: 21
-  # - n: 31
-  # - n: 41
+  # - n: 5
+  - n: 21
+  - n: 31
+  - n: 41
 
 # Maxcut
 maxcut:

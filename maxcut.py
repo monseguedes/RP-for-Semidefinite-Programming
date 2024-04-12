@@ -303,7 +303,7 @@ def single_graph_results(graph: Graph, type="sparse", range=(0.1, 0.5), iteratio
     print("-" * 80)
 
     sdp_solution = sdp_relaxation(graph)
-    _, opt_cut = retrieve_solution(sdp_solution["X_sol"], graph.edges)
+    # _, opt_cut = retrieve_solution(sdp_solution["X_sol"], graph.edges)
     print(
         "{: <18} {: >10} {: >8.2f} {: >8} {: >8.2f} {: >8} {:>12}".format(
             "SDP Relaxation",
@@ -311,7 +311,8 @@ def single_graph_results(graph: Graph, type="sparse", range=(0.1, 0.5), iteratio
             sdp_solution["objective"],
             "-",
             sdp_solution["computation_time"],
-            opt_cut,
+            # opt_cut,
+            "-",
             "-",
         )
     )
@@ -331,8 +332,8 @@ def single_graph_results(graph: Graph, type="sparse", range=(0.1, 0.5), iteratio
         )
         quality = rp_solution["objective"] / sdp_solution["objective"] * 100
         # Lift up solution
-        lifted_solution = random_projector.lift_solution(rp_solution["X_sol"])
-        _, cut = retrieve_solution(lifted_solution, graph.edges)
+        # lifted_solution = random_projector.lift_solution(rp_solution["X_sol"])
+        # _, cut = retrieve_solution(lifted_solution, graph.edges)
 
         print(
             "{: <18} {: >10} {: >8.2f} {: >8} {: >8.2f} {: >8} {:>12}".format(
@@ -341,8 +342,10 @@ def single_graph_results(graph: Graph, type="sparse", range=(0.1, 0.5), iteratio
                 rp_solution["objective"],
                 str(round(quality, 2)) + "%",
                 rp_solution["computation_time"],
-                cut,
-                str(round(cut / opt_cut * 100, 2)) + "%",
+                # cut,
+                "-",
+                # str(round(cut / opt_cut * 100, 2)) + "%",
+                "-",
             )
         )
 
@@ -437,7 +440,7 @@ if __name__ == "__main__":
     # solution = sdp_relaxation(graph)
 
     # Get the results for a single graph
-    single_graph_results(graph, type="sparse", range=(0.1, 0.2), iterations=2)
+    single_graph_results(graph, type="0.3_density2", range=(0.1, 0.2), iterations=2)
 
     # # Get the results for a list of graphs
     # list_of_graphs = []

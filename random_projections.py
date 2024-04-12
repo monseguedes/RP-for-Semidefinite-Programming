@@ -116,6 +116,13 @@ class RandomProjector:
                     low=lower, high=upper, size=(1, self.k)
                 ) - np.mean(projector[:, i - 1])
 
+        elif "_density2" in self.type:
+            p = float(self.type.split("_")[0])
+            # With probability p/2, the entry is p^0.5, with probability p/2, the entry is -p^0.5, and with probability 1 - p, the entry is 0
+            projector = np.random.choice(
+                [-np.sqrt(p), np.sqrt(p), 0], size=(self.k, self.m), p=[p / 2, p / 2, 1 - p]
+            )
+
         elif "_density" in self.type:
             p = float(self.type.split("_")[0])
             standard_deviation = 1 / (np.sqrt(self.k) * p)

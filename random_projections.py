@@ -115,6 +115,7 @@ class RandomProjector:
                 projector[:, i] = np.random.randint(
                     low=lower, high=upper, size=(1, self.k)
                 ) - np.mean(projector[:, i - 1])
+            projector = 1 / np.sqrt(self.k) * projector
 
         elif "_density2" in self.type:
             p = float(self.type.split("_")[0])
@@ -122,6 +123,7 @@ class RandomProjector:
             projector = np.random.choice(
                 [-np.sqrt(p), np.sqrt(p), 0], size=(self.k, self.m), p=[p / 2, p / 2, 1 - p]
             )
+            projector = 1/np.sqrt(self.k) * projector
 
         elif "_density" in self.type:
             p = float(self.type.split("_")[0])

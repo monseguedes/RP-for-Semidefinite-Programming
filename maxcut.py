@@ -440,7 +440,7 @@ if __name__ == "__main__":
     # solution = sdp_relaxation(graph)
 
     # Get the results for a single graph
-    single_graph_results(graph, type="0.3_density2", range=(0.1, 0.2), iterations=2)
+    single_graph_results(graph, type="0.3_density", range=(0.1, 0.2), iterations=2)
 
     # # Get the results for a list of graphs
     # list_of_graphs = []

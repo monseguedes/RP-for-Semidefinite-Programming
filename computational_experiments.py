@@ -181,6 +181,22 @@ def run_stable_set_experiments(config):
                 )
             print("Done!")
 
+    # Create folder for jahangir results
+    os.makedirs("results/stable_set/jahangir", exist_ok=True)
+    for i, graph in enumerate(config["jahangir"]):
+        n = graph["n"]
+        k = graph["k"]
+        print(f"Scanning jahangir graph {i + 1} of {len(config['jahangir'])}")
+        if n + (n * k ) + 1 <= config["stable_set"]["max_vertices"]:
+            print(f"    Running experiments for jahangir {n, k} complement")
+            if not os.path.exists(f"results/stable_set/jahangir/{n}_{k}_complement.pkl"):
+                graph = generate_graphs.generate_jahangir_graph(n, complement=True, save=False)
+
+                stable_set_experiments_graph(
+                    f"results/stable_set/jahangir/{n}_{k}_complement.pkl", graph, complement=True
+                )
+            print("Done!")
+
 
 def stable_set_experiments_graph(directory, graph, complement=False):
     """

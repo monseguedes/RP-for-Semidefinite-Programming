@@ -444,9 +444,9 @@ if __name__ == "__main__":
 
     # graph = generate_graphs.generate_cordones(100, complement=True, save=False, level=1)
     # graph = generate_graphs.generate_generalised_petersen(10, 2, complement=False, save=False, level=2)
-    graph = generate_graphs.generate_helm_graph(13, complement=True, save=False, level=2)
+    graph = generate_graphs.generate_jahangir_graph(5, 3, complement=False, save=False, level=2)
     matrix_size = graph.graph.shape[0] + 1
     print("Matrix size: {}".format(matrix_size))
 
-    single_graph_results(graph, type="sparse", range=(0.1, 0.8), iterations=8)
+    single_graph_results(graph, type="0.1_density2", range=(0.1, 0.8), iterations=8)
     print("No. distinct monomials: ", len(graph.distinct_monomials_L2))

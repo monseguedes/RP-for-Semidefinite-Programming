@@ -455,8 +455,52 @@ def generate_helm_graph(n, complement=False, save=False, level=2):
 
     return helm
 
+def generate_jahangir_graph(n, k, complement=False, save=False, level=2):
+    """
+    Generate a jahangir graph.
+    """
+    jahangir = Graph()
+    jahangir.n =  n + n * (k - 1) + 1
+    # Make a circle connecting all n vertices
+    edges = [(i, (i + 1) % (jahangir.n - 1)) for i in range(jahangir.n - 1)]
+    # Make a star connecting vertices every k places to the center
+    for i in range(n):
+        edges.append((i * k, jahangir.n - 1))
+    jahangir.edges = edges
+    # Make sure that all tuples in edges are ordered (i, j) with i < j
+    jahangir.edges = [tuple(sorted(edge)) for edge in jahangir.edges]
+    if complement:
+        jahangir.edges_complement_graph()
+    # Make sure that all tuples in edges are ordered (i, j) with i < j
+    jahangir.edges = [tuple(sorted(edge)) for edge in jahangir.edges]
+
+    # Get matrix representation of the graph
+    jahangir.graph = np.array([[0 for i in range(jahangir.n)] for j in range(jahangir.n)])
+    for i, j in jahangir.edges:
+        jahangir.graph[i][j] = 1
+        jahangir.graph[j][i] = 1
+
+    print("Generating jahangir graph with n={}...".format(n))
+    print("Picking for level 1...")
+    jahangir.plot_graph()
+    jahangir.get_picking_SOS(verbose=True)
+    if level == 2:
+        print("Picking for level 2...")
+        start = time.time()
+        jahangir.picking_for_level_two(verbose=True)
+        print("Time taken building level 2:", time.time() - start)
+    if save:
+        if complement:
+            jahangir.store_graph("jahangir_{}_complement".format(n))
+        else:
+            jahangir.store_graph("jahangir_{}".format(n))
+
+    print("Graph jahangir graph with n={} generated!".format(n))
+
+    return jahangir
+
 if __name__ == "__main__":
     # generate_pentagon()
     # generate_generalised_petersen(30, 2, complement=True)
     # generate_cordones(15, complement=True)
-    generate_helm_graph(5, complement=False, level=1)
+    generate_jahangir_graph(8, 2, complement=False, level=1)

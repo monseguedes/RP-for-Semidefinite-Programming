@@ -259,7 +259,7 @@ def stable_set_to_latex(directory):
     """
     print(table_header)
 
-    graphs = ["petersen", "cordones", "helm"]
+    graphs = ["petersen", "cordones", "helm", "jahangir"]
 
     for graph in graphs:
         dir = os.path.join(directory, graph)

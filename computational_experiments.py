@@ -190,7 +190,7 @@ def run_stable_set_experiments(config):
         if n + (n * k ) + 1 <= config["stable_set"]["max_vertices"]:
             print(f"    Running experiments for jahangir {n, k} complement")
             if not os.path.exists(f"results/stable_set/jahangir/{n}_{k}_complement.pkl"):
-                graph = generate_graphs.generate_jahangir_graph(n, complement=True, save=False)
+                graph = generate_graphs.generate_jahangir_graph(n, k,  complement=True, save=False)
 
                 stable_set_experiments_graph(
                     f"results/stable_set/jahangir/{n}_{k}_complement.pkl", graph, complement=True

@@ -42,12 +42,13 @@ helm:
   - n: 31
   # - n: 41
 jahangir:
-  - n: 5
+  - n: 17
     k: 2
-  - n: 15
+  - n: 19
+    k: 3
+  - n: 41
     k: 2
-  - n: 9
-    k: 4
+
 
 
 # Maxcut

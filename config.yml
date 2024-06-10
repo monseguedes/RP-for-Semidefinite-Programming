@@ -97,17 +97,17 @@ sat:
   min_variables: 5000
   max_variables: 5000
   variables:
-    - 500
-    - 1000
+    # - 500
+    # - 1000
     - 2000
   C:
-    - 0.5
-    - 1
+    # - 0.5
+    # - 1
     - 2
   projection:
     - 0.2
     - 0.5
-  repetitions: 20
+  repetitions: 200
 
 
 densities:
@@ -118,8 +118,8 @@ densities:
   800: 
     - "sparse"
   1000:
-    - "sparse"
-    # - "0.2_density"
+    # - "sparse"
+    - "0.2_density"
     # - "0.15_density"
   2000:
     # - "0.2_density"

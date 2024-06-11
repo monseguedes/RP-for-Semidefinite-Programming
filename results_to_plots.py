@@ -35,7 +35,8 @@ def plot_quality(config):
             results = pickle.load(file)
             print(results)
 
-            projector_type = config["densities"][results["original"]["size_psd_variable"]][0]
+            # projector_type = config["densities"][results["original"]["size_psd_variable"]][0]
+            projector_type = [key for key in results.keys() if key != 'original'][0]
 
             quality = (
                 results[projector_type][0.1]["objective"]
@@ -53,7 +54,7 @@ def plot_quality(config):
 
     # Take geometric mean of quality
     for key in dict.keys():
-        dict[key] = geo_mean
+        dict[key] = geo_mean(dict[key])
 
     # Make a plot from dictionary
     plt.plot(

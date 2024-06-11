@@ -42,7 +42,10 @@ def plot_quality(config):
                 / results["original"]["objective"]
                 * 100
             )
-            dict[int(name.split("_")[1])] = quality
+            if int(name.split("_")[1]) not in dict:
+                dict[int(name.split("_")[1])] = [quality]
+            else:
+                dict[int(name.split("_")[1])].append(quality)
 
     # Make a plot from dictionary
     plt.plot(

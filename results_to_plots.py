@@ -47,6 +47,14 @@ def plot_quality(config):
             else:
                 dict[int(name.split("_")[1])].append(quality)
 
+    def geo_mean(iterable):
+        a = np.array(iterable)
+        return a.prod()**(1.0/len(a))
+
+    # Take geometric mean of quality
+    for key in dict.keys():
+        dict[key] = geo_mean
+
     # Make a plot from dictionary
     plt.plot(
         *zip(*sorted(dict.items())),

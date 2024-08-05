@@ -325,10 +325,6 @@ class DataQCQP:
         c_0 = build_c_i(0)
         self.M_0 = build_M_i(A_0, b_0, c_0)
 
-        print("Size of A_1: ", build_A_i(1, n).shape)
-        print("Size of b_1: ", build_b_i(1, n).shape)
-        print("Size of c_1: ", build_c_i(1))
-
         # Quadratic constraints
         self.M = []
         for i in range(1, m + 1):
@@ -486,10 +482,6 @@ class DataQCQP_Ambrosio:
         b_0 = - build_c(0, n)
         self.M_0 = build_M_i(A_0, b_0, 0)
 
-        print("Size of Q_1: ", build_Q_i(1, n, density).shape)
-        print("Size of c_1: ", build_c(1, n).shape)
-        print("Size of q_1: ", build_q_i(build_Q_i(1, n, density), build_c(1, n), np.random.uniform(0, 1, n)))
-
         # Choose random x to generate q_i
         x = np.random.uniform(0, 1, n)
 
@@ -628,64 +620,6 @@ def standard_sdp_relaxation(data: DataQCQP, verbose=False):
             "size_psd_variable": size_psd_variable,
         }
 
-        # # Print number of constraints
-        # print("Number of quadratic constraints: ", len(quadratic_constraints))
-        # print("Number of linear constraints: ", len(linear_constraints))
-        # print("Number of range constraints: ", len(range_constraints))
-        # print("Number of constant constraint: ", 1)
-
-
-        # # Print dual solutions
-        # print("Duals for quadratic constraints:")
-        # for i in range(data.m):
-        #     print(quadratic_constraints[i].dual())
-
-        # print("Duals for linear constraints:")
-        # for i in range(data.l):
-        #     print(linear_constraints[i].dual())
-
-        # # print("Duals for ball constraint:")
-        # # print(ball_constraint.dual())
-            
-        # print("Duals for range constraints:")
-        # for i in range(len(range_constraints)):
-        #     print(range_constraints[i].dual())
-
-        # print("Duals for constant constraint:")
-        # print(constant_constraint.dual())
-
-        # print("Frobeinus norm of the solution: ", np.linalg.norm(Z_sol, "fro"))
-        # print("Nuclear norm of the solution: ", np.linalg.norm(Z_sol, 1))
-
-        # print("Nuclear norm of the quadratic matrices:")
-        # for i in range(data.m):
-        #     print("Nuclear norm of M_{}: {}".format(i, np.linalg.norm(data.M[i], 1)))
-        # print("Frobenius norm of the quadratic matrices:")
-        # for i in range(data.m):
-        #     print("Frobenius norm of M_{}: {}".format(i, np.linalg.norm(data.M[i], "fro")))
-                  
-        # print("Nuclear norm of the linear matrices:")
-        # for i in range(data.l):
-        #     print("Nuclear norm of L_{}: {}".format(i, np.linalg.norm(data.L[i], 1)))
-        # print("Frobenius norm of the linear matrices:")
-        # for i in range(data.l):
-        #     print("Frobenius norm of L_{}: {}".format(i, np.linalg.norm(data.L[i], "fro")))
-
-        # # print("Nuclear norm of the ball matrix:")
-        # # print("Norm of B: {}".format(np.linalg.norm(data.B, 1)))
-
-        # print("Nuclear norm of the range matrices:")
-        # for i in range(len(data.R)):
-        #     print("Nuclear norm of R_{}: {}".format(i, np.linalg.norm(data.R[i], 1)))
-        # print("Frobenius norm of the range matrices:")
-        # for i in range(len(data.R)):
-        #     print("Frobenius norm of R_{}: {}".format(i, np.linalg.norm(data.R[i], "fro")))
-
-        # print("Nuclear norm of the constant matrix:")
-        # print("Nuclear of constant matrix: {}".format(np.linalg.norm(constant_matrix, 1)))
-        # print("Frobenius norm of the constant matrix:")
-        # print("Frobenius of constant matrix: {}".format(np.linalg.norm(constant_matrix, "fro")))
-
 
         return solution
 
@@ -728,7 +662,7 @@ def random_projection_sdp(data: DataQCQP, projector, slack=True):
 
     """
 
-    size_psd_variable = "soon"
+    size__old_psd_variable = data.M_0[0].shape[0]
 
     # Project the matrices
     M_0 = projector.apply_rp_map(data.M_0)
@@ -742,66 +676,13 @@ def random_projection_sdp(data: DataQCQP, projector, slack=True):
         size_psd_variable = M_0[0].shape[0]
         Y = M.variable(mf.Domain.inPSDCone(size_psd_variable))
 
-        # if slack:
-        #     # no_constraints = data.m + data.l + 2 * data.n + 1
-        #     # # Slack variables
-        #     # ubv = M.variable(no_constraints, mf.Domain.greaterThan(0))
-        #     # lbv = M.variable(no_constraints, mf.Domain.greaterThan(0))
-        #     # # Lower and upper bounds of the dual variables
-        #     # epsilon = 0.00001
-        #     # dual_lower_bound = -1000000000 - epsilon
-        #     # dual_upper_bound = 10000000000 + epsilon
-
-        #     # difference_objective = mf.Expr.sub(
-        #     #     mf.Expr.mul(
-        #     #         dual_upper_bound, mf.Expr.dot(ubv, np.ones(no_constraints))
-        #     #     ),
-        #     #     mf.Expr.mul(
-        #     #         dual_lower_bound, mf.Expr.dot(lbv, np.ones(no_constraints))
-        #     #     ),
-        #     # )
-
-        #     no_inequalities = data.m + data.l + 2 * data.n
-        #     no_equalities = 1
-
-        #     # Slack variables
-        #     ubv = M.variable(no_inequalities + 1, mf.Domain.greaterThan(0))
-        #     lbv = M.variable(1, mf.Domain.greaterThan(0))
-
-        #     # Lower and upper bounds of the dual variables
-        #     epsilon = 0.00001
-        #     dual_lower_bound = -10000000 - epsilon
-        #     dual_upper_bound = 10000000 + epsilon
-
-        #     difference_objective = mf.Expr.sub(
-        #         mf.Expr.mul(dual_lower_bound, lbv),
-        #         mf.Expr.mul(
-        #             dual_upper_bound, mf.Expr.dot(ubv, np.ones(no_inequalities + 1))
-        #         ),
-        #     )
-
         # Objective:
-        # <M_0, Z>
-        # if slack:
-        #     M.objective(
-        #         mf.ObjectiveSense.Minimize,
-        #         mf.Expr.add(
-        #             mf.Expr.dot(M_0, Y),
-        #             difference_objective,
-        #         ),
-        #     )
-        # else:
-            # M.objective(mf.ObjectiveSense.Minimize, mf.Expr.dot(projector.apply_rp_map(M_0), Y))
-        
         M.objective(mf.ObjectiveSense.Minimize, mf.Expr.dot(M_0, Y))
 
         # Quadratic constraints:
         # <M_i, Z> <= 0
         for i in range(data.m):
             difference_constraint = 0
-            # if slack:
-            #     # difference_constraint = mf.Expr.sub(ubv.index(i), lbv.index(i))
-            #     difference_constraint = ubv.index(i)
             M.constraint(
                 mf.Expr.add(mf.Expr.dot(M_i[i], Y), difference_constraint),
                 mf.Domain.lessThan(0),
@@ -810,12 +691,6 @@ def random_projection_sdp(data: DataQCQP, projector, slack=True):
         # Linear constraints:
         # <L_i, Z> <= 0 for i=1,...,l
         for i in range(data.l):
-            # if slack:
-            #     # difference_constraint = mf.Expr.sub(
-            #     #     ubv.index(data.m + i), lbv.index(data.m + i)
-            #     # )
-            #     difference_constraint = ubv.index(data.m + i)
-            
             M.constraint(
                 mf.Expr.add(mf.Expr.dot(L[i], Y), difference_constraint),
                 mf.Domain.lessThan(0),
@@ -828,26 +703,12 @@ def random_projection_sdp(data: DataQCQP, projector, slack=True):
         # # <R_i, Z> - 1 <=0 for i=0,...,n
         # # - <R_i, Z> <= 0 for  i=0,...,n
         # for i in range(len(R)):
-        #     if slack:
-        #         # difference_constraint = mf.Expr.sub(
-        #         #     ubv.index(data.m + data.l + i), lbv.index(data.m + data.l + i)
-        #         # )
-        #         difference_constraint = ubv.index(data.m + data.l + i)
-           
         #     M.constraint(
         #         mf.Expr.add(
         #             mf.Expr.sub(mf.Expr.dot(R[i], Y), 1), difference_constraint
         #         ),
         #         mf.Domain.lessThan(0),
         #     )
-            
-        #     if slack:
-        #         # difference_constraint = mf.Expr.sub(
-        #         #     ubv.index(data.m + data.l + data.n + i),
-        #         #     lbv.index(data.m + data.l + data.n + i),
-        #         # )
-        #         difference_constraint = ubv.index(data.m + data.l + data.n + i)
-            
         #     M.constraint(
         #         mf.Expr.add(
         #             mf.Expr.sub(0, mf.Expr.dot(R[i], Y)), difference_constraint
@@ -856,12 +717,9 @@ def random_projection_sdp(data: DataQCQP, projector, slack=True):
         #     )
 
         # # Add constraint for constant term of X.
-        # if slack:
-        #     difference_constraint = mf.Expr.sub(
-        #         lbv, ubv.index(data.m + data.l + data.n * 2)
-            # )
-        constant_matrix = np.zeros((size_psd_variable, size_psd_variable))
-        constant_matrix[size_psd_variable - 1, size_psd_variable - 1] = 1
+        constant_matrix = np.zeros((size__old_psd_variable, size__old_psd_variable))
+        constant_matrix[size__old_psd_variable - 1, size__old_psd_variable - 1] = 1
+        constant_matrix = projector.apply_rp_map(constant_matrix)
         M.constraint(
             mf.Expr.add(mf.Expr.dot(constant_matrix, Y), difference_constraint),
             mf.Domain.equalsTo(1),
@@ -913,16 +771,18 @@ def single_problem_results(data, type="sparse", range=(0.1, 0.5), iterations=5):
         )
     )
     print("-" * 80)
-    print("\n{: <18} {: >10} {: >8} {: >8}".format("Type", "Size X", "Value", "Time"))
+    print("\n{: <18} {: >10} {: >8} {: >8} {: >8}".format("Type", "Size X", "Value", "Quality", "Time"))
     print("-" * 80)
 
     sdp_solution = standard_sdp_relaxation(data)
     print(
-        "{: <18} {: >10} {: >8.2f} {: >8.2f}".format(
+        "{: <18} {: >10} {: >8.2f} {: >8.2f} {: >8.2f}".format(
             "SDP Relaxation",
             sdp_solution["size_psd_variable"],
             sdp_solution["objective"],
-            sdp_solution["computation_time"],
+            100,
+            # sdp_solution["computation_time"],
+            100,
         )
     )
 
@@ -950,12 +810,16 @@ def single_problem_results(data, type="sparse", range=(0.1, 0.5), iterations=5):
         )
         rp_solution = random_projection_sdp(data, random_projector, slack=slack)
 
+        quality = 100 * rp_solution["objective"] / sdp_solution["objective"]
+        relative_time = 100 * rp_solution["computation_time"] / sdp_solution["computation_time"]
+
         print(
-            "{: <18.2f} {: >10} {: >8.2f} {: >8.2f}".format(
+            "{: <18.2f} {: >10} {: >8.2f} {: >8.2f} {: >8.2f}".format(
                 rate,
                 rp_solution["size_psd_variable"],
                 rp_solution["objective"],
-                rp_solution["computation_time"],
+                quality,
+                relative_time,
             )
         )
 
@@ -965,9 +829,9 @@ def single_problem_results(data, type="sparse", range=(0.1, 0.5), iterations=5):
 
 if __name__ == "__main__":
     # data = DataQCQP(200, 1, 1, seed=0)
-    data = DataQCQP_Ambrosio(1000, 10, 0, 0.9, seed=0)
+    data = DataQCQP_Ambrosio(1000, 100, 0, 0.9, seed=0)
     # matrix_size = data.M_0[0].shape[0]
     # solution = standard_sdp_relaxation(data, verbose=False)
     # projector = rp.RandomProjector(10, matrix_size, type="sparse")
     # solution_rp = random_projection_sdp(data, projector)
-    single_problem_results(data, type="sparse", range=(0.1, 0.5), iterations=5)
+    single_problem_results(data, type="0.05_density", range=(0.5, 0.8), iterations=4)

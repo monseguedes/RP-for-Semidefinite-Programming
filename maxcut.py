@@ -227,7 +227,74 @@ def projected_sdp_relaxation(graph, projector, verbose=False, slack=True):
             objective = M.primalObjValue()
         except: 
             X_sol = 0
-            print("The projected problem is infeasible")
+            # print("The projected problem is infeasible")
+            objective = 0
+
+        end_time = time.time()
+
+        computation_time = end_time - start_time
+
+        solution = {
+            # "X_sol": X_sol,
+            "computation_time": computation_time,
+            "objective": objective,
+            "size_psd_variable": n,
+        }
+
+        return solution
+    
+
+def random_constraint_aggregation_sdp(graph, projector, verbose=False):
+    """
+    Parameters
+    ----------
+    graph : Graph
+        Graph object.
+
+    Returns
+    -------
+    dict
+        Dictionary with the solutions of the sdp relaxation.
+
+    """
+
+    L = laplacian_matrix(graph)
+    original_dimension = L.shape[0]
+    n = L.shape[0]
+
+    projected_A = {}
+    for i in range(projector.k):
+        # Make diagonal matrix with each row of the projector 
+        print("Projecting A matrix... {}/{}".format(i + 1, projector.k), end="\r")
+        A_matrix = np.diag(projector.projector[i])
+        projected_A[i] = A_matrix
+
+    with mf.Model("SDP") as M:
+        # PSD variable X
+        X = M.variable(mf.Domain.inPSDCone(n))
+
+        # Objective:
+        M.objective(mf.ObjectiveSense.Maximize, mf.Expr.mul(1 / 4, mf.Expr.dot(L, X)))
+
+        for i in range(projector.k):
+            print("Adding constraints... {}/{}          ".format(i + 1, projector.k), end="\r")
+            M.constraint(
+                    mf.Expr.dot(projected_A[i], X),
+                    mf.Domain.equalsTo(1),
+                )
+        
+        start_time = time.time()
+        # Solve the problem
+        print(f"Solving the problem of size {n}         " , end="\r")
+        try:
+            M.solve()
+            # Get the solution
+            X_sol = X.level()
+            X_sol = X_sol.reshape((n, n))
+            objective = M.primalObjValue()
+        except: 
+            X_sol = 0
+            print("The projected problem is unbounded")
             objective = 0
 
         end_time = time.time()
@@ -327,8 +394,8 @@ def single_graph_results(graph: Graph, type="sparse", range=(0.1, 0.5), iteratio
             round(matrix_size * rate), matrix_size, type=type
         )
         # print("Density of projector is:" , np.count_nonzero(random_projector.projector) / (random_projector.projector.size))
-        rp_solution = projected_sdp_relaxation(
-            graph, random_projector, verbose=False, slack=slack
+        rp_solution = random_constraint_aggregation_sdp(
+            graph, random_projector, verbose=False
         )
         quality = rp_solution["objective"] / sdp_solution["objective"] * 100
         # Lift up solution
@@ -440,7 +507,7 @@ if __name__ == "__main__":
     # solution = sdp_relaxation(graph)
 
     # Get the results for a single graph
-    single_graph_results(graph, type="0.3_density", range=(0.1, 0.2), iterations=2)
+    single_graph_results(graph, type="sparse", range=(0.1, 0.2), iterations=2)
 
     # # Get the results for a list of graphs
     # list_of_graphs = []

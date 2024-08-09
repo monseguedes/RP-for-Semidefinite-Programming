@@ -35,6 +35,7 @@ import process_graphs
 import pickle
 import first_level_stable_set
 import second_level_stable_set
+import random_qcqp
 from generate_graphs import Graph
 import random_projections as rp
 import maxcut
@@ -593,6 +594,62 @@ def quality_plot_computational_experiments_maxcut():
             )
 
 
+def sdp_relaxation_qcqp_problem(data):
+    """
+    Run the experiments and store them in files.
+
+    """
+
+    if os.path.exists(f"results/qcqp/{data.n}_{data.m}.pkl"):  # Load previous results if available
+        with open(f"results/qcqp/{data.n}_{data.m}.pkl", "rb") as f:
+            sol_dict = pickle.load(f)
+    else:
+        sol_dict = {}
+
+    if "original" not in sol_dict:  # Run original sdp qcqp only if not stored
+        results = random_qcqp.standard_sdp_relaxation(data)
+        sol_dict = {"original": results}
+        with open(f"results/qcqp/{data.n}_{data.m}.pkl", "wb") as f:
+            pickle.dump(sol_dict, f)
+
+    for projector_type in list(config["densities"][data.n]):  # Run projection for different projectors only if not stored
+        if projector_type not in sol_dict:
+            sol_dict[projector_type] = {}
+        gen_projection = (
+            projection
+            for projection in config["qcqp"]["projection"]
+            if projection not in sol_dict[projector_type]
+        )
+        for projection in gen_projection:
+            projector = rp.RandomProjector(
+                round(projection * sol_dict["original"]["size_psd_variable"]),
+                sol_dict["original"]["size_psd_variable"],
+                projector_type,
+            )
+            p_results = random_qcqp.random_projection_sdp(data, projector)
+            sol_dict[projector_type][projection] = p_results
+
+            with open(f"results/qcqp/{data.n}_{data.m}.pkl", "wb") as f:
+                pickle.dump(sol_dict, f)
+
+
+def randomly_generated_qcqp(config):
+    """
+    Run experiments for QCQP with random data.
+    """
+
+    # Create folder for qcqp results
+    if not os.path.exists("results/qcqp"):
+        os.makedirs("results/qcqp")
+
+    for n in config["qcqp"]["variables"]:
+        for q in config["qcqp"]["q"]:
+            data = random_qcqp.DataQCQP_Ambrosio(n, int(q * n), 0, 1, seed=0)
+            print(f"Running QCQP instance {n} variables and {int(n * q)} constraints")
+            sdp_relaxation_qcqp_problem(data)
+
+    
+
 if __name__ == "__main__":
     with open("config.yml", "r") as config_file:
         config = yaml.safe_load(config_file)
@@ -601,4 +658,5 @@ if __name__ == "__main__":
     # run_maxcut_experiments(config)
     # run_max_sat_experiments(config)
     # quality_plot_computational_experiments_maxcut()
-    sat_feasibility(config)
+    # sat_feasibility(config)
+    randomly_generated_qcqp(config)

@@ -109,9 +109,25 @@ sat:
     - 0.5
   repetitions: 200
 
+# QCQPs
+qcqp:
+  variables: 
+    - 400
+    # - 1000
+    # - 5000
+    # - 7000
+  q:
+    - 0.1
+    - 0.5
+  projection:
+    - 0.5
+    - 0.7
+
 
 densities:
   100:
+    - "sparse"
+  400:
     - "sparse"
   500:
     - "sparse"

@@ -463,7 +463,7 @@ def build_q_i(Q_i, c_i, x):
 
     q_i = x @ Q_i @ x + c_i @ x
 
-    return q_i + 5
+    return q_i + 10
     
 
 class DataQCQP_Ambrosio:
@@ -472,7 +472,7 @@ class DataQCQP_Ambrosio:
         self.n = n 
         self.m = m
         # For now no linear constraints
-        self.l = 0
+        self.l = l
         self.D = build_D(l, n)
         self.d = build_d(self.D, l, n)
         self.L = [build_L_i(self.D, self.d, i) for i in range(l)]
@@ -780,7 +780,7 @@ def single_problem_results(data, type="sparse", range=(0.1, 0.5), iterations=5):
             "SDP Relaxation",
             sdp_solution["size_psd_variable"],
             sdp_solution["objective"],
-            100,
+            0,
             # sdp_solution["computation_time"],
             100,
         )
@@ -810,7 +810,7 @@ def single_problem_results(data, type="sparse", range=(0.1, 0.5), iterations=5):
         )
         rp_solution = random_projection_sdp(data, random_projector, slack=slack)
 
-        quality = 100 * rp_solution["objective"] / sdp_solution["objective"]
+        quality = 100 * (rp_solution["objective"] - sdp_solution["objective"]) / sdp_solution["objective"]
         relative_time = 100 * rp_solution["computation_time"] / sdp_solution["computation_time"]
 
         print(
@@ -829,9 +829,9 @@ def single_problem_results(data, type="sparse", range=(0.1, 0.5), iterations=5):
 
 if __name__ == "__main__":
     # data = DataQCQP(200, 1, 1, seed=0)
-    data = DataQCQP_Ambrosio(1000, 100, 0, 0.9, seed=0)
+    data = DataQCQP_Ambrosio(400, 40, 0, 1, seed=0)
     # matrix_size = data.M_0[0].shape[0]
     # solution = standard_sdp_relaxation(data, verbose=False)
     # projector = rp.RandomProjector(10, matrix_size, type="sparse")
     # solution_rp = random_projection_sdp(data, projector)
-    single_problem_results(data, type="0.05_density", range=(0.5, 0.8), iterations=4)
+    single_problem_results(data, type="0.05_density", range=(0.5, 0.7), iterations=3)

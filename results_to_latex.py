@@ -597,6 +597,51 @@ def sparsity_test_to_latex(directory, percentage=[0.05, 0.1]):
 
     print(table_footer)
 
+def qcqp_to_latex(directory):
+    table_header = r"""
+    \begin{table}[!htbp]
+    \captionof{table}{Comparison of relative time (\%) and relative quality (\%) with respect to the original SDP relaxation for different sparsities (\%) of sparse projectors from \cite{DAmbrosio2020}} 
+    \begin{tabular}{rrrrrrrrrrrrrrrr} 
+    \toprule
+        && \multicolumn{2}{c}{50\% projection} && \multicolumn{2}{c}{70\% projection} \\
+        \cmidrule{3-4}\cmidrule{6-7}
+        \rule{0pt}{10pt} % Adding space of 10pt between lines and text below
+        Instance && Time & Quality && Time & Quality \\
+        \midrule
+        """
+    print(table_header)
+
+    alphabetical_dir = sorted(
+        [file for file in os.listdir(directory) if file.endswith(".pkl")],
+        key=lambda x: int("".join([i for i in x if i.isdigit()])),
+    )
+
+    for name in alphabetical_dir:
+        file_path = os.path.join(directory, name)
+        with open(file_path, "rb") as file:
+            results = pickle.load(file)
+
+        first_projector_type = "sparse"
+        second_projector_type = "sparse"
+
+        print(
+            "             {:8} && {:8.2f} & {:8.2f} && {:8.2f} & {:8.2f} \\\\".format(
+                name.strip(".pkl"),
+                results[first_projector_type][0.5]["computation_time"] / results["original"]["computation_time"] * 100,
+                (results[first_projector_type][0.5]["objective"] - results["original"]["objective"]) / results["original"]["objective"] * 100,
+                results[second_projector_type][0.7]["computation_time"] / results["original"]["computation_time"] * 100,
+                (results[second_projector_type][0.7]["objective"] - results["original"]["objective"]) / results["original"]["objective"] * 100,
+        )
+        )
+    
+    table_footer = r"""
+        \bottomrule
+        \end{tabular}
+        \label{tab:main qcqp}
+    \end{table}"""
+
+    print(table_footer)
+  
 
 with open("config.yml", "r") as file:
     config = yaml.safe_load(file)
@@ -608,4 +653,5 @@ with open("config.yml", "r") as file:
 # maxsat_to_latex("results/maxsat", "sparse", [0.1, 0.2])
 # maxsat_to_latex_simplified("results/maxsat", [0.1, 0.2])
 # sparsity_test_to_latex("results/maxcut")
-sat_to_latex_simplified(config, [0.2, 0.5])
+# sat_to_latex_simplified(config, [0.2, 0.5])
+qcqp_to_latex("results/qcqp")

@@ -621,8 +621,10 @@ def qcqp_to_latex(directory):
         with open(file_path, "rb") as file:
             results = pickle.load(file)
 
-        first_projector_type = "sparse"
-        second_projector_type = "sparse"
+        projector_type =  config["densities"][results["original"]["size_psd_variable"] - 1][0]
+
+        first_projector_type = projector_type
+        second_projector_type = projector_type
 
         print(
             "             {:8} && {:8.2f} & {:8.2f} && {:8.2f} & {:8.2f} \\\\".format(

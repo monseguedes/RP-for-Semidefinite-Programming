@@ -30,7 +30,7 @@ def plot_quality(config):
         print("No results to plot")
 
     dict = {}
-    for name in os.listdir(directory):
+    for name in [name for name in os.listdir(directory) if "12000" not in name]:
         with open(f"results/maxcut/plot/{name}", "rb") as file:
             results = pickle.load(file)
             print(results)

@@ -8,7 +8,7 @@ subject to x^T x = 1
 
 where f is a polynomial function.
 
-We do this using teh standard SOS method. 
+We do this using the standard SOS method. 
 
 """
 
@@ -81,6 +81,8 @@ def add_tuple_to_tuple_list(tuple, list_of_tuples):
 
     return [sum_tuples(tuple, t) for t in list_of_tuples]
 
+
+# Traditional approach
 
 def sdp_first_level_unit_sphere(polynomial: poly.Polynomial, verbose=False):
     """
@@ -378,6 +380,8 @@ def projected_sdp_first_level_unit_sphere(
 
     return solution
 
+
+#CG approach
 
 def get_sphere_polynomial(n, d):
     """
@@ -684,6 +688,236 @@ def projected_sdp_CG_unit_sphere(
     return solution
 
 
+def constraint_aggregation_CG_unit_sphere(
+    polynomial: poly.Polynomial, 
+    random_projector: rp.RandomProjector,
+    verbose=False
+):
+    """
+    Solves a the constraint aggregation method of the unit sphere using the method 
+    from the CG paper.
+
+    max a
+    s.t. TA_i · X - a * Ts_i= Tc_i     i=0, ...
+         X is positive semidefinite
+
+    where X is a symmetric matrix, A_i are symmetric matrices that pick coefficients,
+    and c_i are the coefficients of f(x), and s_i is the ith coefficient of the sphere.
+
+    Parameters
+    ----------
+    polynomial : numpy.ndarray
+        Polynomial to be optimized.
+
+    Returns
+    -------
+    solution : numpy.ndarray
+        Solution of the polynomial optimization problem.
+    bound : float
+        Lower bound of the polynomial optimization problem.
+
+    """
+
+    distinct_monomials = polynomial.distinct_monomials
+    tuple_of_constant = tuple([0 for i in range(len(distinct_monomials[0]))])
+
+    # Get the coefficients of the sphere polynomial
+    sphere_polynomial = get_sphere_polynomial(polynomial.n, polynomial.d / 2)
+    sphere_polynomial_old = sphere_polynomial.copy()
+    # Aggregating the coefficients
+    for i in range(random_projector.k):
+        sphere_polynomial[i] = 0
+        for j, monomial in enumerate(distinct_monomials):
+            sphere_polynomial[i] += random_projector.projector[i, j] * sphere_polynomial_old[monomial]
+
+    # Get the matrices for picking coefficients.
+    A = polynomial.A
+    A_old = A.copy()
+    #Aggregating the matrices
+    for i in range(random_projector.k):
+        A[i] = np.zeros((A_old[tuple_of_constant].shape[0], A_old[tuple_of_constant].shape[1]))
+        for j, monomial in enumerate(distinct_monomials):
+            A[i] += random_projector.projector[i, j] * A_old[monomial]
+
+    # Get the coefficients of the original polynomial
+    polynomial = polynomial.polynomial
+    polynomial_old = polynomial.copy()
+    # Aggregating the coefficients
+    for i in range(random_projector.k):
+        polynomial[i] = 0
+        for j, monomial in enumerate(distinct_monomials):
+            polynomial[i] += random_projector.projector[i, j] * polynomial_old[monomial]
+
+
+    with mf.Model("SDP") as M:
+        tuple_of_constant = tuple([0 for i in range(len(distinct_monomials[0]))])
+        m = A[0].shape[0]
+
+        # PSD variable X
+        X = M.variable(mf.Domain.inPSDCone(m))
+
+        # Objective: maximize a (scalar)
+        a = M.variable()
+        M.objective(mf.ObjectiveSense.Maximize, a)
+
+        # Constraint: A_i · X - a * s_i = c_i
+        for i in range(random_projector.k):
+            M.constraint(
+                mf.Expr.add(
+                    mf.Expr.dot(A[i], X),
+                    mf.Expr.mul(sphere_polynomial[i], a),
+                ),
+                mf.Domain.equalsTo(polynomial[i]),
+            )
+
+        if verbose:
+            # Increase verbosity
+            M.setLogHandler(sys.stdout)
+
+        try:
+            # Solve the problem
+            start_time = time.time()
+            M.solve()
+            end_time = time.time()
+
+            a = a.level()
+            X = X.level().reshape(m, m)
+            objective = M.primalObjValue()
+            time = end_time - start_time
+
+        except:
+            a = np.nan
+            objective = np.nan
+            time = np.nan
+
+
+        solution = {"a": a,
+                    "objective": objective,
+                    "size_psd_variable": m,
+                    "no_constraints": len(distinct_monomials),
+                    "computation_time": time}
+
+    return solution
+
+
+
+
+def combined_projection_CG_unit_sphere(
+    polynomial: poly.Polynomial,
+    random_projector_variables: rp.RandomProjector,
+    random_projector_constraints: rp.RandomProjector,
+    verbose=False
+):
+    """
+    Solves a the constraint aggregation method of the unit sphere using the method 
+    from the CG paper.
+
+    max a
+    s.t. TPA_iP · Y - a * Ts_i= Tc_i     i=0, ...
+         Y is positive semidefinite
+
+    where X is a symmetric matrix, A_i are symmetric matrices that pick coefficients,
+    and c_i are the coefficients of f(x), and s_i is the ith coefficient of the sphere.
+
+    Parameters
+    ----------
+    polynomial : numpy.ndarray
+        Polynomial to be optimized.
+
+    Returns
+    -------
+    solution : numpy.ndarray
+        Solution of the polynomial optimization problem.
+    bound : float
+        Lower bound of the polynomial optimization problem.
+
+    """
+     
+    distinct_monomials = polynomial.distinct_monomials
+    tuple_of_constant = tuple([0 for i in range(len(distinct_monomials[0]))])
+
+    # Get the coefficients of the sphere polynomial
+    sphere_polynomial = get_sphere_polynomial(polynomial.n, polynomial.d / 2)
+    sphere_polynomial_old = sphere_polynomial.copy()
+    # Aggregating the coefficients
+    for i in range(random_projector_constraints.k):
+        sphere_polynomial[i] = 0
+        for j, monomial in enumerate(distinct_monomials):
+            sphere_polynomial[i] += random_projector_constraints.projector[i, j] * sphere_polynomial_old[monomial]
+
+    # Get the matrices for picking coefficients.
+    A = {}
+    for i, monomial in enumerate(distinct_monomials):
+        A[monomial] = random_projector_variables.apply_rp_map(polynomial.A[monomial])
+    A_old = A.copy()
+    #Aggregating the matrices
+    for i in range(random_projector_constraints.k):
+        A[i] = np.zeros((A_old[tuple_of_constant].shape[0], A_old[tuple_of_constant].shape[1]))
+        for j, monomial in enumerate(distinct_monomials):
+            A[i] += random_projector_constraints.projector[i, j] * A_old[monomial]
+
+    # Get the coefficients of the original polynomial
+    polynomial = polynomial.polynomial
+    polynomial_old = polynomial.copy()
+    # Aggregating the coefficients
+    for i in range(random_projector_constraints.k):
+        polynomial[i] = 0
+        for j, monomial in enumerate(distinct_monomials):
+            polynomial[i] += random_projector_constraints.projector[i, j] * polynomial_old[monomial]
+
+
+    with mf.Model("SDP") as M:
+        tuple_of_constant = tuple([0 for i in range(len(distinct_monomials[0]))])
+        m = A[0].shape[0]
+
+        # PSD variable X
+        X = M.variable(mf.Domain.inPSDCone(m))
+
+        # Objective: maximize a (scalar)
+        a = M.variable()
+        M.objective(mf.ObjectiveSense.Maximize, a)
+
+        # Constraint: A_i · X - a * s_i = c_i
+        for i in range(random_projector_constraints.k):
+            M.constraint(
+                mf.Expr.add(
+                    mf.Expr.dot(A[i], X),
+                    mf.Expr.mul(sphere_polynomial[i], a),
+                ),
+                mf.Domain.equalsTo(polynomial[i]),
+            )
+
+        if verbose:
+            # Increase verbosity
+            M.setLogHandler(sys.stdout)
+
+        try:
+            # Solve the problem
+            start_time = time.time()
+            M.solve()
+            end_time = time.time()
+
+            a = a.level()
+            X = X.level().reshape(m, m)
+            objective = M.primalObjValue()
+            time = end_time - start_time
+
+        except:
+            a = np.nan
+            objective = np.nan
+            time = np.nan
+
+
+        solution = {"a": a,
+                    "objective": objective,
+                    "size_psd_variable": A_old[tuple_of_constant].shape[0],
+                    "no_constraints": len(distinct_monomials),
+                    "computation_time": time}
+
+    return solution
+    
+
+
 def single_polynomial_table(polynomial, type, range, iterations, form=True):
     """
     Get the results for a single polynomial.
@@ -728,69 +962,127 @@ def single_polynomial_table(polynomial, type, range, iterations, form=True):
             )
         )
 
-    # Solve unprojected unit sphere
-    # ----------------------------------------
-    sdp_solution = sdp_first_level_unit_sphere(polynomial, verbose=False)
-    print(
-        "{: <18} {: >10} {: >8.2f} {: >8.2f}".format(
-            "L1 original SDP",
-            sdp_solution["size_psd_variable"],
-            sdp_solution["objective"],
-            sdp_solution["computation_time"],
-        )
-    )
+    else:
+        print("This method requires a form polynomial.")
+
     print("- " * 40)
 
-    # Solve projected CG unit sphere
+    # # Solve unprojected unit sphere
+    # # ----------------------------------------
+    # sdp_solution = sdp_first_level_unit_sphere(polynomial, verbose=False)
+    # print(
+    #     "{: <18} {: >10} {: >8.2f} {: >8.2f}".format(
+    #         "L1 original SDP",
+    #         sdp_solution["size_psd_variable"],
+    #         sdp_solution["objective"],
+    #         sdp_solution["computation_time"],
+    #     )
+    # )
+    # print("- " * 40)
+
+    # # Solve projected CG unit sphere
+    # # ----------------------------------------
+    # matrix_size = CG_sdp_solution["size_psd_variable"]
+    # for rate in np.linspace(range[0], range[1], iterations):
+    #     random_projector = rp.RandomProjector(
+    #         round(matrix_size * rate), matrix_size, type=type
+    #     )
+    #     if form:
+    #         CG_rp_solution = projected_sdp_CG_unit_sphere(
+    #             polynomial, random_projector, verbose=False
+    #         )
+    #         print(
+    #             "{: <18} {: >10} {: >8.2f} {: >8.2f}".format(
+    #                 "CG projection " + str(round(rate, 2)),
+    #                 CG_rp_solution["size_psd_variable"],
+    #                 CG_rp_solution["objective"],
+    #                 CG_rp_solution["computation_time"],
+    #             )
+    #         )
+
+    #     else:
+    #         print("This method requires a form polynomial.")
+
+    #     # rp_solution = projected_sdp_first_level_unit_sphere(
+    #     #     polynomial, random_projector, verbose=False
+    #     # )
+    #     # print(
+    #     #     "{: <18} {: >10} {: >8.2f} {: >8.2f}".format(
+    #     #         "L1 projection " + str(round(rate, 2)),
+    #     #         rp_solution["size_psd_variable"],
+    #     #         rp_solution["objective"],
+    #     #         rp_solution["computation_time"],
+    #     #     )
+    #     # )
+
+    # print("- " * 40)
+
+    # Solve constraint aggregation CG unit sphere
     # ----------------------------------------
-    matrix_size = sdp_solution["size_psd_variable"]
+    no_constraints = len(polynomial.distinct_monomials)
     for rate in np.linspace(range[0], range[1], iterations):
-        slack = True
-        if rate > 0.5:
-            slack = True
         random_projector = rp.RandomProjector(
-            round(matrix_size * rate), matrix_size, type=type
+            round(no_constraints * rate), no_constraints, type=type
         )
         if form:
-            CG_rp_solution = projected_sdp_CG_unit_sphere(
-                polynomial, random_projector, verbose=False
+            CG_rp_solution = constraint_aggregation_CG_unit_sphere(
+                polynomial, random_projector, verbose=True
             )
             print(
                 "{: <18} {: >10} {: >8.2f} {: >8.2f}".format(
-                    "CG projection " + str(round(rate, 2)),
+                    "CG aggregation " + str(round(rate, 2)),
                     CG_rp_solution["size_psd_variable"],
                     CG_rp_solution["objective"],
                     CG_rp_solution["computation_time"],
                 )
             )
+        else:
+            print("This method requires a form polynomial.")
 
-        rp_solution = projected_sdp_first_level_unit_sphere(
-            polynomial, random_projector, verbose=False
-        )
-        print(
-            "{: <18} {: >10} {: >8.2f} {: >8.2f}".format(
-                "L1 projection " + str(round(rate, 2)),
-                rp_solution["size_psd_variable"],
-                rp_solution["objective"],
-                rp_solution["computation_time"],
-            )
-        )
-        print("- " * 40)
-
-    # Solve projected unit sphere with identity projector
+    print("- " * 40)
+    
+    # Solve combined projection CG unit sphere
     # ----------------------------------------
-    id_random_projector = rp.RandomProjector(matrix_size, matrix_size, type="identity")
-    id_rp_solution = projected_sdp_first_level_unit_sphere(
-        polynomial, id_random_projector, verbose=False
-    )
-    print(
-        "{: <18} {: >10} {: >8.2f} {: >8.2f}".format(
-            "Identity",
-            id_rp_solution["size_psd_variable"],
-            id_rp_solution["objective"],
-            id_rp_solution["computation_time"],
+    no_constraints = len(polynomial.distinct_monomials)
+    matrix_size = CG_sdp_solution["size_psd_variable"]
+    for rate in np.linspace(range[0], range[1], iterations):
+        random_projector_variables = rp.RandomProjector(
+            round(matrix_size * rate), matrix_size, type=type
         )
-    )
+        random_projector_constraints = rp.RandomProjector(
+            round(no_constraints * rate), no_constraints, type=type
+        )
+        if form:
+            CG_rp_solution = combined_projection_CG_unit_sphere(
+                polynomial, random_projector_variables, random_projector_constraints, verbose=False
+            )
+            print(
+                "{: <18} {: >10} {: >8.2f} {: >8.2f}".format(
+                    "CG combined " + str(round(rate, 2)),
+                    CG_rp_solution["size_psd_variable"],
+                    CG_rp_solution["objective"],
+                    CG_rp_solution["computation_time"],
+                )
+            )
+        else:
+            print("This method requires a form polynomial.")
+
+    print("- " * 40)
+
+    # # Solve projected unit sphere with identity projector
+    # # ----------------------------------------
+    # id_random_projector = rp.RandomProjector(matrix_size, matrix_size, type="identity")
+    # id_rp_solution = projected_sdp_first_level_unit_sphere(
+    #     polynomial, id_random_projector, verbose=False
+    # )
+    # print(
+    #     "{: <18} {: >10} {: >8.2f} {: >8.2f}".format(
+    #         "Identity",
+    #         id_rp_solution["size_psd_variable"],
+    #         id_rp_solution["objective"],
+    #         id_rp_solution["computation_time"],
+    #     )
+    # )
 
     print()
 
@@ -802,12 +1094,12 @@ if __name__ == "__main__":
     # Possible polynomials
     # ----------------------------------------
     # polynomial = poly.Polynomial("x1^2 + x2^2 + 2x1x2", 2, 2)
-    polynomial = poly.Polynomial("random", 20, 4, seed=seed)
-    # polynomial = poly.Polynomial("normal_form", 10, 4, seed=seed)
+    # polynomial = poly.Polynomial("random", 15, 4, seed=seed)
+    polynomial = poly.Polynomial("normal_form", 15, 4, seed=seed)
 
     # Run the table
     # ----------------------------------------
-    single_polynomial_table(polynomial, "0.2_density", [0.1, 0.9], 9, form=False)
+    single_polynomial_table(polynomial, "0.05_density", [0.5, 0.9], 5, form=True)
 
     
    

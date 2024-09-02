@@ -607,7 +607,9 @@ def sdp_relaxation_qcqp_problem(data):
         sol_dict = {}
 
     if "original" not in sol_dict:  # Run original sdp qcqp only if not stored
+        print(f"Solving original sdp qcqp for {data.n} variables and {data.m} constraints")
         results = random_qcqp.standard_sdp_relaxation(data)
+        print("Finished original sdp qcqp")
         sol_dict = {"original": results}
         with open(f"results/qcqp/{data.n}_{data.m}.pkl", "wb") as f:
             pickle.dump(sol_dict, f)
@@ -626,7 +628,9 @@ def sdp_relaxation_qcqp_problem(data):
                 sol_dict["original"]["size_psd_variable"],
                 projector_type,
             )
+            print(f"    Solving qcqp with projector {projector_type} and projection {projection}")
             p_results = random_qcqp.random_projection_sdp(data, projector)
+            print("     Finished qcqp with projector")
             sol_dict[projector_type][projection] = p_results
 
             with open(f"results/qcqp/{data.n}_{data.m}.pkl", "wb") as f:
@@ -644,6 +648,7 @@ def randomly_generated_qcqp(config):
 
     for n in config["qcqp"]["variables"]:
         for q in config["qcqp"]["q"]:
+            print("Creating data for QCQP instance with {} variables and {} constraints".format(n, int(n * q)))
             data = random_qcqp.DataQCQP_Ambrosio(n, int(q * n), 0, 1, seed=0)
             print(f"Running QCQP instance {n} variables and {int(n * q)} constraints")
             sdp_relaxation_qcqp_problem(data)

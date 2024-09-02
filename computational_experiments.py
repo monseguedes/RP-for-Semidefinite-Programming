@@ -137,7 +137,9 @@ def run_stable_set_experiments(config):
         print(f"Scanning petersen graph {i + 1} of {len(config['petersen_n_k'])}")
         if 2 * graph["n"] <= config["stable_set"]["max_vertices"]:
             print(f"    Running experiments for petersen {n}_{k} complement...")
-            if not os.path.exists(f"results/stable_set/petersen/{n}_{k}_complement.pkl"):
+            if not os.path.exists(
+                f"results/stable_set/petersen/{n}_{k}_complement.pkl"
+            ):
                 graph = generate_graphs.generate_generalised_petersen(
                     n, k, complement=True, save=False
                 )
@@ -147,7 +149,7 @@ def run_stable_set_experiments(config):
                     graph,
                     complement=True,
                 )
-        
+
             print("Done!")
 
     # Create folder for cordones results
@@ -158,7 +160,9 @@ def run_stable_set_experiments(config):
         if 2 * graph["n"] <= config["stable_set"]["max_vertices"]:
             print(f"    Running experiments for cordones {n} complement")
             if not os.path.exists(f"results/stable_set/cordones/{n}_complement.pkl"):
-                graph = generate_graphs.generate_cordones(n, complement=True, save=False)
+                graph = generate_graphs.generate_cordones(
+                    n, complement=True, save=False
+                )
 
                 stable_set_experiments_graph(
                     f"results/stable_set/cordones/{n}_complement.pkl",
@@ -175,10 +179,14 @@ def run_stable_set_experiments(config):
         if 2 * graph["n"] <= config["stable_set"]["max_vertices"]:
             print(f"    Running experiments for helm {n} complement")
             if not os.path.exists(f"results/stable_set/helm/{n}_complement.pkl"):
-                graph = generate_graphs.generate_helm_graph(n, complement=True, save=False)
+                graph = generate_graphs.generate_helm_graph(
+                    n, complement=True, save=False
+                )
 
                 stable_set_experiments_graph(
-                    f"results/stable_set/helm/{n}_complement.pkl", graph, complement=True
+                    f"results/stable_set/helm/{n}_complement.pkl",
+                    graph,
+                    complement=True,
                 )
             print("Done!")
 
@@ -188,13 +196,19 @@ def run_stable_set_experiments(config):
         n = graph["n"]
         k = graph["k"]
         print(f"Scanning jahangir graph {i + 1} of {len(config['jahangir'])}")
-        if n + (n * k ) + 1 <= config["stable_set"]["max_vertices"]:
+        if n + (n * k) + 1 <= config["stable_set"]["max_vertices"]:
             print(f"    Running experiments for jahangir {n, k} complement")
-            if not os.path.exists(f"results/stable_set/jahangir/{n}_{k}_complement.pkl"):
-                graph = generate_graphs.generate_jahangir_graph(n, k,  complement=True, save=False)
+            if not os.path.exists(
+                f"results/stable_set/jahangir/{n}_{k}_complement.pkl"
+            ):
+                graph = generate_graphs.generate_jahangir_graph(
+                    n, k, complement=True, save=False
+                )
 
                 stable_set_experiments_graph(
-                    f"results/stable_set/jahangir/{n}_{k}_complement.pkl", graph, complement=True
+                    f"results/stable_set/jahangir/{n}_{k}_complement.pkl",
+                    graph,
+                    complement=True,
                 )
             print("Done!")
 
@@ -226,7 +240,7 @@ def stable_set_experiments_graph(directory, graph, complement=False):
     if "L2" not in sol_dict:  # Run second level sdp stable set only if not stored
         L2_results = second_level_stable_set.second_level_stable_set_problem_sdp(graph)
         sol_dict["L2"] = L2_results
-        
+
     # Save as pickle
     with open(directory, "wb") as f:
         pickle.dump(sol_dict, f)
@@ -236,7 +250,12 @@ def stable_set_experiments_graph(directory, graph, complement=False):
     else:
         projections = config["stable_set"]["projection"]
 
-    projector_type = config["densities"][min(config["densities"], key=lambda x:abs(x - sol_dict["L2"]["size_psd_variable"]))][0]
+    projector_type = config["densities"][
+        min(
+            config["densities"],
+            key=lambda x: abs(x - sol_dict["L2"]["size_psd_variable"]),
+        )
+    ][0]
     sol_dict[projector_type] = {}
     for projection in projections:
         projector = rp.RandomProjector(
@@ -244,10 +263,8 @@ def stable_set_experiments_graph(directory, graph, complement=False):
             sol_dict["L2"]["size_psd_variable"],
             projector_type,
         )
-        results = (
-            second_level_stable_set.projected_second_level_stable_set_problem_sdp(
-                graph, projector
-            )
+        results = second_level_stable_set.projected_second_level_stable_set_problem_sdp(
+            graph, projector
         )
         sol_dict[projector_type][projection] = results
 
@@ -317,7 +334,9 @@ def maxcut_experiments_graph(directory, graph):
     else:
         results = sol_dict["original"]
 
-    for projector_type in list(config["densities"][sol_dict["original"]["size_psd_variable"]]):  # Run projection for different projectors only if not stored
+    for projector_type in list(
+        config["densities"][sol_dict["original"]["size_psd_variable"]]
+    ):  # Run projection for different projectors only if not stored
         if projector_type not in sol_dict:
             sol_dict[projector_type] = {}
         gen_projection = (
@@ -362,16 +381,29 @@ def run_max_sat_experiments(config):
                 max_sat_experiments_formula(file_name, variables, c)
 
     else:
-        files = [file for file in os.listdir("datasets/MAX2SAT") if ".wcnf" in file and "-" not in file] #config["maxsat"]["min_variables"] <= int(file.split("_")[1]) <= config["maxsat"]["max_variables"]]
-        files = [file for file in files if config["maxsat"]["min_variables"] <= int(file.split("_")[1]) <= config["maxsat"]["max_variables"]]
+        files = [
+            file
+            for file in os.listdir("datasets/MAX2SAT")
+            if ".wcnf" in file and "-" not in file
+        ]  # config["maxsat"]["min_variables"] <= int(file.split("_")[1]) <= config["maxsat"]["max_variables"]]
+        files = [
+            file
+            for file in files
+            if config["maxsat"]["min_variables"]
+            <= int(file.split("_")[1])
+            <= config["maxsat"]["max_variables"]
+        ]
         for i, file_name in enumerate(files):
-
             # with open(f"datasets/pmax2sat/{file_name}", "rb") as f:
             #     formula = pickle.load(f)
             formula = process_max2sat.process_max2sat(file_name)
-            print(f"Running maxsat instance {file_name}, number {i + 1} of {len(os.listdir('datasets/MAX2SAT'))}")
+            print(
+                f"Running maxsat instance {file_name}, number {i + 1} of {len(os.listdir('datasets/MAX2SAT'))}"
+            )
             file_name = file_name.replace(".wcnf", ".pkl")
-            max_sat_experiments_formula(file_name, formula.n, formula.c, formula.list_of_clauses)
+            max_sat_experiments_formula(
+                file_name, formula.n, formula.c, formula.list_of_clauses
+            )
 
 
 def max_sat_experiments_formula(file_name, n, c, clauses_list=[]):
@@ -395,7 +427,7 @@ def max_sat_experiments_formula(file_name, n, c, clauses_list=[]):
             pickle.dump(sol_dict, f)
     else:
         results = sol_dict["original"]
-    
+
     for projector_type in config["densities"][results["size_psd_variable"] - 1]:
         if projector_type not in sol_dict:
             sol_dict[projector_type] = {}
@@ -421,9 +453,7 @@ def max_sat_experiments_formula(file_name, n, c, clauses_list=[]):
 
 
 def sat_feasibility(config):
-    """
-
-    """
+    """ """
 
     # Create folder for max sat results
     if not os.path.exists("results/sat"):
@@ -443,7 +473,9 @@ def sat_feasibility(config):
                     formula = maxsat.Formula(variables, variables * C, seed=i)
 
                     if os.path.exists(f"results/sat/{variables}_{C}_{i}.pkl"):
-                        sol_dict = pickle.load(open(f"results/sat/{variables}_{C}_{i}.pkl", "rb"))
+                        sol_dict = pickle.load(
+                            open(f"results/sat/{variables}_{C}_{i}.pkl", "rb")
+                        )
                     else:
                         sol_dict = {}
 
@@ -451,16 +483,23 @@ def sat_feasibility(config):
                         print("Running original SAT instance")
                         results = maxsat.satisfiability_feasibility(formula)
                         sol_dict = {"original": results}
-                        print("Finished original SAT instance with size {}, took {} seconds".format(results["size_psd_variable"], results["computation_time"]))
-                    
+                        print(
+                            "Finished original SAT instance with size {}, took {} seconds".format(
+                                results["size_psd_variable"],
+                                results["computation_time"],
+                            )
+                        )
+
                     else:
                         results = sol_dict["original"]
 
                         with open(f"results/sat/{variables}_{C}_{i}.pkl", "wb") as f:
                             pickle.dump(sol_dict, f)
-                    
+
                     if sol_dict["original"]["objective"] != 0:
-                        for projector_type in config["densities"][sol_dict["original"]["size_psd_variable"] - 1]:
+                        for projector_type in config["densities"][
+                            sol_dict["original"]["size_psd_variable"] - 1
+                        ]:
                             # projector_type = "sparse"
                             if projector_type not in sol_dict:
                                 sol_dict[projector_type] = {}
@@ -475,12 +514,23 @@ def sat_feasibility(config):
                                     results["size_psd_variable"],
                                     projector_type,
                                 )
-                                print(f"Running SAT instance with projector {projector_type} and projection {projection}")
-                                p_results = maxsat.projected_sat_feasibility(formula, projector)
-                                print("Finished SAT instance with size {}, took {} seconds".format(p_results["size_psd_variable"], p_results["computation_time"]))
+                                print(
+                                    f"Running SAT instance with projector {projector_type} and projection {projection}"
+                                )
+                                p_results = maxsat.projected_sat_feasibility(
+                                    formula, projector
+                                )
+                                print(
+                                    "Finished SAT instance with size {}, took {} seconds".format(
+                                        p_results["size_psd_variable"],
+                                        p_results["computation_time"],
+                                    )
+                                )
                                 sol_dict[projector_type][projection] = p_results
 
-                                with open(f"results/sat/{variables}_{C}_{i}.pkl", "wb") as f:
+                                with open(
+                                    f"results/sat/{variables}_{C}_{i}.pkl", "wb"
+                                ) as f:
                                     pickle.dump(sol_dict, f)
 
                     # Store sat instance.
@@ -490,47 +540,70 @@ def sat_feasibility(config):
             print()
 
     else:
-        files = [file for file in os.listdir("datasets/MAX2SAT") if ".wcnf" in file and "-" not in file] #config["maxsat"]["min_variables"] <= int(file.split("_")[1]) <= config["maxsat"]["max_variables"]]
-        files = [file for file in files if config["sat"]["min_variables"] <= int(file.split("_")[1]) <= config["sat"]["max_variables"]]
+        files = [
+            file
+            for file in os.listdir("datasets/MAX2SAT")
+            if ".wcnf" in file and "-" not in file
+        ]  # config["maxsat"]["min_variables"] <= int(file.split("_")[1]) <= config["maxsat"]["max_variables"]]
+        files = [
+            file
+            for file in files
+            if config["sat"]["min_variables"]
+            <= int(file.split("_")[1])
+            <= config["sat"]["max_variables"]
+        ]
         for i, file_name in enumerate(files):
-                formula = process_max2sat.process_max2sat(file_name)
-                file_name = file_name.replace(".wcnf", ".pkl")
-                if os.path.exists(f"results/sat/{file_name}.pkl"):
-                        sol_dict = pickle.load(open(f"results/sat/{file_name}.pkl", "rb"))
-                else:
-                    sol_dict = {}
+            formula = process_max2sat.process_max2sat(file_name)
+            file_name = file_name.replace(".wcnf", ".pkl")
+            if os.path.exists(f"results/sat/{file_name}.pkl"):
+                sol_dict = pickle.load(open(f"results/sat/{file_name}.pkl", "rb"))
+            else:
+                sol_dict = {}
 
-                if "original" not in sol_dict:
-                    print("Running original SAT instance")
-                    results = maxsat.satisfiability_feasibility(formula)
-                    sol_dict = {"original": results}
-                    print("Finished original SAT instance with size {}, took {} seconds".format(results["size_psd_variable"], results["computation_time"]))
-                
+            if "original" not in sol_dict:
+                print("Running original SAT instance")
+                results = maxsat.satisfiability_feasibility(formula)
+                sol_dict = {"original": results}
+                print(
+                    "Finished original SAT instance with size {}, took {} seconds".format(
+                        results["size_psd_variable"], results["computation_time"]
+                    )
+                )
+
+                with open(f"results/sat/{file_name}.pkl", "wb") as f:
+                    pickle.dump(sol_dict, f)
+
+            for projector_type in config["densities"][
+                sol_dict["original"]["size_psd_variable"] - 1
+            ]:
+                # projector_type = "sparse"
+                if projector_type not in sol_dict:
+                    sol_dict[projector_type] = {}
+                gen = (
+                    projection
+                    for projection in config["sat"]["projection"]
+                    if projection not in sol_dict[projector_type]
+                )
+                for projection in gen:
+                    projector = rp.RandomProjector(
+                        round(projection * results["size_psd_variable"]),
+                        results["size_psd_variable"],
+                        projector_type,
+                    )
+                    print(
+                        f"Running SAT instance with projector {projector_type} and projection {projection}"
+                    )
+                    p_results = maxsat.projected_sat_feasibility(formula, projector)
+                    print(
+                        "Finished SAT instance with size {}, took {} seconds".format(
+                            p_results["size_psd_variable"],
+                            p_results["computation_time"],
+                        )
+                    )
+                    sol_dict[projector_type][projection] = p_results
+
                     with open(f"results/sat/{file_name}.pkl", "wb") as f:
                         pickle.dump(sol_dict, f)
-
-                for projector_type in config["densities"][sol_dict["original"]["size_psd_variable"] - 1]:
-                    # projector_type = "sparse"
-                    if projector_type not in sol_dict:
-                        sol_dict[projector_type] = {}
-                    gen = (
-                        projection
-                        for projection in config["sat"]["projection"]
-                        if projection not in sol_dict[projector_type]
-                    )
-                    for projection in gen:
-                        projector = rp.RandomProjector(
-                            round(projection * results["size_psd_variable"]),
-                            results["size_psd_variable"],
-                            projector_type,
-                        )
-                        print(f"Running SAT instance with projector {projector_type} and projection {projection}")
-                        p_results = maxsat.projected_sat_feasibility(formula, projector)
-                        print("Finished SAT instance with size {}, took {} seconds".format(p_results["size_psd_variable"], p_results["computation_time"]))
-                        sol_dict[projector_type][projection] = p_results
-
-                        with open(f"results/sat/{file_name}.pkl", "wb") as f:
-                            pickle.dump(sol_dict, f)
 
 
 def quality_plot_computational_experiments_maxcut():
@@ -600,21 +673,27 @@ def sdp_relaxation_qcqp_problem(data):
 
     """
 
-    if os.path.exists(f"results/qcqp/{data.n}_{data.m}.pkl"):  # Load previous results if available
+    if os.path.exists(
+        f"results/qcqp/{data.n}_{data.m}.pkl"
+    ):  # Load previous results if available
         with open(f"results/qcqp/{data.n}_{data.m}.pkl", "rb") as f:
             sol_dict = pickle.load(f)
     else:
         sol_dict = {}
 
     if "original" not in sol_dict:  # Run original sdp qcqp only if not stored
-        print(f"Solving original sdp qcqp for {data.n} variables and {data.m} constraints")
+        print(
+            f"Solving original sdp qcqp for {data.n} variables and {data.m} constraints"
+        )
         results = random_qcqp.standard_sdp_relaxation(data)
         print("Finished original sdp qcqp")
         sol_dict = {"original": results}
         with open(f"results/qcqp/{data.n}_{data.m}.pkl", "wb") as f:
             pickle.dump(sol_dict, f)
 
-    for projector_type in list(config["densities"][data.n]):  # Run projection for different projectors only if not stored
+    for projector_type in list(
+        config["densities"][data.n]
+    ):  # Run projection for different projectors only if not stored
         if projector_type not in sol_dict:
             sol_dict[projector_type] = {}
         gen_projection = (
@@ -628,7 +707,9 @@ def sdp_relaxation_qcqp_problem(data):
                 sol_dict["original"]["size_psd_variable"],
                 projector_type,
             )
-            print(f"    Solving qcqp with projector {projector_type} and projection {projection}")
+            print(
+                f"    Solving qcqp with projector {projector_type} and projection {projection}"
+            )
             p_results = random_qcqp.random_projection_sdp(data, projector)
             print("     Finished qcqp with projector")
             sol_dict[projector_type][projection] = p_results
@@ -648,12 +729,19 @@ def randomly_generated_qcqp(config):
 
     for n in config["qcqp"]["variables"]:
         for q in config["qcqp"]["q"]:
-            print("Creating data for QCQP instance with {} variables and {} constraints".format(n, int(n * q)))
+            start = time.time()
+            print(
+                "Creating data for QCQP instance with {} variables and {} constraints".format(
+                    n, int(n * q)
+                )
+            )
             data = random_qcqp.DataQCQP_Ambrosio(n, int(q * n), 0, 1, seed=0)
+            end = time.time()
+            print("Finished creating data, took {} seconds".format(end - start))
+
             print(f"Running QCQP instance {n} variables and {int(n * q)} constraints")
             sdp_relaxation_qcqp_problem(data)
 
-    
 
 if __name__ == "__main__":
     with open("config.yml", "r") as config_file:

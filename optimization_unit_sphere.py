@@ -722,32 +722,34 @@ def constraint_aggregation_CG_unit_sphere(
     tuple_of_constant = tuple([0 for i in range(len(distinct_monomials[0]))])
 
     # Get the coefficients of the sphere polynomial
-    sphere_polynomial = get_sphere_polynomial(polynomial.n, polynomial.d / 2)
-    sphere_polynomial_old = sphere_polynomial.copy()
+    sphere_polynomial_old = get_sphere_polynomial(polynomial.n, polynomial.d / 2)
+    sphere_polynomial = {}
     # Aggregating the coefficients
     for i in range(random_projector.k):
+        print("Aggreating sphere coefficient {}/{}      ".format(i, random_projector.k), end="\r")
         sphere_polynomial[i] = 0
         for j, monomial in enumerate(distinct_monomials):
             sphere_polynomial[i] += random_projector.projector[i, j] * sphere_polynomial_old[monomial]
 
     # Get the matrices for picking coefficients.
-    A = polynomial.A
-    A_old = A.copy()
+    A_old = polynomial.A
+    A = {}
     #Aggregating the matrices
     for i in range(random_projector.k):
+        print("Aggreating matrix {}/{}                      ".format(i, random_projector.k), end="\r")
         A[i] = np.zeros((A_old[tuple_of_constant].shape[0], A_old[tuple_of_constant].shape[1]))
         for j, monomial in enumerate(distinct_monomials):
             A[i] += random_projector.projector[i, j] * A_old[monomial]
 
     # Get the coefficients of the original polynomial
-    polynomial = polynomial.polynomial
-    polynomial_old = polynomial.copy()
+    polynomial_old = polynomial.polynomial
+    polynomial = {}
     # Aggregating the coefficients
     for i in range(random_projector.k):
+        print("Aggreating polynomial coefficient {}/{}".format(i, random_projector.k), end="\r")
         polynomial[i] = 0
         for j, monomial in enumerate(distinct_monomials):
             polynomial[i] += random_projector.projector[i, j] * polynomial_old[monomial]
-
 
     with mf.Model("SDP") as M:
         tuple_of_constant = tuple([0 for i in range(len(distinct_monomials[0]))])
@@ -762,6 +764,7 @@ def constraint_aggregation_CG_unit_sphere(
 
         # Constraint: A_i · X - a * s_i = c_i
         for i in range(random_projector.k):
+            print("Adding constraint {}/{}                  ".format(i, random_projector.k), end="\r")
             M.constraint(
                 mf.Expr.add(
                     mf.Expr.dot(A[i], X),
@@ -783,19 +786,19 @@ def constraint_aggregation_CG_unit_sphere(
             a = a.level()
             X = X.level().reshape(m, m)
             objective = M.primalObjValue()
-            time = end_time - start_time
+            computational_time = end_time - start_time
 
         except:
             a = np.nan
             objective = np.nan
-            time = np.nan
+            computational_time = np.nan
 
 
         solution = {"a": a,
                     "objective": objective,
                     "size_psd_variable": m,
                     "no_constraints": len(distinct_monomials),
-                    "computation_time": time}
+                    "computation_time": computational_time}
 
     return solution
 
@@ -837,30 +840,33 @@ def combined_projection_CG_unit_sphere(
     tuple_of_constant = tuple([0 for i in range(len(distinct_monomials[0]))])
 
     # Get the coefficients of the sphere polynomial
-    sphere_polynomial = get_sphere_polynomial(polynomial.n, polynomial.d / 2)
-    sphere_polynomial_old = sphere_polynomial.copy()
+    sphere_polynomial_old = get_sphere_polynomial(polynomial.n, polynomial.d / 2)
+    sphere_polynomial = {}
     # Aggregating the coefficients
     for i in range(random_projector_constraints.k):
+        print("Aggreating sphere coefficient {}/{}      ".format(i, random_projector_constraints.k), end="\r")
         sphere_polynomial[i] = 0
         for j, monomial in enumerate(distinct_monomials):
             sphere_polynomial[i] += random_projector_constraints.projector[i, j] * sphere_polynomial_old[monomial]
 
     # Get the matrices for picking coefficients.
-    A = {}
+    A_old = {}
     for i, monomial in enumerate(distinct_monomials):
-        A[monomial] = random_projector_variables.apply_rp_map(polynomial.A[monomial])
-    A_old = A.copy()
+        A_old[monomial] = random_projector_variables.apply_rp_map(polynomial.A[monomial])
+    A = {}
     #Aggregating the matrices
     for i in range(random_projector_constraints.k):
+        print("Aggreating matrix {}/{}                      ".format(i, random_projector_constraints.k), end="\r")
         A[i] = np.zeros((A_old[tuple_of_constant].shape[0], A_old[tuple_of_constant].shape[1]))
         for j, monomial in enumerate(distinct_monomials):
             A[i] += random_projector_constraints.projector[i, j] * A_old[monomial]
 
     # Get the coefficients of the original polynomial
-    polynomial = polynomial.polynomial
-    polynomial_old = polynomial.copy()
+    polynomial_old = polynomial.polynomial
+    polynomial = {}
     # Aggregating the coefficients
     for i in range(random_projector_constraints.k):
+        print("Aggreating polynomial coefficient {}/{}".format(i, random_projector_constraints.k), end="\r")
         polynomial[i] = 0
         for j, monomial in enumerate(distinct_monomials):
             polynomial[i] += random_projector_constraints.projector[i, j] * polynomial_old[monomial]
@@ -900,19 +906,19 @@ def combined_projection_CG_unit_sphere(
             a = a.level()
             X = X.level().reshape(m, m)
             objective = M.primalObjValue()
-            time = end_time - start_time
+            computational_time = end_time - start_time
 
         except:
             a = np.nan
             objective = np.nan
-            time = np.nan
+            computational_time = np.nan
 
 
         solution = {"a": a,
                     "objective": objective,
                     "size_psd_variable": A_old[tuple_of_constant].shape[0],
                     "no_constraints": len(distinct_monomials),
-                    "computation_time": time}
+                    "computation_time": computational_time}
 
     return solution
     
@@ -980,28 +986,28 @@ def single_polynomial_table(polynomial, type, range, iterations, form=True):
     # )
     # print("- " * 40)
 
-    # # Solve projected CG unit sphere
-    # # ----------------------------------------
-    # matrix_size = CG_sdp_solution["size_psd_variable"]
-    # for rate in np.linspace(range[0], range[1], iterations):
-    #     random_projector = rp.RandomProjector(
-    #         round(matrix_size * rate), matrix_size, type=type
-    #     )
-    #     if form:
-    #         CG_rp_solution = projected_sdp_CG_unit_sphere(
-    #             polynomial, random_projector, verbose=False
-    #         )
-    #         print(
-    #             "{: <18} {: >10} {: >8.2f} {: >8.2f}".format(
-    #                 "CG projection " + str(round(rate, 2)),
-    #                 CG_rp_solution["size_psd_variable"],
-    #                 CG_rp_solution["objective"],
-    #                 CG_rp_solution["computation_time"],
-    #             )
-    #         )
+    # Solve projected CG unit sphere
+    # ----------------------------------------
+    matrix_size = CG_sdp_solution["size_psd_variable"]
+    for rate in np.linspace(range[0], range[1], iterations):
+        random_projector = rp.RandomProjector(
+            round(matrix_size * rate), matrix_size, type=type
+        )
+        if form:
+            CG_rp_solution = projected_sdp_CG_unit_sphere(
+                polynomial, random_projector, verbose=False
+            )
+            print(
+                "{: <18} {: >10} {: >8.2f} {: >8.2f}".format(
+                    "CG projection " + str(round(rate, 2)),
+                    CG_rp_solution["size_psd_variable"],
+                    CG_rp_solution["objective"],
+                    CG_rp_solution["computation_time"],
+                )
+            )
 
-    #     else:
-    #         print("This method requires a form polynomial.")
+        else:
+            print("This method requires a form polynomial.")
 
     #     # rp_solution = projected_sdp_first_level_unit_sphere(
     #     #     polynomial, random_projector, verbose=False
@@ -1015,7 +1021,7 @@ def single_polynomial_table(polynomial, type, range, iterations, form=True):
     #     #     )
     #     # )
 
-    # print("- " * 40)
+    print("- " * 40)
 
     # Solve constraint aggregation CG unit sphere
     # ----------------------------------------
@@ -1026,7 +1032,7 @@ def single_polynomial_table(polynomial, type, range, iterations, form=True):
         )
         if form:
             CG_rp_solution = constraint_aggregation_CG_unit_sphere(
-                polynomial, random_projector, verbose=True
+                polynomial, random_projector, verbose=False
             )
             print(
                 "{: <18} {: >10} {: >8.2f} {: >8.2f}".format(
@@ -1095,7 +1101,7 @@ if __name__ == "__main__":
     # ----------------------------------------
     # polynomial = poly.Polynomial("x1^2 + x2^2 + 2x1x2", 2, 2)
     # polynomial = poly.Polynomial("random", 15, 4, seed=seed)
-    polynomial = poly.Polynomial("normal_form", 15, 4, seed=seed)
+    polynomial = poly.Polynomial("normal_form", 18, 4, seed=seed)
 
     # Run the table
     # ----------------------------------------

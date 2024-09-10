@@ -498,7 +498,7 @@ class DataQCQP_Ambrosio:
         self.L = [build_L_i(self.D, self.d, i) for i in range(l)]
 
         # Objective
-        print("Building objective")
+        print("Building objective                   ", end="\r")
         A_0 = -build_Q(n, density)
         b_0 = -build_c(0, n)
         self.M_0 = build_M_i(A_0, b_0, 0)
@@ -509,21 +509,16 @@ class DataQCQP_Ambrosio:
         # Quadratic constraints
         self.M = []
         for i in range(1, m + 1):
-            print("Building constraint {}/{}        ".format(i, m))
-            print("Building Q_i")
+            print("Building constraint {}/{}        ".format(i, m), end="\r")
             Q_i = build_Q_i(i, n, density)
-            print("Building c_i")
             c_i = build_c(i, n)
-            print("Building q_i")
             q_i = build_q_i(Q_i, c_i, x)
             self.M.append(build_M_i(Q_i, c_i, q_i))
 
         # Range constraints
-        print("Building range constraints")
         self.R = [build_R_i(i, n) for i in range(n)]
 
         # Ball constraints
-        print("Building ball constraints")
         self.B = build_B(n)
 
 

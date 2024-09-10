@@ -58,7 +58,8 @@ from process_graphs import File
 import math
 import random
 
-class Formula():
+
+class Formula:
     def __init__(self, n, c, list_of_clauses=[], seed=0):
         self.seed = seed
         self.n = n
@@ -88,33 +89,39 @@ class Formula():
         np.random.seed(self.seed)
 
         improved_list_of_clauses = []
-        # Check that all tuples are orderes from smaller to larger index        
+        # Check that all tuples are orderes from smaller to larger index
         for clause in list_of_clauses:
             if abs(clause[0]) > abs(clause[1]):
                 clause = (clause[1], clause[0])
-                improved_list_of_clauses.append(clause)            
+                improved_list_of_clauses.append(clause)
             if abs(clause[0]) == abs(clause[1]):
                 print("Two variables in the clause are the same.")
             if abs(clause[0]) > self.n or abs(clause[1]) > self.n:
-                print("The variables in the clause are greater than the number of variables in the formula.")
+                print(
+                    "The variables in the clause are greater than the number of variables in the formula."
+                )
             else:
                 improved_list_of_clauses.append(clause)
 
         list_of_clauses = improved_list_of_clauses
-        
+
         if list_of_clauses != []:
             list_of_clauses = list_of_clauses
 
         else:
             list_of_clauses = []
             while len(list_of_clauses) < self.c:
-                x_i = random.choice([i for i in range(-self.n, self.n + 1) if i != 0 and i != self.n])
-                x_j = random.choice([-1, 1]) * random.choice([i for i in range(abs(x_i), self.n + 1) if i != 0])
+                x_i = random.choice(
+                    [i for i in range(-self.n, self.n + 1) if i != 0 and i != self.n]
+                )
+                x_j = random.choice([-1, 1]) * random.choice(
+                    [i for i in range(abs(x_i), self.n + 1) if i != 0]
+                )
                 if (x_i, x_j) not in list_of_clauses and abs(x_i) != abs(x_j):
                     list_of_clauses.append((x_i, x_j))
 
         return list_of_clauses
-    
+
     def get_all_y_pairs(self):
         """
         Get all possible combinations of the variables in the formula.
@@ -126,10 +133,12 @@ class Formula():
             List of all possible combinations of the variables in the formula.
         """
 
-        y_pairs = [(0,0)] + [(i, j) for i in range(self.n + 1) for j in range(i + 1, self.n + 1)]
+        y_pairs = [(0, 0)] + [
+            (i, j) for i in range(self.n + 1) for j in range(i + 1, self.n + 1)
+        ]
 
         return y_pairs
-    
+
     def get_coefficients_clause(self, clause):
         """
         Get the coefficients of the vlaue of a clause in the formula.
@@ -146,17 +155,19 @@ class Formula():
         """
 
         coefficients = {}
-        coefficients[(0,0)] = 3 * 1/4
+        coefficients[(0, 0)] = 3 * 1 / 4
         for x_i in clause:
             if x_i < 0:
-                coefficients[(0, -x_i)] = 1/4
+                coefficients[(0, -x_i)] = 1 / 4
             else:
-                coefficients[(0, x_i)] = 1/4
+                coefficients[(0, x_i)] = 1 / 4
 
-        coefficients[(abs(clause[0]), abs(clause[1]))] = - 1/4 * np.sign(clause[0]) * np.sign(clause[1])
+        coefficients[(abs(clause[0]), abs(clause[1]))] = (
+            -1 / 4 * np.sign(clause[0]) * np.sign(clause[1])
+        )
 
         return coefficients
-    
+
     def get_all_coefficients(self):
         """
         Add the coefficients of the objective function to the y pairs.
@@ -167,9 +178,7 @@ class Formula():
             List of tuples representing the coefficients of the objective function.
         """
 
-        coefficients = {
-            pair : 0 for pair in self.y_pairs
-        }
+        coefficients = {pair: 0 for pair in self.y_pairs}
 
         for clause in self.list_of_clauses:
             clause_coefficients = self.get_coefficients_clause(clause)
@@ -178,7 +187,7 @@ class Formula():
                 coefficients[key] += value
 
         return coefficients
-    
+
     def get_coefficients_matrix(self):
         """
         Returns the symmetric matrix of coefficients of the objective function.
@@ -192,9 +201,9 @@ class Formula():
         matrix = np.zeros((self.n + 1, self.n + 1))
 
         for key, value in self.coefficients.items():
-            if key[0] !=  key[1]:
-                matrix[key[0], key[1]] = 1/2 * value
-                matrix[key[1], key[0]] = 1/2 * value
+            if key[0] != key[1]:
+                matrix[key[0], key[1]] = 1 / 2 * value
+                matrix[key[1], key[0]] = 1 / 2 * value
             elif key[0] == 0 and key[1] == 0:
                 matrix[key[0], key[1]] = value
 
@@ -212,7 +221,7 @@ def sdp_relaxation(formula: Formula):
     max <W, X>
     s.t. X is PSD
          X_ii = 1 for all i
-    
+
     where W is the matrix of coefficients of the objective.
 
     Parameters
@@ -239,7 +248,10 @@ def sdp_relaxation(formula: Formula):
         # Constraints:
         constraints = []
         for i in range(matrix_size):
-            print("Adding constraints... {}/{}              ".format(i + 1, matrix_size), end="\r")
+            print(
+                "Adding constraints... {}/{}              ".format(i + 1, matrix_size),
+                end="\r",
+            )
             constraints.append(M.constraint(X.index(i, i), mf.Domain.equalsTo(1)))
 
         start_time = time.time()
@@ -247,7 +259,6 @@ def sdp_relaxation(formula: Formula):
         M.solve()
         print("Solved")
         end_time = time.time()
-
 
         solution = {
             # "X_sol": X.level().reshape((matrix_size, matrix_size)),
@@ -262,7 +273,7 @@ def sdp_relaxation(formula: Formula):
 
 
 def projected_sdp_relaxation(formula, projector, verbose=False, slack=True):
-    """ 
+    """
     Solves the MAX-2-SAT problem projecting the SDP relaxation
     using a random projector.
 
@@ -272,7 +283,7 @@ def projected_sdp_relaxation(formula, projector, verbose=False, slack=True):
     max <PWP^T, X>
     s.t. X is PSD
          <PAP^T, X> = 1 for all A in A
-        
+
     where W is the matrix of coefficients of the objective, and
     A are the matrices that pick entry ii in the matrix.
 
@@ -309,7 +320,9 @@ def projected_sdp_relaxation(formula, projector, verbose=False, slack=True):
 
     projected_A = {}
     for i in range(original_dimension):
-        print("Projecting A matrix... {}/{}".format(i + 1, original_dimension), end="\r")
+        print(
+            "Projecting A matrix... {}/{}".format(i + 1, original_dimension), end="\r"
+        )
         projected_A[i] = np.outer(projector.projector[:, i], projector.projector[:, i])
 
     with mf.Model("SDP") as M:
@@ -340,25 +353,33 @@ def projected_sdp_relaxation(formula, projector, verbose=False, slack=True):
                         mf.Expr.dot(ub_variables, ones_vector),
                     ),
                 ),
-            )
+            ),
         )
 
         # Constraints:
         # constraints = []
         for i in range(original_dimension):
-            print("Adding constraints... {}/{}              ".format(i + 1, original_dimension), end="\r")
+            print(
+                "Adding constraints... {}/{}              ".format(
+                    i + 1, original_dimension
+                ),
+                end="\r",
+            )
             difference_slacks = mf.Expr.sub(
                 lb_variables.index(i),
                 ub_variables.index(i),
             )
             M.constraint(
-                    mf.Expr.add(mf.Expr.dot(projected_A[i], X), difference_slacks),
-                    mf.Domain.equalsTo(1),
-                )
-        
+                mf.Expr.add(mf.Expr.dot(projected_A[i], X), difference_slacks),
+                mf.Domain.equalsTo(1),
+            )
 
         start_time = time.time()
-        print("Solving projected SDP with {} variables and projector {}".format(projector.k, projector.type).ljust(80))
+        print(
+            "Solving projected SDP with {} variables and projector {}".format(
+                projector.k, projector.type
+            ).ljust(80)
+        )
         M.solve()
         print("Solved")
         end_time = time.time()
@@ -416,8 +437,13 @@ def satisfiability_feasibility(formula: Formula):
         for i in range(matrix_size):
             matrix = np.zeros((matrix_size, matrix_size))
             matrix[i, i] = 1
-            constraints.append(M.constraint(mf.Expr.dot(matrix, X), mf.Domain.equalsTo(1)))
-            print("Adding constraints... {}/{}              ".format(i + 1, matrix_size), end="\r")
+            constraints.append(
+                M.constraint(mf.Expr.dot(matrix, X), mf.Domain.equalsTo(1))
+            )
+            print(
+                "Adding constraints... {}/{}              ".format(i + 1, matrix_size),
+                end="\r",
+            )
         # Clauses
         for clause in clauses:
             matrix = np.zeros((matrix_size, matrix_size))
@@ -427,21 +453,29 @@ def satisfiability_feasibility(formula: Formula):
             # Second clause
             matrix[0, abs(clause[1])] = np.sign(clause[1])
             matrix[abs(clause[1]), 0] = np.sign(clause[1])
-            # Combined 
-            matrix[abs(clause[0]), abs(clause[1])] = -1 * np.sign(clause[0]) * np.sign(clause[1])
-            matrix[abs(clause[1]), abs(clause[0])] = -1 * np.sign(clause[0]) * np.sign(clause[1])
-            constraints.append(M.constraint(mf.Expr.dot(matrix, X), mf.Domain.equalsTo(1)))
-            print("Adding constraints... {}/{}              ".format(i + 1, len(clauses)), end="\r")
+            # Combined
+            matrix[abs(clause[0]), abs(clause[1])] = (
+                -1 * np.sign(clause[0]) * np.sign(clause[1])
+            )
+            matrix[abs(clause[1]), abs(clause[0])] = (
+                -1 * np.sign(clause[0]) * np.sign(clause[1])
+            )
+            constraints.append(
+                M.constraint(mf.Expr.dot(matrix, X), mf.Domain.equalsTo(1))
+            )
+            print(
+                "Adding constraints... {}/{}              ".format(i + 1, len(clauses)),
+                end="\r",
+            )
 
         start_time = time.time()
-        try:                
+        try:
             M.solve()
             end_time = time.time()
             objective = M.primalObjValue()
         except:
             objective = 0
-            end_time = time.time()                   
-        
+            end_time = time.time()
 
         solution = {
             "objective": objective,
@@ -455,7 +489,7 @@ def satisfiability_feasibility(formula: Formula):
 
 
 def projected_sat_feasibility(formula, projector):
-    """ 
+    """
     Solves the 2-SAT problem projecting the SDP relaxation
     using a random projector.
 
@@ -497,8 +531,13 @@ def projected_sat_feasibility(formula, projector):
             matrix = np.zeros((matrix_size, matrix_size))
             matrix[i, i] = 1
             matrix = np.outer(projector.projector[:, i], projector.projector[:, i])
-            constraints.append(M.constraint(mf.Expr.dot(matrix, X), mf.Domain.equalsTo(1)))
-            print("Adding constraints... {}/{}              ".format(i + 1, matrix_size), end="\r")
+            constraints.append(
+                M.constraint(mf.Expr.dot(matrix, X), mf.Domain.equalsTo(1))
+            )
+            print(
+                "Adding constraints... {}/{}              ".format(i + 1, matrix_size),
+                end="\r",
+            )
         # Clauses
         for i, clause in enumerate(clauses):
             # print("Adding clause constraints... {}/{}              ".format(i + 1, len(clauses), end="\r"))
@@ -509,22 +548,30 @@ def projected_sat_feasibility(formula, projector):
             # Second clause
             matrix[0, abs(clause[1])] = np.sign(clause[1])
             matrix[abs(clause[1]), 0] = np.sign(clause[1])
-            # Combined 
-            matrix[abs(clause[0]), abs(clause[1])] = -1 * np.sign(clause[0]) * np.sign(clause[1])
-            matrix[abs(clause[1]), abs(clause[0])] = -1 * np.sign(clause[0]) * np.sign(clause[1])
+            # Combined
+            matrix[abs(clause[0]), abs(clause[1])] = (
+                -1 * np.sign(clause[0]) * np.sign(clause[1])
+            )
+            matrix[abs(clause[1]), abs(clause[0])] = (
+                -1 * np.sign(clause[0]) * np.sign(clause[1])
+            )
             matrix = projector.apply_rp_map(matrix)
-            constraints.append(M.constraint(mf.Expr.dot(matrix, X), mf.Domain.equalsTo(1)))
-            print("Adding constraints... {}/{}              ".format(i + 1, len(clauses)), end="\r")
+            constraints.append(
+                M.constraint(mf.Expr.dot(matrix, X), mf.Domain.equalsTo(1))
+            )
+            print(
+                "Adding constraints... {}/{}              ".format(i + 1, len(clauses)),
+                end="\r",
+            )
 
         start_time = time.time()
-        try:                 
+        try:
             M.solve()
             end_time = time.time()
             objective = M.primalObjValue()
         except:
             objective = 0
             end_time = time.time()
-
 
         solution = {
             "objective": objective,
@@ -535,9 +582,11 @@ def projected_sat_feasibility(formula, projector):
         }
 
         return solution
-    
 
-def single_formula_results(formula, type="sparse", range=(0.1, 0.5), iterations=5, problem="max"):
+
+def single_formula_results(
+    formula, type="sparse", range=(0.1, 0.5), iterations=5, problem="max"
+):
     """
     Get the results for a single graph.
 
@@ -556,11 +605,19 @@ def single_formula_results(formula, type="sparse", range=(0.1, 0.5), iterations=
     # Solve unprojected stable set problem
     # ----------------------------------------
     print("\n" + "-" * 80)
-    print("Results for a formula with {} variables and {} clauses".format(formula.n, formula.c).center(80))
+    print(
+        "Results for a formula with {} variables and {} clauses".format(
+            formula.n, formula.c
+        ).center(80)
+    )
     print("-" * 80)
     print(
         "\n{: <18} {: >10} {: >8} {: >12} {: >8} ".format(
-            "Type", "Size X", "Value", "Quality/SDP", "Time", 
+            "Type",
+            "Size X",
+            "Value",
+            "Quality/SDP",
+            "Time",
         )
     )
     print("-" * 80)
@@ -597,7 +654,7 @@ def single_formula_results(formula, type="sparse", range=(0.1, 0.5), iterations=
         elif problem == "sat":
             rp_solution = projected_sat_feasibility(formula, random_projector)
             quality = "N/A"
-       
+
         print(
             "{: <18} {: >10} {: >8.2f} {: >12} {: >8.2f}".format(
                 "Projection " + str(round(rate, 2)),
@@ -628,7 +685,6 @@ def single_formula_results(formula, type="sparse", range=(0.1, 0.5), iterations=
     print()
 
 
-
 if __name__ == "__main__":
     # Create a formula
     variables = 500
@@ -640,4 +696,6 @@ if __name__ == "__main__":
     # satisfiability_feasibility(formula)
     # projector = rp.RandomProjector(50, 101, type="sparse")
     # projected_sat_feasibility(formula, projector)
-    single_formula_results(formula, type="0.1_density", range=(0.1, 0.3), iterations=3, problem="sat")
+    single_formula_results(
+        formula, type="0.1_density", range=(0.1, 0.3), iterations=3, problem="sat"
+    )

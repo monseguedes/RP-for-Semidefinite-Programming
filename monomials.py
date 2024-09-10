@@ -7,7 +7,7 @@ import numpy as np
 import math
 import scipy
 import itertools
-import time 
+import time
 from ordered_set import OrderedSet
 
 
@@ -138,7 +138,7 @@ def generate_monomials_exact_degree(n, d):
     else:
         for value in range(d + 1):
             for permutation in generate_monomials_exact_degree(n - 1, d - value):
-                yield permutation + (value,) 
+                yield permutation + (value,)
 
 
 def generate_monomials_up_to_degree(n, d):
@@ -234,7 +234,13 @@ def outer_product_monomials(monomials_vector, stable_set=False):
     """
 
     if stable_set:
-        monomials_vector = [tuple(1 if x in list(range(1, len(monomials_vector[0]))) else x for x in monomial) for monomial in monomials_vector]
+        monomials_vector = [
+            tuple(
+                1 if x in list(range(1, len(monomials_vector[0]))) else x
+                for x in monomial
+            )
+            for monomial in monomials_vector
+        ]
         set_monomials_vector = OrderedSet(monomials_vector)
         monomials_vector = list(set_monomials_vector)
 
@@ -684,12 +690,16 @@ def stable_set_distinct_monomials(edges, n, level=1):
             i = monomial.index(1)
             for j in range(i + 1, n):
                 if (i, j) != ordered_edges[edge_tracker]:
-                    monomials_degree_2.append(tuple(1 if k in [i, j] else 0 for k in range(n)))
-                    distinct_monomials.append(tuple(1 if k in [i, j] else 0 for k in range(n)))
+                    monomials_degree_2.append(
+                        tuple(1 if k in [i, j] else 0 for k in range(n))
+                    )
+                    distinct_monomials.append(
+                        tuple(1 if k in [i, j] else 0 for k in range(n))
+                    )
                 else:
                     if edge_tracker < len(ordered_edges) - 1:
                         edge_tracker += 1
-            
+
     if level == 2:
         # # NEW OLD METHOD----------------------------------------------------------------
         # print("Generating distinct monomials level 2 degree 2...")
@@ -748,7 +758,6 @@ def stable_set_distinct_monomials(edges, n, level=1):
         # end = time.time()
         # print("Time elapsed distinct monomials old method: {}".format(end - start))
         # print("Number of distinct monomials: {}".format(len(distinct_monomials)))
-    
 
         # NEW METHOD----------------------------------------------------------------
         ordered_edges = sorted(edges)
@@ -770,8 +779,12 @@ def stable_set_distinct_monomials(edges, n, level=1):
             i = monomial.index(1)
             for j in range(i + 1, n):
                 if (i, j) != ordered_edges[edge_tracker]:
-                    monomials_degree_2.append(tuple(1 if k in [i, j] else 0 for k in range(n)))
-                    distinct_monomials.append(tuple(1 if k in [i, j] else 0 for k in range(n)))
+                    monomials_degree_2.append(
+                        tuple(1 if k in [i, j] else 0 for k in range(n))
+                    )
+                    distinct_monomials.append(
+                        tuple(1 if k in [i, j] else 0 for k in range(n))
+                    )
                 else:
                     if edge_tracker < len(ordered_edges) - 1:
                         edge_tracker += 1
@@ -786,10 +799,20 @@ def stable_set_distinct_monomials(edges, n, level=1):
             i = monomial.index(1)
             j = monomial.index(1, i + 1)
             for k in [x for x in range(n) if x not in [i, j]]:
-                if tuple(1 if l in [i, j, k] else 0 for l in range(n)) not in monomials_degree_3:
-                    if all(tuple(sorted((a,b))) not in ordered_edges for a,b in itertools.combinations([i, j, k], 2)):
-                        monomials_degree_3.append(tuple(1 if l in [i, j, k] else 0 for l in range(n)))
-                        distinct_monomials.append(tuple(1 if l in [i, j, k] else 0 for l in range(n)))
+                if (
+                    tuple(1 if l in [i, j, k] else 0 for l in range(n))
+                    not in monomials_degree_3
+                ):
+                    if all(
+                        tuple(sorted((a, b))) not in ordered_edges
+                        for a, b in itertools.combinations([i, j, k], 2)
+                    ):
+                        monomials_degree_3.append(
+                            tuple(1 if l in [i, j, k] else 0 for l in range(n))
+                        )
+                        distinct_monomials.append(
+                            tuple(1 if l in [i, j, k] else 0 for l in range(n))
+                        )
         # print("Monomials degree 3: {}".format(monomials_degree_3))
         # print("Number of monomials degree 3: {}".format(len(monomials_degree_3)))
         # print("Number of monomials degree 3 filtered: {}".format(len([mono for mono in monomials_degree_3 if mono not in edges_to_monomials(edges, n)]))    )
@@ -801,10 +824,20 @@ def stable_set_distinct_monomials(edges, n, level=1):
             j = monomial.index(1, i + 1)
             k = monomial.index(1, j + 1)
             for l in [x for x in range(n) if x not in [i, j, k]]:
-                if tuple(1 if m in [i, j, k, l] else 0 for m in range(n)) not in monomials_degree_4:
-                    if all(tuple(sorted((a,b))) not in ordered_edges for a,b in itertools.combinations([i, j, k, l], 2)):
-                        monomials_degree_4.append(tuple(1 if m in [i, j, k, l] else 0 for m in range(n)))
-                        distinct_monomials.append(tuple(1 if m in [i, j, k, l] else 0 for m in range(n)))
+                if (
+                    tuple(1 if m in [i, j, k, l] else 0 for m in range(n))
+                    not in monomials_degree_4
+                ):
+                    if all(
+                        tuple(sorted((a, b))) not in ordered_edges
+                        for a, b in itertools.combinations([i, j, k, l], 2)
+                    ):
+                        monomials_degree_4.append(
+                            tuple(1 if m in [i, j, k, l] else 0 for m in range(n))
+                        )
+                        distinct_monomials.append(
+                            tuple(1 if m in [i, j, k, l] else 0 for m in range(n))
+                        )
         # print("Monomials degree 4: {}".format(monomials_degree_4))
         # print("Number of monomials degree 4: {}".format(len(monomials_degree_4)))
         # print("Number of monomials degree 4 filtered: {}".format(len([mono for mono in monomials_degree_4 if mono not in edges_to_monomials(edges, n)]))    )
@@ -812,7 +845,5 @@ def stable_set_distinct_monomials(edges, n, level=1):
         end = time.time()
         print("Time elapsed distinct monomials new method: {}".format(end - start))
         print("Number of distinct monomials: {}".format(len(distinct_monomials)))
-
-
 
     return distinct_monomials

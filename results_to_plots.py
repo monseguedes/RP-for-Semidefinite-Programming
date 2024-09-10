@@ -36,7 +36,7 @@ def plot_quality(config):
             print(results)
 
             # projector_type = config["densities"][results["original"]["size_psd_variable"]][0]
-            projector_type = [key for key in results.keys() if key != 'original'][0]
+            projector_type = [key for key in results.keys() if key != "original"][0]
 
             quality = (
                 results[projector_type][0.1]["objective"]
@@ -50,7 +50,7 @@ def plot_quality(config):
 
     def geo_mean(iterable):
         a = np.array(iterable)
-        return a.prod()**(1.0/len(a))
+        return a.prod() ** (1.0 / len(a))
 
     # Take geometric mean of quality
     for key in dict.keys():
@@ -62,7 +62,7 @@ def plot_quality(config):
         marker="o",
         color="black",
         markersize=3,
-        linewidth=1
+        linewidth=1,
     )
     plt.xlabel("Number of nodes")
     plt.ylabel("Quality (%)")
@@ -81,6 +81,7 @@ def plot_quality(config):
         dpi=300,
         transparent=False,
     )
+
 
 with open("config.yml", "r") as file:
     config = yaml.safe_load(file)

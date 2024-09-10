@@ -241,7 +241,6 @@ if __name__ == "__main__":
     A = [Ai @ Ai.T for Ai in A]
     b = np.random.rand(m)
 
-
     # Solve the SDP problem
     solution_primal = standard_primal(C, A, b)
     print("Solution of the SDP problem:")

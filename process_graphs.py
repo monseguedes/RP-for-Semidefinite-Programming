@@ -12,6 +12,7 @@ import sys
 import numpy as np
 import pickle
 
+
 class File:
     def __init__(self, filename):
         self.name = filename.split("/")[-1].split(".")[0]
@@ -22,15 +23,14 @@ class File:
         self.graph = self.get_adjacency_matrix()
         print("Shape of the graph: ", self.graph.shape)
         self.n = self.get_no_vertices()
-        self.e = self.get_no_edges() 
-
+        self.e = self.get_no_edges()
 
     def get_no_vertices(self):
         """
         Get the first number from the first row of the file
         """
         return int(self.lines[0].split()[0])
-    
+
     def get_no_edges(self):
         """
         Get the second number from the first row of the file
@@ -49,7 +49,7 @@ class File:
         self.edges = edges
 
         return edges
-    
+
     def get_weights(self):
         """
         Get the weights from the file
@@ -57,9 +57,13 @@ class File:
         weights_dict = {}
         for line in self.lines[1:]:
             if len(line.split()) > 0:
-                i, j, w = int(line.split()[0]), int(line.split()[1]), int(line.split()[2])
-                weights_dict[(i-1, j-1)] = w
-                weights_dict[(j-1, i-1)] = w
+                i, j, w = (
+                    int(line.split()[0]),
+                    int(line.split()[1]),
+                    int(line.split()[2]),
+                )
+                weights_dict[(i - 1, j - 1)] = w
+                weights_dict[(j - 1, i - 1)] = w
 
         return weights_dict
 
@@ -72,8 +76,12 @@ class File:
         for line in self.lines[1:]:
             if len(line.split()) > 0:
                 i, j = int(line.split()[0]), int(line.split()[1])
-                adj_matrix[i-1][j-1] = self.weights[(i-1, j-1)] if self.weights else 1
-                adj_matrix[j-1][i-1] = self.weights[(j-1, i-1)] if self.weights else 1
+                adj_matrix[i - 1][j - 1] = (
+                    self.weights[(i - 1, j - 1)] if self.weights else 1
+                )
+                adj_matrix[j - 1][i - 1] = (
+                    self.weights[(j - 1, i - 1)] if self.weights else 1
+                )
 
         self.graph = adj_matrix
 
@@ -104,7 +112,8 @@ class File:
             # Serialize and save the object to the file
             pickle.dump(self, file)
 
-        print("Graph stored in: ", file_path)  
+        print("Graph stored in: ", file_path)
+
 
 if __name__ == "__main__":
     # file_name = "graphs/maxcut/G1.txt"
@@ -126,7 +135,9 @@ if __name__ == "__main__":
     #     file = File(file_name)
     #     file.store_graph(graph)
 
-    for graph in [name for name in os.listdir("graphs/maxcut/out")]: #if "7000_30" in name or "7000_40" in name]:
+    for graph in [
+        name for name in os.listdir("graphs/maxcut/out")
+    ]:  # if "7000_30" in name or "7000_40" in name]:
         file_name = "graphs/maxcut/out/" + graph
         print(file_name)
         if not os.path.exists(f"graphs/maxcut/{graph.strip('.txt')}"):

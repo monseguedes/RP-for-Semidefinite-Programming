@@ -6,6 +6,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import math
 
+
 def plot_psd_matrix_size():
     """
     Plot the number of combinations of n choose k.
@@ -43,7 +44,6 @@ def plot_constraints_growth():
     plt.title("Number of constraints for a given number of vertices")
     plt.show()
 
+
 plot_psd_matrix_size()
 plot_constraints_growth()
-    
-

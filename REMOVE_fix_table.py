@@ -85,10 +85,10 @@ for latex_line in lines:
     name = latex_line.split("&")[0].strip()
     m = latex_line.split("&")[1].strip()
     time_ratio_10 = (
-                float(latex_line.split("&&")[1].split("&")[0])
-                / float(latex_line.split("&")[2])
-                * 100
-            )
+        float(latex_line.split("&&")[1].split("&")[0])
+        / float(latex_line.split("&")[2])
+        * 100
+    )
     quality_ratio_10 = latex_line.split("&&")[1].split("&")[1]
     time_ratio_20 = (
         float(latex_line.split("&&")[2].split("&")[0])
@@ -97,7 +97,9 @@ for latex_line in lines:
     )
     quality_ratio_20 = latex_line.split("&&")[2].split("&")[1]
 
-    print(f"            {name} & {m} && {time_ratio_10:.2f} & {quality_ratio_10} && {time_ratio_20:.2f} & {quality_ratio_20} \\\\")
+    print(
+        f"            {name} & {m} && {time_ratio_10:.2f} & {quality_ratio_10} && {time_ratio_20:.2f} & {quality_ratio_20} \\\\"
+    )
 
 table_footer = r"""
             \bottomrule

@@ -273,7 +273,12 @@ def stable_set_to_latex(directory):
             with open(file_path, "rb") as file:
                 results = pickle.load(file)
 
-            projector_type = config["densities"][min(config["densities"], key=lambda x:abs(x - results["L2"]["size_psd_variable"]))][0]
+            projector_type = config["densities"][
+                min(
+                    config["densities"],
+                    key=lambda x: abs(x - results["L2"]["size_psd_variable"]),
+                )
+            ][0]
 
             key = 0.1
 
@@ -288,10 +293,11 @@ def stable_set_to_latex(directory):
                 * 100
             )
 
-
             print(
                 "             {:8} & {:8} & {:8} & {:8} & {:8} && {:8} & {:8} & {:8.2f} \\\\".format(
-                    "c-" + graph + "-"
+                    "c-"
+                    + graph
+                    + "-"
                     + name.strip(".pkl").replace("_", "-").strip("-complement"),
                     results["L1"]["size_psd_variable"] - 1,
                     results["L2"]["edges"],
@@ -302,7 +308,6 @@ def stable_set_to_latex(directory):
                     time_relative,
                 )
             )
-
 
     table_footer = r"""
             \bottomrule
@@ -425,8 +430,10 @@ def maxsat_to_latex_simplified(directory, percentage=[0.1, 0.2]):
             n = name.split("_")[1]
             c = name.split("_")[2].split(".")[0]
             name = name.replace("_", "-")
-            
-        first_projector_type = config["densities"][results["original"]["size_psd_variable"] - 1][0]
+
+        first_projector_type = config["densities"][
+            results["original"]["size_psd_variable"] - 1
+        ][0]
         # second_projector_type = config["densities"][min(config["densities"], key=lambda x:abs(x - results["original"]["size_psd_variable"] + 1000))][0] # Flawed
         second_projector_type = "0.03_density"
         try:
@@ -436,20 +443,20 @@ def maxsat_to_latex_simplified(directory, percentage=[0.1, 0.2]):
                 * 100
             )
             first_time = (
-                    results[first_projector_type][percentage[0]]["computation_time"]
-                    / results["original"]["computation_time"]
-                    * 100
-                )
+                results[first_projector_type][percentage[0]]["computation_time"]
+                / results["original"]["computation_time"]
+                * 100
+            )
             second_quality = (
                 results[second_projector_type][percentage[1]]["objective"]
                 / results["original"]["objective"]
                 * 100
             )
             second_time = (
-                    results[second_projector_type][percentage[1]]["computation_time"]
-                    / results["original"]["computation_time"]
-                    * 100
-                )
+                results[second_projector_type][percentage[1]]["computation_time"]
+                / results["original"]["computation_time"]
+                * 100
+            )
             print(
                 "             {:8} & {:5} & {:8} && {:6.2f} & {:2.2f} && {:6.2f} & {:2.2f}  \\\\".format(
                     name,
@@ -500,7 +507,6 @@ def sat_to_latex_simplified(config, percentage=[0.1, 0.2]):
     n_list = set([int(file.split("_")[0]) for file in dir_list])
     C_list = set([number(file.split("_")[1]) for file in dir_list])
 
-    
     for n in sorted(n_list):
         epoch = 0
         print("             \midrule")
@@ -515,26 +521,34 @@ def sat_to_latex_simplified(config, percentage=[0.1, 0.2]):
                     results = pickle.load(file)
                 if results["original"]["objective"] == 1:
                     no_feasible += 1
-                    projector_type = config["densities"][results["original"]["size_psd_variable"] - 1][0]
+                    projector_type = config["densities"][
+                        results["original"]["size_psd_variable"] - 1
+                    ][0]
                     if results[projector_type][percentage[0]]["objective"] == 1:
                         first_no_projected_feasible += 1
                     if results[projector_type][percentage[1]]["objective"] == 1:
                         second_no_projected_feasible += 1
 
             if no_feasible == 0:
-                first_proportion = 'N/A'
-                second_proportion = 'N/A'
+                first_proportion = "N/A"
+                second_proportion = "N/A"
             else:
-                first_proportion = round(first_no_projected_feasible / no_feasible * 100)
-                second_proportion = round(second_no_projected_feasible / no_feasible * 100)
+                first_proportion = round(
+                    first_no_projected_feasible / no_feasible * 100
+                )
+                second_proportion = round(
+                    second_no_projected_feasible / no_feasible * 100
+                )
 
             if epoch == 0:
                 print(
                     "             {:8} & {:8} & {:8} & {:8} \\\\".format(
                         n,
                         C,
-                        str(first_proportion) + " ({}/{})".format(first_no_projected_feasible, no_feasible),
-                        str(second_proportion) + " ({}/{})".format(second_no_projected_feasible, no_feasible)
+                        str(first_proportion)
+                        + " ({}/{})".format(first_no_projected_feasible, no_feasible),
+                        str(second_proportion)
+                        + " ({}/{})".format(second_no_projected_feasible, no_feasible),
                     )
                 )
             else:
@@ -542,13 +556,14 @@ def sat_to_latex_simplified(config, percentage=[0.1, 0.2]):
                     "             {:8} & {:8} & {:8} & {:8} \\\\".format(
                         " ",
                         C,
-                        str(first_proportion) + " ({}/{})".format(first_no_projected_feasible, no_feasible),
-                        str(second_proportion) + " ({}/{})".format(second_no_projected_feasible, no_feasible)
+                        str(first_proportion)
+                        + " ({}/{})".format(first_no_projected_feasible, no_feasible),
+                        str(second_proportion)
+                        + " ({}/{})".format(second_no_projected_feasible, no_feasible),
                     )
                 )
-            
+
             epoch += 1
-        
 
     table_footer = r"""
             \bottomrule
@@ -556,7 +571,7 @@ def sat_to_latex_simplified(config, percentage=[0.1, 0.2]):
         \label{tab:sat feasibility}
     \end{table}
     """
-        
+
     print(table_footer)
 
 
@@ -576,19 +591,28 @@ def sparsity_test_to_latex(directory, percentage=[0.05, 0.1]):
 
     with open(os.path.join(directory, "mcp_10000_20_1.pkl"), "rb") as file:
         results = pickle.load(file)
-    
-    for sparsity in sorted([density for density in results.keys() if density != "original"]):
+
+    for sparsity in sorted(
+        [density for density in results.keys() if density != "original"]
+    ):
         print(
             "             {:8} && {:8.2f} & {:8.2f} && {:8.2f} & {:8.2f} \\\\".format(
                 int((1 - float(sparsity.split("_")[0])) * 100),
-                results[sparsity][percentage[0]]["computation_time"] / results["original"]["computation_time"] * 100,
-                results[sparsity][percentage[0]]["objective"] / results["original"]["objective"] * 100,
-                results[sparsity][percentage[1]]["computation_time"] / results["original"]["computation_time"] * 100,
-                results[sparsity][percentage[1]]["objective"] / results["original"]["objective"] * 100,
+                results[sparsity][percentage[0]]["computation_time"]
+                / results["original"]["computation_time"]
+                * 100,
+                results[sparsity][percentage[0]]["objective"]
+                / results["original"]["objective"]
+                * 100,
+                results[sparsity][percentage[1]]["computation_time"]
+                / results["original"]["computation_time"]
+                * 100,
+                results[sparsity][percentage[1]]["objective"]
+                / results["original"]["objective"]
+                * 100,
             )
         )
 
-    
     table_footer = r"""
         \bottomrule
         \end{tabular}
@@ -596,6 +620,7 @@ def sparsity_test_to_latex(directory, percentage=[0.05, 0.1]):
     \end{table}"""
 
     print(table_footer)
+
 
 def qcqp_to_latex(directory):
     table_header = r"""
@@ -621,7 +646,9 @@ def qcqp_to_latex(directory):
         with open(file_path, "rb") as file:
             results = pickle.load(file)
 
-        projector_type =  config["densities"][results["original"]["size_psd_variable"] - 1][0]
+        projector_type = config["densities"][
+            results["original"]["size_psd_variable"] - 1
+        ][0]
 
         first_projector_type = projector_type
         second_projector_type = projector_type
@@ -629,13 +656,27 @@ def qcqp_to_latex(directory):
         print(
             "             {:8} && {:8.2f} & {:8.2f} && {:8.2f} & {:8.2f} \\\\".format(
                 name.strip(".pkl").replace("_", "-"),
-                results[first_projector_type][0.5]["computation_time"] / results["original"]["computation_time"] * 100,
-                (results[first_projector_type][0.5]["objective"] - results["original"]["objective"]) / results["original"]["objective"] * 100,
-                results[second_projector_type][0.7]["computation_time"] / results["original"]["computation_time"] * 100,
-                (results[second_projector_type][0.7]["objective"] - results["original"]["objective"]) / results["original"]["objective"] * 100,
+                results[first_projector_type][0.5]["computation_time"]
+                / results["original"]["computation_time"]
+                * 100,
+                (
+                    results[first_projector_type][0.5]["objective"]
+                    - results["original"]["objective"]
+                )
+                / results["original"]["objective"]
+                * 100,
+                results[second_projector_type][0.7]["computation_time"]
+                / results["original"]["computation_time"]
+                * 100,
+                (
+                    results[second_projector_type][0.7]["objective"]
+                    - results["original"]["objective"]
+                )
+                / results["original"]["objective"]
+                * 100,
+            )
         )
-        )
-    
+
     table_footer = r"""
         \bottomrule
         \end{tabular}
@@ -643,7 +684,7 @@ def qcqp_to_latex(directory):
     \end{table}"""
 
     print(table_footer)
-  
+
 
 with open("config.yml", "r") as file:
     config = yaml.safe_load(file)

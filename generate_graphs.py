@@ -38,10 +38,12 @@ class Graph:
 
         for i in range(self.n):
             for j in range(i + 1, self.n):
-                if (i, j) not in sorted(self.edges) + complement and (j, i) not in sorted(self.edges) + complement:
+                if (i, j) not in sorted(self.edges) + complement and (
+                    j,
+                    i,
+                ) not in sorted(self.edges) + complement:
                     complement.append((i, j))
         self.edges = complement
-
 
     def get_picking_SOS(self, verbose=False):
         """ """
@@ -73,7 +75,7 @@ class Graph:
                     end="\r",
                 )
             A[monomial] = monomials.pick_specific_monomial(monomial_matrix, monomial)
-       
+
         if verbose:
             print("Done building Ai matrices for level 1")
 
@@ -125,7 +127,8 @@ class Graph:
                 print(
                     "Picking monomial: {} out of {}".format(
                         i, len(self.distinct_monomials_L2)
-                    ), end="\r"
+                    ),
+                    end="\r",
                 )
             self.A_L2[monomial] = monomials.pick_specific_monomial(
                 monomial_matrix, monomial
@@ -265,7 +268,7 @@ def generate_petersen_graph():
 
 
 def generate_cordones(n, complement=False, save=False, level=2):
-    """ 
+    """
     Generate a cordones graph.
 
     This graph looks like:
@@ -278,7 +281,7 @@ def generate_cordones(n, complement=False, save=False, level=2):
     [0, 1, 0, ..., 1, 0, ..., 0, 1, ..., 0]
     [., ., ., ..., ., ., ..., ., ., ..., 0]
     [0, 1, 1, ..., 0, 0, ..., 0, 0, ..., 1]
-    [0, 0, 1, ..., 0, 1, ..., 0, 0, ..., 0] 
+    [0, 0, 1, ..., 0, 1, ..., 0, 0, ..., 0]
     [., ., ., ..., ., ., ..., ., ., ..., 0]
     [0, 0, 0, ..., 1, 0, ..., 1, 0, ..., 0]
     """
@@ -366,7 +369,7 @@ def generate_generalised_petersen(n, k, complement=False, save=False, level=2):
         start = time.time()
         petersen.picking_for_level_two(verbose=True)
         print("Time taken building level 2:", time.time() - start)
-    if save: 
+    if save:
         if complement:
             petersen.store_graph("generalised_petersen_{}_{}_complement".format(n, k))
         else:
@@ -419,9 +422,9 @@ def generate_helm_graph(n, complement=False, save=False, level=2):
     """
     helm = Graph()
     helm.n = 2 * n + 1
-    inner_star_edges = [(i, i + 1) for i in range(n - 1)] + [(0,n - 1)]
+    inner_star_edges = [(i, i + 1) for i in range(n - 1)] + [(0, n - 1)]
     outer_star_edges = [(i, i + n) for i in range(n)]
-    inner_point_edges = [(i, 2*n) for i in range(n)]
+    inner_point_edges = [(i, 2 * n) for i in range(n)]
     helm.edges = inner_star_edges + outer_star_edges + inner_point_edges
     # Make sure that all tuples in edges are ordered (i, j) with i < j
     helm.edges = [tuple(sorted(edge)) for edge in helm.edges]
@@ -455,12 +458,13 @@ def generate_helm_graph(n, complement=False, save=False, level=2):
 
     return helm
 
+
 def generate_jahangir_graph(n, k, complement=False, save=False, level=2):
     """
     Generate a jahangir graph.
     """
     jahangir = Graph()
-    jahangir.n =  n + n * (k - 1) + 1
+    jahangir.n = n + n * (k - 1) + 1
     # Make a circle connecting all n vertices
     edges = [(i, (i + 1) % (jahangir.n - 1)) for i in range(jahangir.n - 1)]
     # Make a star connecting vertices every k places to the center
@@ -475,7 +479,9 @@ def generate_jahangir_graph(n, k, complement=False, save=False, level=2):
     jahangir.edges = [tuple(sorted(edge)) for edge in jahangir.edges]
 
     # Get matrix representation of the graph
-    jahangir.graph = np.array([[0 for i in range(jahangir.n)] for j in range(jahangir.n)])
+    jahangir.graph = np.array(
+        [[0 for i in range(jahangir.n)] for j in range(jahangir.n)]
+    )
     for i, j in jahangir.edges:
         jahangir.graph[i][j] = 1
         jahangir.graph[j][i] = 1
@@ -498,6 +504,7 @@ def generate_jahangir_graph(n, k, complement=False, save=False, level=2):
     print("Graph jahangir graph with n={} generated!".format(n))
 
     return jahangir
+
 
 if __name__ == "__main__":
     # generate_pentagon()

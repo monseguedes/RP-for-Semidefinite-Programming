@@ -63,7 +63,7 @@ def sdp_relaxation(graph):
     max 1/4 * <L, X>
     s.t. X is PSD
          X_ii = 1 for all i
-    
+
     where L is the Laplacian matrix of the graph.
 
     Parameters
@@ -97,10 +97,9 @@ def sdp_relaxation(graph):
             constraints.append(M.constraint(X.index(i, i), mf.Domain.equalsTo(1)))
 
         start_time = time.time()
-        print(f"Solving the problem of size {n}         " , end="\r")
+        print(f"Solving the problem of size {n}         ", end="\r")
         M.solve()
         end_time = time.time()
-
 
         solution = {
             # "X_sol": X.level().reshape((n, n)),
@@ -115,12 +114,11 @@ def sdp_relaxation(graph):
         # print("The nuclear norm of the laplacian matrix is: ", np.linalg.norm(L, "nuc"))
         # print("The frobenius norm of the laplacian matrix is: ", np.linalg.norm(L, "fro"))
 
-
         return solution
 
 
 def projected_sdp_relaxation(graph, projector, verbose=False, slack=True):
-    """ 
+    """
     Solves the MaxCut problem using the SDP relaxation method
     and a random projection map.
 
@@ -128,7 +126,7 @@ def projected_sdp_relaxation(graph, projector, verbose=False, slack=True):
     as follows:
 
     TODO: Add the problem formulation here.
-    
+
     """
 
     L = laplacian_matrix(graph)
@@ -154,11 +152,12 @@ def projected_sdp_relaxation(graph, projector, verbose=False, slack=True):
     projected_A = {}
     time_start = time.time()
     for i in range(original_dimension):
-        print("Projecting A matrix... {}/{}".format(i + 1, original_dimension), end="\r")
+        print(
+            "Projecting A matrix... {}/{}".format(i + 1, original_dimension), end="\r"
+        )
         projected_A[i] = np.outer(projector.projector[:, i], projector.projector[:, i])
     time_end = time.time()
     # print("New projection of A matrices took: ", time_end - time_start)
-
 
     with mf.Model("SDP") as M:
         # PSD variable X
@@ -195,7 +194,12 @@ def projected_sdp_relaxation(graph, projector, verbose=False, slack=True):
         # Constraints:
         # constraints = []
         for i in range(original_dimension):
-            print("Adding constraints... {}/{}          ".format(i + 1, original_dimension), end="\r")
+            print(
+                "Adding constraints... {}/{}          ".format(
+                    i + 1, original_dimension
+                ),
+                end="\r",
+            )
             # difference_slacks = mf.Expr.sub(
             #     lb_variables.index(i),
             #     ub_variables.index(i),
@@ -211,21 +215,20 @@ def projected_sdp_relaxation(graph, projector, verbose=False, slack=True):
             #         mf.Domain.equalsTo(1),
             #     )
             M.constraint(
-                    mf.Expr.dot(projected_A[i], X),
-                    mf.Domain.equalsTo(1),
-                )
-        
+                mf.Expr.dot(projected_A[i], X),
+                mf.Domain.equalsTo(1),
+            )
 
         start_time = time.time()
         # Solve the problem
-        print(f"Solving the problem of size {n}         " , end="\r")
+        print(f"Solving the problem of size {n}         ", end="\r")
         try:
             M.solve()
             # Get the solution
             X_sol = X.level()
             X_sol = X_sol.reshape((n, n))
             objective = M.primalObjValue()
-        except: 
+        except:
             X_sol = 0
             # print("The projected problem is infeasible")
             objective = 0
@@ -242,7 +245,7 @@ def projected_sdp_relaxation(graph, projector, verbose=False, slack=True):
         }
 
         return solution
-    
+
 
 def random_constraint_aggregation_sdp(graph, projector, verbose=False):
     """
@@ -264,7 +267,7 @@ def random_constraint_aggregation_sdp(graph, projector, verbose=False):
 
     projected_A = {}
     for i in range(projector.k):
-        # Make diagonal matrix with each row of the projector 
+        # Make diagonal matrix with each row of the projector
         print("Projecting A matrix... {}/{}".format(i + 1, projector.k), end="\r")
         A_matrix = np.diag(projector.projector[i])
         projected_A[i] = A_matrix
@@ -277,22 +280,25 @@ def random_constraint_aggregation_sdp(graph, projector, verbose=False):
         M.objective(mf.ObjectiveSense.Maximize, mf.Expr.mul(1 / 4, mf.Expr.dot(L, X)))
 
         for i in range(projector.k):
-            print("Adding constraints... {}/{}          ".format(i + 1, projector.k), end="\r")
+            print(
+                "Adding constraints... {}/{}          ".format(i + 1, projector.k),
+                end="\r",
+            )
             M.constraint(
-                    mf.Expr.dot(projected_A[i], X),
-                    mf.Domain.equalsTo(1),
-                )
-        
+                mf.Expr.dot(projected_A[i], X),
+                mf.Domain.equalsTo(1),
+            )
+
         start_time = time.time()
         # Solve the problem
-        print(f"Solving the problem of size {n}         " , end="\r")
+        print(f"Solving the problem of size {n}         ", end="\r")
         try:
             M.solve()
             # Get the solution
             X_sol = X.level()
             X_sol = X_sol.reshape((n, n))
             objective = M.primalObjValue()
-        except: 
+        except:
             X_sol = 0
             print("The projected problem is unbounded")
             objective = 0
@@ -454,15 +460,25 @@ def comparison_graphs(graphs_list, percentage):
     # Solve unprojected stable set problem
     # ----------------------------------------
     print("\n" + "-" * 110)
-    print("Comparison of different graphs for {}% projection".format(int(percentage * 100)).center(110))
+    print(
+        "Comparison of different graphs for {}% projection".format(
+            int(percentage * 100)
+        ).center(110)
+    )
     print("-" * 110)
     print(
         "\n {: <6} {: >10} {: >12} {: >12} {: >18} {: >18} {: >12}".format(
-            "Graph", "Size", "SDP value", "SDP cuts", "Projection value", "Projection cuts", "Quality"
+            "Graph",
+            "Size",
+            "SDP value",
+            "SDP cuts",
+            "Projection value",
+            "Projection cuts",
+            "Quality",
         )
     )
     print("-" * 110)
-    
+
     for graph in graphs_list:
         sdp_solution = sdp_relaxation(graph)
         # sdp_solution  = {

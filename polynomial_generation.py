@@ -38,10 +38,17 @@ class Polynomial:
         print("Generating monomials matrix")
         self.monomial_matrix = monomials.generate_monomials_matrix(self.n, self.d)
         print("Getting distinct monomials")
-        self.distinct_monomials = monomials.get_list_of_distinct_monomials(self.monomial_matrix)
+        self.distinct_monomials = monomials.get_list_of_distinct_monomials(
+            self.monomial_matrix
+        )
         for i, monomial in enumerate(self.distinct_monomials):
-            print("Picking monomial {}/{}".format(i, len(self.distinct_monomials)), end="\r")
-            A[monomial] = monomials.pick_specific_monomial(self.monomial_matrix, monomial)
+            print(
+                "Picking monomial {}/{}".format(i, len(self.distinct_monomials)),
+                end="\r",
+            )
+            A[monomial] = monomials.pick_specific_monomial(
+                self.monomial_matrix, monomial
+            )
         self.A = A
 
         if polynomial == "random":
@@ -86,8 +93,7 @@ class Polynomial:
         """
 
         polynomial = {
-            tuple: 0
-            for tuple in monomials.generate_monomials_up_to_degree(n, d)
+            tuple: 0 for tuple in monomials.generate_monomials_up_to_degree(n, d)
         }
 
         np.random.seed(seed)

@@ -98,12 +98,12 @@ def build_A_i(i, n):
     if i == 0:
         T_i = np.zeros((n, n))
         for i in range(math.floor(n / 2)):
-            T_i[i, i] = np.random.uniform(-0.1 * n, 0) # -5 n
+            T_i[i, i] = np.random.uniform(-0.1 * n, 0)  # -5 n
         for i in range(math.floor(n / 2) + 1, n):
-            T_i[i, i] = np.random.uniform(0, 0.1 * n) # 5 n
+            T_i[i, i] = np.random.uniform(0, 0.1 * n)  # 5 n
 
     else:
-        T_i = np.diag(np.random.uniform(0, 0.1 * n, n)) # 5 n 
+        T_i = np.diag(np.random.uniform(0, 0.1 * n, n))  # 5 n
 
     A_i = P_i @ T_i @ P_i.T
 
@@ -340,7 +340,8 @@ class DataQCQP:
         self.B = build_B(n)
 
 
-# Ambrosio et al. data and notation. 
+# Ambrosio et al. data and notation.
+
 
 def build_Q(n, density):
     """
@@ -366,7 +367,7 @@ def build_Q(n, density):
     for i in range(n):
         for j in range(i + 1, n):
             if np.random.rand() < density:
-                Q[i, j] = np.random.uniform(-1/(n * np.sqrt(n)), 1/(n * np.sqrt(n)))
+                Q[i, j] = np.random.uniform(-1 / (n * np.sqrt(n)), 1 / (n * np.sqrt(n)))
 
     # Copy the upper triangular part to the lower triangular part leaving the diagonal
     Q = Q + Q.T
@@ -375,6 +376,7 @@ def build_Q(n, density):
     Q = Q - np.eye(n)
 
     return Q
+
 
 def build_c(i, n):
     """
@@ -399,6 +401,7 @@ def build_c(i, n):
     c = c / np.linalg.norm(c)
 
     return c
+
 
 def build_Q_i(i, n, density):
     """
@@ -431,7 +434,7 @@ def build_Q_i(i, n, density):
     for j in range(n):
         for k in range(j + 1, n):
             if np.random.rand() < density:
-                Q[j, k] = np.random.uniform(-1/(n ** 2), 1/(n ** 2))
+                Q[j, k] = np.random.uniform(-1 / (n**2), 1 / (n**2))
 
     # Copy the upper triangular part to the lower triangular part leaving the diagonal
     Q = Q + Q.T
@@ -440,6 +443,7 @@ def build_Q_i(i, n, density):
     Q = Q + np.eye(n) / n
 
     return Q
+
 
 def build_q_i(Q_i, c_i, x):
     """
@@ -453,7 +457,7 @@ def build_q_i(Q_i, c_i, x):
         The Q_i matrix.
     c_i : numpy.ndarray
         The c_i vector.
-    
+
     Returns
     -------
     float
@@ -464,22 +468,22 @@ def build_q_i(Q_i, c_i, x):
     q_i = x @ Q_i @ x + c_i @ x
 
     return q_i + 10
-    
+
 
 class DataQCQP_Ambrosio:
     def __init__(self, n, m, l, density, seed=0):
         np.random.seed(seed)
-        self.n = n 
+        self.n = n
         self.m = m
         # For now no linear constraints
         self.l = l
         self.D = build_D(l, n)
         self.d = build_d(self.D, l, n)
         self.L = [build_L_i(self.D, self.d, i) for i in range(l)]
-        
+
         # Objective
-        A_0 = - build_Q(n, density)
-        b_0 = - build_c(0, n)
+        A_0 = -build_Q(n, density)
+        b_0 = -build_c(0, n)
         self.M_0 = build_M_i(A_0, b_0, 0)
 
         # Choose random x to generate q_i
@@ -492,10 +496,10 @@ class DataQCQP_Ambrosio:
             c_i = build_c(i, n)
             q_i = build_q_i(Q_i, c_i, x)
             self.M.append(build_M_i(Q_i, c_i, q_i))
-        
+
         # Range constraints
         self.R = [build_R_i(i, n) for i in range(n)]
-        
+
         # Ball constraints
         self.B = build_B(n)
 
@@ -619,7 +623,6 @@ def standard_sdp_relaxation(data: DataQCQP, verbose=False):
             "computation_time": computation_time,
             "size_psd_variable": size_psd_variable,
         }
-
 
         return solution
 
@@ -771,7 +774,11 @@ def single_problem_results(data, type="sparse", range=(0.1, 0.5), iterations=5):
         )
     )
     print("-" * 80)
-    print("\n{: <18} {: >10} {: >8} {: >8} {: >8}".format("Type", "Size X", "Value", "Quality", "Time"))
+    print(
+        "\n{: <18} {: >10} {: >8} {: >8} {: >8}".format(
+            "Type", "Size X", "Value", "Quality", "Time"
+        )
+    )
     print("-" * 80)
 
     sdp_solution = standard_sdp_relaxation(data)
@@ -810,8 +817,14 @@ def single_problem_results(data, type="sparse", range=(0.1, 0.5), iterations=5):
         )
         rp_solution = random_projection_sdp(data, random_projector, slack=slack)
 
-        quality = 100 * (rp_solution["objective"] - sdp_solution["objective"]) / sdp_solution["objective"]
-        relative_time = 100 * rp_solution["computation_time"] / sdp_solution["computation_time"]
+        quality = (
+            100
+            * (rp_solution["objective"] - sdp_solution["objective"])
+            / sdp_solution["objective"]
+        )
+        relative_time = (
+            100 * rp_solution["computation_time"] / sdp_solution["computation_time"]
+        )
 
         print(
             "{: <18.2f} {: >10} {: >8.2f} {: >8.2f} {: >8.2f}".format(
@@ -822,7 +835,6 @@ def single_problem_results(data, type="sparse", range=(0.1, 0.5), iterations=5):
                 relative_time,
             )
         )
-
 
     print()
 

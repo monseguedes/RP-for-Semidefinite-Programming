@@ -121,16 +121,20 @@ class RandomProjector:
             p = float(self.type.split("_")[0])
             # With probability p/2, the entry is p^0.5, with probability p/2, the entry is -p^0.5, and with probability 1 - p, the entry is 0
             projector = np.random.choice(
-                [-np.sqrt(p), np.sqrt(p), 0], size=(self.k, self.m), p=[p / 2, p / 2, 1 - p]
+                [-np.sqrt(p), np.sqrt(p), 0],
+                size=(self.k, self.m),
+                p=[p / 2, p / 2, 1 - p],
             )
-            projector = 1/np.sqrt(self.k) * projector
+            projector = 1 / np.sqrt(self.k) * projector
 
         elif "_density" in self.type:
             p = float(self.type.split("_")[0])
             standard_deviation = 1 / (np.sqrt(self.k) * p)
             projector = np.random.normal(0, standard_deviation, (self.k, self.m))
             # Make 1 - p entries of the matrix be 0
-            random_indices = np.random.choice(projector.size, round(projector.size * (1 - p)), replace=False)
+            random_indices = np.random.choice(
+                projector.size, round(projector.size * (1 - p)), replace=False
+            )
             # Convert the 1D random indices to the corresponding 2D indices
             indices_2d = np.unravel_index(random_indices, projector.shape)
             projector[indices_2d] = 0
@@ -198,7 +202,7 @@ class RandomProjector:
         """
 
         return self.projector.T @ solution @ self.projector
-    
+
     def make_random_squared_matrix(self, type="sparse"):
         """
         Generates a random squared matrix of a given dimension k.

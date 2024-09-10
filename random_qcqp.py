@@ -361,16 +361,24 @@ def build_Q(n, density):
 
     """
 
-    # Initialize the Q matrix with zeros
-    Q = np.zeros((n, n))
-    # Populate off diagonal upper triangular part of the matrix
-    for i in range(n):
-        for j in range(i + 1, n):
-            if np.random.rand() < density:
-                Q[i, j] = np.random.uniform(-1 / (n * np.sqrt(n)), 1 / (n * np.sqrt(n)))
+    if density != 1:
+        raise NotImplementedError("Only density 1 is implemented")
+                                  
+    else:
+        Q = np.random.uniform(-1 / (n * np.sqrt(n)), 1 / (n * np.sqrt(n)), (n, n))
+        Q = np.tril(Q, -1) + np.tril(Q, -1).T
 
-    # Copy the upper triangular part to the lower triangular part leaving the diagonal
-    Q = Q + Q.T
+    # # Initialize the Q matrix with zeros
+    # Q = np.zeros((n, n))
+    # # Populate off diagonal upper triangular part of the matrix
+    # for i in range(n):
+    #     print("Building row Q {}/{}        ".format(i, n))
+    #     for j in range(i + 1, n):
+    #         if np.random.rand() < density:
+    #             Q[i, j] = np.random.uniform(-1 / (n * np.sqrt(n)), 1 / (n * np.sqrt(n)))
+
+    # # Copy the upper triangular part to the lower triangular part leaving the diagonal
+    # Q = Q + Q.T
 
     # Make the diagonal -1
     Q = Q - np.eye(n)
@@ -430,14 +438,22 @@ def build_Q_i(i, n, density):
     # Initialize the Q matrix with zeros
     Q = np.zeros((n, n))
 
-    # Populate off diagonal upper triangular part of the matrix
-    for j in range(n):
-        for k in range(j + 1, n):
-            if np.random.rand() < density:
-                Q[j, k] = np.random.uniform(-1 / (n**2), 1 / (n**2))
+    if density != 1:
+        raise NotImplementedError("Only density 1 is implemented.")
+    
+    else:
+        Q = np.random.uniform(-1 / (n**2), 1 / (n**2), (n, n))
+        Q = np.tril(Q, -1) + np.tril(Q, -1).T
 
-    # Copy the upper triangular part to the lower triangular part leaving the diagonal
-    Q = Q + Q.T
+    # # Populate off diagonal upper triangular part of the matrix
+    # for j in range(n):
+    #     print("Building row Q_i {}/{}        ".format(j, n))
+    #     for k in range(j + 1, n):
+    #         if np.random.rand() < density:
+    #             Q[j, k] = np.random.uniform(-1 / (n**2), 1 / (n**2))
+
+    # # Copy the upper triangular part to the lower triangular part leaving the diagonal
+    # Q = Q + Q.T
 
     # Make the diagonal 1/n
     Q = Q + np.eye(n) / n
@@ -482,6 +498,7 @@ class DataQCQP_Ambrosio:
         self.L = [build_L_i(self.D, self.d, i) for i in range(l)]
 
         # Objective
+        print("Building objective")
         A_0 = -build_Q(n, density)
         b_0 = -build_c(0, n)
         self.M_0 = build_M_i(A_0, b_0, 0)
@@ -492,15 +509,21 @@ class DataQCQP_Ambrosio:
         # Quadratic constraints
         self.M = []
         for i in range(1, m + 1):
+            print("Building constraint {}/{}        ".format(i, m))
+            print("Building Q_i")
             Q_i = build_Q_i(i, n, density)
+            print("Building c_i")
             c_i = build_c(i, n)
+            print("Building q_i")
             q_i = build_q_i(Q_i, c_i, x)
             self.M.append(build_M_i(Q_i, c_i, q_i))
 
         # Range constraints
+        print("Building range constraints")
         self.R = [build_R_i(i, n) for i in range(n)]
 
         # Ball constraints
+        print("Building ball constraints")
         self.B = build_B(n)
 
 
@@ -841,7 +864,7 @@ def single_problem_results(data, type="sparse", range=(0.1, 0.5), iterations=5):
 
 if __name__ == "__main__":
     # data = DataQCQP(200, 1, 1, seed=0)
-    data = DataQCQP_Ambrosio(400, 40, 0, 1, seed=0)
+    data = DataQCQP_Ambrosio(1000, 100, 0, 1, seed=0)
     # matrix_size = data.M_0[0].shape[0]
     # solution = standard_sdp_relaxation(data, verbose=False)
     # projector = rp.RandomProjector(10, matrix_size, type="sparse")

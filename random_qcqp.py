@@ -625,19 +625,27 @@ def standard_sdp_relaxation(data: DataQCQP, verbose=False):
             # Increase verbosity
             M.setLogHandler(sys.stdout)
 
-        start_time = time.time()
-        # Solve the problem
-        M.solve()
-        end_time = time.time()
+        try:
+            start_time = time.time()
+            # Solve the problem
+            M.setSolverParam("optimizerMaxTime", 3600)
+            M.solve()
+            end_time = time.time()
 
-        # Get the solution
-        Z_sol = Z.level()
-        Z_sol = Z_sol.reshape(size_psd_variable, size_psd_variable)
-        computation_time = end_time - start_time
+            # Get the solution
+            Z_sol = Z.level()
+            Z_sol = Z_sol.reshape(size_psd_variable, size_psd_variable)
+            computation_time = end_time - start_time
+            objective = M.primalObjValue()
+
+        except:
+            Z_sol = np.zeros((size_psd_variable, size_psd_variable))
+            computation_time = 0
+            objective = 0
 
         solution = {
             "Z": Z_sol,
-            "objective": M.primalObjValue(),
+            "objective": objective,
             "computation_time": computation_time,
             "size_psd_variable": size_psd_variable,
         }
@@ -747,20 +755,28 @@ def random_projection_sdp(data: DataQCQP, projector, slack=True):
         )
 
         # M.setLogHandler(sys.stdout)
+        try:
+            start_time = time.time()
+            # Solve the problem
+            M.setSolverParam("optimizerMaxTime", 3600)
+            M.solve()
+            end_time = time.time()
 
-        start_time = time.time()
-        # Solve the problem
-        M.solve()
-        end_time = time.time()
+            # Get the solution
+            Y_sol = Y.level()
+            Y_sol = Y_sol.reshape(size_psd_variable, size_psd_variable)
+            computation_time = end_time - start_time
+            objective = M.primalObjValue()
 
-        # Get the solution
-        Y_sol = Y.level()
-        Y_sol = Y_sol.reshape(size_psd_variable, size_psd_variable)
-        computation_time = end_time - start_time
+        except:
+            Y_sol = np.zeros((size_psd_variable, size_psd_variable))
+            computation_time = 0
+            objective = 0
+
 
         solution = {
             "Y": Y_sol,
-            "objective": M.primalObjValue(),
+            "objective": objective,
             "computation_time": computation_time,
             "size_psd_variable": size_psd_variable,
         }

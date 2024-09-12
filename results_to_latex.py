@@ -665,7 +665,31 @@ def qcqp_to_latex(directory):
         )
 
         else:
-            print(
+            # print(
+            #     "             {:8} && {:8.2f} & {:8.2f} && {:8.2f} & {:8.2f} \\\\".format(
+            #         name.strip(".pkl").replace("_", "-"),
+            #         results[first_projector_type][0.5]["computation_time"]
+            #         / results["original"]["computation_time"]
+            #         * 100,
+            #         (
+            #             results[first_projector_type][0.5]["objective"]
+            #             - results["original"]["objective"]
+            #         )
+            #         / results["original"]["objective"]
+            #         * 100,
+            #         results[second_projector_type][0.7]["computation_time"]
+            #         / results["original"]["computation_time"]
+            #         * 100,
+            #         (
+            #             results[second_projector_type][0.7]["objective"]
+            #             - results["original"]["objective"]
+            #         )
+            #         / results["original"]["objective"]
+            #         * 100,
+            #     )
+            # )
+
+            (
                 "             {:8} && {:8.2f} & {:8.2f} && {:8.2f} & {:8.2f} \\\\".format(
                     name.strip(".pkl").replace("_", "-"),
                     results[first_projector_type][0.5]["computation_time"]
@@ -673,7 +697,7 @@ def qcqp_to_latex(directory):
                     * 100,
                     (
                         results[first_projector_type][0.5]["objective"]
-                        - results["original"]["objective"]
+                        # - results["original"]["objective"]
                     )
                     / results["original"]["objective"]
                     * 100,
@@ -682,7 +706,7 @@ def qcqp_to_latex(directory):
                     * 100,
                     (
                         results[second_projector_type][0.7]["objective"]
-                        - results["original"]["objective"]
+                        # - results["original"]["objective"]
                     )
                     / results["original"]["objective"]
                     * 100,

@@ -689,7 +689,7 @@ def qcqp_to_latex(directory):
             #     )
             # )
 
-            (
+            print(
                 "             {:8} && {:8.2f} & {:8.2f} && {:8.2f} & {:8.2f} \\\\".format(
                     name.strip(".pkl").replace("_", "-"),
                     results[first_projector_type][0.5]["computation_time"]

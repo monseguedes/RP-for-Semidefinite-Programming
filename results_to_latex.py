@@ -653,8 +653,6 @@ def qcqp_to_latex(directory):
         first_projector_type = projector_type
         second_projector_type = projector_type
 
-        print(name)
-
         if results["original"]["objective"] == 0:
             print(
             "             {:8} && {:8} & {:8} && {:8} & {:8} \\\\".format(
@@ -666,31 +664,30 @@ def qcqp_to_latex(directory):
             )
         )
 
-
-
-        print(
-            "             {:8} && {:8.2f} & {:8.2f} && {:8.2f} & {:8.2f} \\\\".format(
-                name.strip(".pkl").replace("_", "-"),
-                results[first_projector_type][0.5]["computation_time"]
-                / results["original"]["computation_time"]
-                * 100,
-                (
-                    results[first_projector_type][0.5]["objective"]
-                    - results["original"]["objective"]
+        else:
+            print(
+                "             {:8} && {:8.2f} & {:8.2f} && {:8.2f} & {:8.2f} \\\\".format(
+                    name.strip(".pkl").replace("_", "-"),
+                    results[first_projector_type][0.5]["computation_time"]
+                    / results["original"]["computation_time"]
+                    * 100,
+                    (
+                        results[first_projector_type][0.5]["objective"]
+                        - results["original"]["objective"]
+                    )
+                    / results["original"]["objective"]
+                    * 100,
+                    results[second_projector_type][0.7]["computation_time"]
+                    / results["original"]["computation_time"]
+                    * 100,
+                    (
+                        results[second_projector_type][0.7]["objective"]
+                        - results["original"]["objective"]
+                    )
+                    / results["original"]["objective"]
+                    * 100,
                 )
-                / results["original"]["objective"]
-                * 100,
-                results[second_projector_type][0.7]["computation_time"]
-                / results["original"]["computation_time"]
-                * 100,
-                (
-                    results[second_projector_type][0.7]["objective"]
-                    - results["original"]["objective"]
-                )
-                / results["original"]["objective"]
-                * 100,
             )
-        )
 
     table_footer = r"""
         \bottomrule

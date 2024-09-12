@@ -657,7 +657,7 @@ def qcqp_to_latex(directory):
 
         if results["original"]["objective"] == 0:
             print(
-            "             {:8} && {:8.2f} & {:8.2f} && {:8.2f} & {:8.2f} \\\\".format(
+            "             {:8} && {:8} & {:8} && {:8} & {:8} \\\\".format(
                 name.strip(".pkl").replace("_", "-"),
                 "-",
                 "-",

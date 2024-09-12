@@ -655,6 +655,19 @@ def qcqp_to_latex(directory):
 
         print(name)
 
+        if results["original"]["objective"] == 0:
+            print(
+            "             {:8} && {:8.2f} & {:8.2f} && {:8.2f} & {:8.2f} \\\\".format(
+                name.strip(".pkl").replace("_", "-"),
+                "-",
+                "-",
+                "-",
+                "-",
+            )
+        )
+
+
+
         print(
             "             {:8} && {:8.2f} & {:8.2f} && {:8.2f} & {:8.2f} \\\\".format(
                 name.strip(".pkl").replace("_", "-"),

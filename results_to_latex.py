@@ -653,6 +653,8 @@ def qcqp_to_latex(directory):
         first_projector_type = projector_type
         second_projector_type = projector_type
 
+        print(name)
+
         print(
             "             {:8} && {:8.2f} & {:8.2f} && {:8.2f} & {:8.2f} \\\\".format(
                 name.strip(".pkl").replace("_", "-"),

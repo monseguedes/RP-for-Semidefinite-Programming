@@ -112,10 +112,10 @@ sat:
 # QCQPs
 qcqp:
   variables: 
-    # - 400
+    - 500
     - 1000
     - 2000
-    - 5000
+    # - 5000
     # - 7000
   q:
     - 0.1
@@ -132,7 +132,8 @@ densities:
   400:
     - "sparse"
   500:
-    - "sparse"
+    # - "sparse"
+    - "0.2_density"
   800: 
     - "sparse"
   1000:

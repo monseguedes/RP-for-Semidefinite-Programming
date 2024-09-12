@@ -628,7 +628,7 @@ def standard_sdp_relaxation(data: DataQCQP, verbose=False):
         try:
             start_time = time.time()
             # Solve the problem
-            M.setSolverParam("optimizerMaxTime", 3600)
+            M.setSolverParam("optimizerMaxTime", 10800)
             M.solve()
             end_time = time.time()
 
@@ -758,7 +758,7 @@ def random_projection_sdp(data: DataQCQP, projector, slack=True):
         try:
             start_time = time.time()
             # Solve the problem
-            M.setSolverParam("optimizerMaxTime", 3600)
+            M.setSolverParam("optimizerMaxTime", 10800)
             M.solve()
             end_time = time.time()
 

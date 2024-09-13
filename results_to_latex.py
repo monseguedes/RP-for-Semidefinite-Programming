@@ -654,13 +654,23 @@ def qcqp_to_latex(directory):
         second_projector_type = projector_type
 
         if results["original"]["objective"] == 0:
+            if results[first_projector_type][0.5]["objective"] != 0:
+                first_symbol = "+"
+            else:
+                first_symbol = "-"
+
+            if results[second_projector_type][0.7]["objective"] != 0:
+                second_symbol = "+"
+            else:
+                second_symbol = "-"
+
             print(
             "             {:8} && {:8} & {:8} && {:8} & {:8} \\\\".format(
                 name.strip(".pkl").replace("_", "-"),
-                "-",
-                "-",
-                "-",
-                "-",
+                first_symbol,
+                first_symbol,
+                second_symbol,
+                second_symbol,
             )
         )
 

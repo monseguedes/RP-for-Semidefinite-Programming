@@ -731,6 +731,100 @@ def qcqp_to_latex(directory):
 
     print(table_footer)
 
+def unit_sphere_to_latex(projector_type, projection):
+    """
+        \begin{table}[!htbp]
+    \centering
+    \captionof{table}{Optimization over unit sphere X \% projection}
+    \begin{tabular}{lrrrrrrrrrrr} 
+        \toprule
+        & & && \multicolumn{2}{c}{VR} && \multicolumn{2}{c}{CA} &&  \multicolumn{2}{c}{VR + CA}\\
+        \cmidrule{5-6} \cmidrule{8-9} \cmidrule{11-12} \cmidrule{11-12}
+        \rule{0pt}{10pt} % Adding space of 10pt between lines and text below
+        instance & $X$  & $m$ && Qlt & Time && Qlt & Time && Qlt & Time \\
+        \midrule
+             form-4-70-1 &       60 &     1680 &&      152 &     1831 &&      183 &      100 &&     2.24 &  \\
+             form-4-70-1 &       60 &     1680 &&      152 &     1831 &&      183 &      100 &&     2.24 &  \\
+        \bottomrule
+    \end{tabular}
+    \label{tab: unit sphere}
+    \end{table}
+    """
+    header = r"""
+     \begin{table}[!htbp]
+    \centering
+    """
+
+    print(header)
+    print(r"\captionof{table}{Optimization over unit sphere ", str(int(projection * 100)), r"\% projection}")
+    
+    header = r"""
+    \begin{adjustbox}{width=\textwidth}
+    \begin{tabular}{lrrrrrrrrrrrrrrrrr} 
+        \toprule
+        & & && \multicolumn{2}{c}{original} && \multicolumn{2}{c}{VR} && \multicolumn{2}{c}{CA} &&  \multicolumn{2}{c}{VR + CA} \\
+        \cmidrule{5-6} \cmidrule{8-9} \cmidrule{11-12} \cmidrule{14-15} 
+        \rule{0pt}{10pt} % Adding space of 10pt between lines and text below
+        instance & $X$  & $m$ && Value & Time && Value & Time && Value & Time && Value & Time \\
+        \midrule
+    """
+    print(header)
+
+    directory = "results/unit_sphere"
+
+    alphabetical_dir = sorted(
+        [file for file in os.listdir(directory) if file.endswith(".pkl")],
+        key=lambda x: int("".join([i for i in x if i.isdigit()])),
+    )
+
+    for name in alphabetical_dir:
+        file_path = os.path.join(directory, name)
+        with open(file_path, "rb") as file:
+            results = pickle.load(file)
+
+        original_value = results["original"]["objective"]
+        original_time = results["original"]["computation_time"]
+
+
+        # print(
+        #     "             {:8} & {:8} & {:8} && {:8} & {:8} && {:8} & {:8} && {:8} & {:8} \\\\".format(
+        #         name.strip(".pkl"),
+        #         results["original"]["size_psd_variable"],
+        #         results["original"]["no_constraints"],
+        #         results[projector_type][projection]["variable_reduction"]["objective"] / original_value * 100,
+        #         results[projector_type][projection]["variable_reduction"]["computation_time"] / original_time * 100,
+        #         results[projector_type][projection]["constraint_aggregation"]["objective"] / original_value * 100,
+        #         results[projector_type][projection]["constraint_aggregation"]["computation_time"] / original_time * 100,
+        #         results[projector_type][projection]["combined_projection"]["objective"] / original_value * 100,
+        #         results[projector_type][projection]["combined_projection"]["computation_time"] / original_time * 100,
+        #     )
+        # )
+
+        print(
+            "             {:8} & {:8} & {:8} && {:8.2f} & {:8.2f} && {:8.2f} & {:8.2f} && {:8.2f} & {:8.2f} && {:8.2f} & {:8.2f} \\\\".format(
+                name.strip(".pkl"),
+                results["original"]["size_psd_variable"],
+                results["original"]["no_constraints"],
+                results["original"]["objective"],
+                results["original"]["computation_time"],
+                results[projector_type][projection]["variable_reduction"]["objective"],
+                results[projector_type][projection]["variable_reduction"]["computation_time"],
+                results[projector_type][projection]["constraint_aggregation"]["objective"],
+                results[projector_type][projection]["constraint_aggregation"]["computation_time"],
+                results[projector_type][projection]["combined_projection"]["objective"],
+                results[projector_type][projection]["combined_projection"]["computation_time"],
+            )
+        )
+
+    footer = r"""
+        \bottomrule
+        \end{tabular}
+        \end{adjustbox}
+        \label{tab: unit sphere}
+    \end{table}
+    """
+    print(footer)
+
 
 with open("config.yml", "r") as file:
     config = yaml.safe_load(file)
@@ -743,4 +837,5 @@ with open("config.yml", "r") as file:
 # maxsat_to_latex_simplified("results/maxsat", [0.1, 0.2])
 # sparsity_test_to_latex("results/maxcut")
 # sat_to_latex_simplified(config, [0.2, 0.5])
-qcqp_to_latex("results/qcqp")
+# qcqp_to_latex("results/qcqp")
+unit_sphere_to_latex("0.2_density", 0.9)

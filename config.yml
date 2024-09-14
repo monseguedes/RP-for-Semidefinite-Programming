@@ -125,6 +125,25 @@ qcqp:
     - 0.5
     - 0.7
 
+#Unit sphere
+unit_sphere:
+  variables:
+    - 10
+    - 20
+
+  degree: 
+    - 4
+    - 6
+
+  projection:
+    - 0.5
+    - 0.9
+
+  seed:
+    - 0
+    - 1
+
+
 
 densities:
   100:

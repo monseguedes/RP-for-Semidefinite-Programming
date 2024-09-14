@@ -504,9 +504,10 @@ def sdp_CG_unit_sphere(
 
         solution = {
             "a": a.level(),
-            "X": X.level().reshape(m, m),
+            # "X": X.level().reshape(m, m),
             "objective": M.primalObjValue(),
             "size_psd_variable": m,
+            "no_constraints": len(distinct_monomials),
             "computation_time": end_time - start_time,
         }
 
@@ -688,6 +689,7 @@ def projected_sdp_CG_unit_sphere(
             # "ub": ub_variables.level(),
             "objective": M.primalObjValue(),
             "size_psd_variable": m,
+            "no_constraints": len(distinct_monomials),
             "computation_time": end_time - start_time,
         }
 
@@ -813,9 +815,9 @@ def constraint_aggregation_CG_unit_sphere(
             computational_time = end_time - start_time
 
         except:
-            a = np.nan
-            objective = np.nan
-            computational_time = np.nan
+            a = math.inf
+            objective = np.inf
+            computational_time = np.inf
 
         solution = {
             "a": a,
@@ -955,9 +957,9 @@ def combined_projection_CG_unit_sphere(
             computational_time = end_time - start_time
 
         except:
-            a = np.nan
-            objective = np.nan
-            computational_time = np.nan
+            a = math.inf
+            objective = math.inf
+            computational_time = math.inf
 
         solution = {
             "a": a,

@@ -34,6 +34,7 @@ class Polynomial:
 
         self.n = n
         self.d = d
+        self.seed = seed
         A = {}
         print("Generating monomials matrix")
         self.monomial_matrix = monomials.generate_monomials_matrix(self.n, self.d)

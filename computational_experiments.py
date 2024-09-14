@@ -36,6 +36,8 @@ import pickle
 import first_level_stable_set
 import second_level_stable_set
 import random_qcqp
+import optimization_unit_sphere
+import polynomial_generation as poly
 from generate_graphs import Graph
 import random_projections as rp
 import maxcut
@@ -696,26 +698,26 @@ def sdp_relaxation_qcqp_problem(data):
     ):  # Run projection for different projectors only if not stored
         if projector_type not in sol_dict:
             sol_dict[projector_type] = {}
-            gen_projection = (
-                projection
-                for projection in config["qcqp"]["projection"]
-                if projection not in sol_dict[projector_type]
+        gen_projection = (
+            projection
+            for projection in config["qcqp"]["projection"]
+            if projection not in sol_dict[projector_type]
+        )
+        for projection in gen_projection:
+            projector = rp.RandomProjector(
+                round(projection * sol_dict["original"]["size_psd_variable"]),
+                sol_dict["original"]["size_psd_variable"],
+                projector_type,
             )
-            for projection in gen_projection:
-                projector = rp.RandomProjector(
-                    round(projection * sol_dict["original"]["size_psd_variable"]),
-                    sol_dict["original"]["size_psd_variable"],
-                    projector_type,
-                )
-                print(
-                    f"    Solving qcqp with projector {projector_type} and projection {projection}"
-                )
-                p_results = random_qcqp.random_projection_sdp(data, projector)
-                print("     Finished qcqp with projector")
-                sol_dict[projector_type][projection] = p_results
+            print(
+                f"    Solving qcqp with projector {projector_type} and projection {projection}"
+            )
+            p_results = random_qcqp.random_projection_sdp(data, projector)
+            print("     Finished qcqp with projector")
+            sol_dict[projector_type][projection] = p_results
 
-            with open(f"results/qcqp/{data.n}_{data.m}.pkl", "wb") as f:
-                pickle.dump(sol_dict, f)
+        with open(f"results/qcqp/{data.n}_{data.m}.pkl", "wb") as f:
+            pickle.dump(sol_dict, f)
 
 
 def randomly_generated_qcqp(config):
@@ -742,6 +744,99 @@ def randomly_generated_qcqp(config):
             print(f"Running QCQP instance {n} variables and {int(n * q)} constraints")
             sdp_relaxation_qcqp_problem(data)
 
+def unit_sphere_projections(polynomial, projector_type):
+    """
+    Run and store the projections for the unit sphere.
+    """
+
+    directory = f"results/unit_sphere/form-{polynomial.d}-{polynomial.n}-{polynomial.seed}.pkl"
+
+    if os.path.exists(
+        directory
+    ):  # Load previous results if available
+        with open(directory, "rb") as f:
+            sol_dict = pickle.load(f)
+    else:
+        sol_dict = {}
+
+    if "original" not in sol_dict:  # Run original sdp only if not stored
+        print(
+            f"Solving original sdp unit sphere for {polynomial.n} variables, {polynomial.d} degree, and seed {polynomial.seed}"
+        )
+        results = optimization_unit_sphere.sdp_CG_unit_sphere(polynomial, verbose=False)
+        print("Finished original sdp unit sphere")
+        sol_dict = {"original": results}
+        with open(directory, "wb") as f:
+            pickle.dump(sol_dict, f)
+
+    if projector_type not in sol_dict:
+        sol_dict[projector_type] = {}
+
+    gen_projection = (
+        projection
+        for projection in config["unit_sphere"]["projection"]
+        if projection not in sol_dict[projector_type]
+    )
+    for projection in gen_projection:
+        if projection not in sol_dict[projector_type]:
+            sol_dict[projector_type][projection] = {}
+            
+        # Variable projection
+        projector_variables = rp.RandomProjector(
+            round(projection * sol_dict["original"]["size_psd_variable"]),
+            sol_dict["original"]["size_psd_variable"],
+            projector_type,
+        )
+        print(
+            f"    Solving variable reduction unit sphere with projector {projector_type} and projection {projection}"
+        )
+        p_results = optimization_unit_sphere.projected_sdp_CG_unit_sphere(polynomial, projector_variables)
+        sol_dict[projector_type][projection]["variable_reduction"] = p_results
+        with open(directory, "wb") as f:
+            pickle.dump(sol_dict, f)
+
+        # Constraint aggregation
+        projector_constraints = rp.RandomProjector(
+            round(projection * sol_dict["original"]["no_constraints"]),
+            sol_dict["original"]["no_constraints"],
+            projector_type,
+        )
+        print(
+            f"    Solving constraint aggregation unit sphere with projector {projector_type} and projection {projection}"
+        )
+        p_results = optimization_unit_sphere.constraint_aggregation_CG_unit_sphere(polynomial, projector_constraints)
+        sol_dict[projector_type][projection]["constraint_aggregation"] = p_results
+        with open(directory, "wb") as f:
+            pickle.dump(sol_dict, f)
+
+        # Combined projection
+        print(
+            f"    Solving combined unit sphere with projector {projector_type} and projection {projection}"
+        )
+        p_results = optimization_unit_sphere.combined_projection_CG_unit_sphere(polynomial, projector_variables, projector_constraints)
+        sol_dict[projector_type][projection]["combined_projection"] = p_results
+        with open(directory, "wb") as f:
+            pickle.dump(sol_dict, f)
+
+def unit_sphere_experiments(config, projector_type):
+    """
+    Run experiments for the unit sphere.
+    """
+
+    # Create folder for unit sphere results
+    if not os.path.exists("results/unit_sphere"):
+        os.makedirs("results/unit_sphere")
+
+    for variables in config["unit_sphere"]["variables"]:
+        for degree in config["unit_sphere"]["degree"]:
+            for seed in config["unit_sphere"]["seed"]:
+                polynomial = poly.Polynomial("normal_form", variables, degree, seed)
+                print(
+                    f"Running unit sphere instance {variables} variables, {degree} degree, and seed {seed}"
+                )
+                unit_sphere_projections(polynomial, projector_type=projector_type)
+
+
 
 if __name__ == "__main__":
     with open("config.yml", "r") as config_file:
@@ -752,4 +847,5 @@ if __name__ == "__main__":
     # run_max_sat_experiments(config)
     # quality_plot_computational_experiments_maxcut()
     # sat_feasibility(config)
-    randomly_generated_qcqp(config)
+    # randomly_generated_qcqp(config)
+    unit_sphere_experiments(config, projector_type="0.2_density")

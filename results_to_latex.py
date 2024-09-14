@@ -829,13 +829,15 @@ def unit_sphere_to_latex(projector_type, projection):
 with open("config.yml", "r") as file:
     config = yaml.safe_load(file)
 
-# maxcut_to_latex("results/maxcut", config, "0.05_density", [0.1, 0.1])
-# maxcut_to_latex_single("results/maxcut", config, "0.04_density", 0.1)
-# maxcut_to_latex_single_simplified("results/maxcut", config, "0.04_density", 0.1)
-# stable_set_to_latex("results/stable_set")
-# maxsat_to_latex("results/maxsat", "sparse", [0.1, 0.2])
-# maxsat_to_latex_simplified("results/maxsat", [0.1, 0.2])
-# sparsity_test_to_latex("results/maxcut")
-# sat_to_latex_simplified(config, [0.2, 0.5])
-# qcqp_to_latex("results/qcqp")
-unit_sphere_to_latex("0.2_density", 0.9)
+
+if __name__ == "__main__":
+    # maxcut_to_latex("results/maxcut", config, "0.05_density", [0.1, 0.1])
+    # maxcut_to_latex_single("results/maxcut", config, "0.04_density", 0.1)
+    # maxcut_to_latex_single_simplified("results/maxcut", config, "0.04_density", 0.1)
+    # stable_set_to_latex("results/stable_set")
+    # maxsat_to_latex("results/maxsat", "sparse", [0.1, 0.2])
+    # maxsat_to_latex_simplified("results/maxsat", [0.1, 0.2])
+    # sparsity_test_to_latex("results/maxcut")
+    # sat_to_latex_simplified(config, [0.2, 0.5])
+    # qcqp_to_latex("results/qcqp")
+    unit_sphere_to_latex("0.2_density", 0.9)

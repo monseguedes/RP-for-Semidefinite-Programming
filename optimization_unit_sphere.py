@@ -23,6 +23,32 @@ import scipy.special
 import math
 import scipy.linalg
 
+def prod(iterable):
+    """
+    Returns the product of all the elements in the iterable.
+
+    Parameters
+    ----------
+    iterable : iterable
+        Iterable of numbers.
+
+    Returns
+    -------
+    float
+        Product of all the elements in the iterable.
+
+    Examples
+    --------
+    >>> prod([1, 2, 3])
+    6
+
+    """
+
+    result = 1
+    for element in iterable:
+        result *= element
+    return result
+
 
 def sum_tuples(t1, t2):
     """
@@ -425,7 +451,7 @@ def get_sphere_polynomial(n, d):
         if sum([power for power in monomial]) == 2 * d and all(
             [bool(power % 2 == 0) for power in monomial if power != 0]
         ):
-            polynomial[monomial] = scipy.special.factorial(d) / math.prod(
+            polynomial[monomial] = scipy.special.factorial(d) / prod(
                 [scipy.special.factorial(power / 2) for power in monomial]
             )
 

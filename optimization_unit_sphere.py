@@ -683,9 +683,9 @@ def projected_sdp_CG_unit_sphere(
 
         solution = {
             "a": a.level(),
-            "X": X.level().reshape(m, m),
-            "lb": lb_variables.level(),
-            "ub": ub_variables.level(),
+            # "X": X.level().reshape(m, m),
+            # "lb": lb_variables.level(),
+            # "ub": ub_variables.level(),
             "objective": M.primalObjValue(),
             "size_psd_variable": m,
             "computation_time": end_time - start_time,
@@ -972,10 +972,9 @@ def combined_projection_CG_unit_sphere(
 
 def single_polynomial_table(
     polynomial,
-    projection_variable,
-    projection_constrainrs,
-    range_variable,
-    range_constraints,
+    type,
+    range,
+    iterations, 
     form=True,
     seed=0,
 ):

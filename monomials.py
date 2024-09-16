@@ -126,19 +126,19 @@ def generate_monomials_exact_degree(n, d):
 
     """
 
-    # if n == 1:
-    #     yield (d,)
-    # else:
-    #     for value in range(d + 1):
-    #         for permutation in generate_monomials_exact_degree(n - 1, d - value):
-    #             yield (value,) + permutation
-
     if n == 1:
         yield (d,)
     else:
         for value in range(d + 1):
             for permutation in generate_monomials_exact_degree(n - 1, d - value):
-                yield permutation + (value,)
+                yield (value,) + permutation
+
+    # if n == 1:
+    #     yield (d,)
+    # else:
+    #     for value in range(d + 1):
+    #         for permutation in generate_monomials_exact_degree(n - 1, d - value):
+    #             yield permutation + (value,)
 
 
 def generate_monomials_up_to_degree(n, d):

@@ -14,7 +14,7 @@ We do this using the standard SOS method.
 
 import numpy as np
 import polynomial_generation as poly
-import monomials
+import monomials as monomials
 import sys
 import mosek.fusion as mf
 import random_projections as rp
@@ -1278,29 +1278,29 @@ if __name__ == "__main__":
 
     # Run the table
     # ----------------------------------------
-    # single_polynomial_table(polynomial, "0.5_density", "0.5_density", [0.9, 0.9], 1, form=True)
+    single_polynomial_table(polynomial, "0.5_density", "0.5_density", [0.5, 0.9], 5, form=True)
 
-    # # Run the alternating projection
-    # Solve original SDP
-    # ----------------------------------------
-    CG_sdp_solution = sdp_CG_unit_sphere(polynomial, verbose=False)
-    # Solve variable projected SDP
-    # ----------------------------------------
-    random_projector = rp.RandomProjector(round(0.9 * CG_sdp_solution["size_psd_variable"]), CG_sdp_solution["size_psd_variable"], type="0.2_density")
-    CG_rp_solution = projected_sdp_CG_unit_sphere(polynomial, random_projector, verbose=False)
-    # Solve constraint aggregation
-    # ----------------------------------------
-    random_projector_constraints = rp.RandomProjector(round(0.9 * len(polynomial.distinct_monomials)), len(polynomial.distinct_monomials), type="0.2_density")
-    CG_ca_solution = constraint_aggregation_CG_unit_sphere(polynomial, random_projector_constraints, verbose=False)
+    # # # Run the alternating projection
+    # # Solve original SDP
+    # # ----------------------------------------
+    # CG_sdp_solution = sdp_CG_unit_sphere(polynomial, verbose=False)
+    # # Solve variable projected SDP
+    # # ----------------------------------------
+    # random_projector = rp.RandomProjector(round(0.9 * CG_sdp_solution["size_psd_variable"]), CG_sdp_solution["size_psd_variable"], type="0.2_density")
+    # CG_rp_solution = projected_sdp_CG_unit_sphere(polynomial, random_projector, verbose=False)
+    # # Solve constraint aggregation
+    # # ----------------------------------------
+    # random_projector_constraints = rp.RandomProjector(round(0.9 * len(polynomial.distinct_monomials)), len(polynomial.distinct_monomials), type="0.2_density")
+    # CG_ca_solution = constraint_aggregation_CG_unit_sphere(polynomial, random_projector_constraints, verbose=False)
 
-    # Alternating projection
-    # ----------------------------------------
-    solution_matrix = CG_ca_solution["X"]
-    objective_feasible = CG_rp_solution["objective"]
-    psd_X, objective = alternating_projection_sdp("original", polynomial, random_projector, CG_ca_solution["X"], objective_feasible)
+    # # Alternating projection
+    # # ----------------------------------------
+    # solution_matrix = CG_ca_solution["X"]
+    # objective_feasible = CG_rp_solution["objective"]
+    # psd_X, objective = alternating_projection_sdp("original", polynomial, random_projector, CG_ca_solution["X"], objective_feasible)
 
-    print("SDP objective: ", CG_sdp_solution["objective"])
-    print("Objective constraint aggregation: ", CG_ca_solution["objective"])
-    print("Objective value after APM to projected: ", objective)
+    # print("SDP objective: ", CG_sdp_solution["objective"])
+    # print("Objective constraint aggregation: ", CG_ca_solution["objective"])
+    # print("Objective value after APM to projected: ", objective)
 
 

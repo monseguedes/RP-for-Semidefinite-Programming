@@ -158,11 +158,11 @@ unit_sphere:
 
 densities:
   0, 400:
-    # - "sparse"
-    - "0.1_density"
+    - "sparse"
+    # - "0.1_density"
   401, 1200:
-    # - "0.2_density"
-    - "0.05_density"
+    - "0.2_density"
+    # - "0.05_density"
   1201, 4000:
     - "0.1_density"
   4001, 5000:

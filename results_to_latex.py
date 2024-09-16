@@ -846,7 +846,7 @@ def vertical_unit_sphere(name):
         key=lambda x: int("".join([i for i in x if i.isdigit()])),
     )
 
-    name = [name]
+    alphabetical_dir = [name]
 
     for name in alphabetical_dir[:1]:
         print(r"\midrule")
@@ -930,4 +930,4 @@ if __name__ == "__main__":
     # sat_to_latex_simplified(config, [0.2, 0.5])
     # qcqp_to_latex("results/qcqp")
     # unit_sphere_to_latex("0.2_density", 0.9)
-    vertical_unit_sphere("fomr-4-10-1.pkl")
+    vertical_unit_sphere("form-4-10-1.pkl")

@@ -836,7 +836,7 @@ def vertical_unit_sphere():
         \begin{adjustbox}{width=\textwidth}
         \begin{tabular}{llrrrrrrrrrrrrrrrr} 
             \toprule
-            Instance & Type & Projection & $X$  & $m$ & Value & Time & APM variable & APM original  \\
+            Instance & Type & Projection & $X$  & $m$ & Value & Time & APM   \\
             """
     print(header)
 
@@ -856,7 +856,7 @@ def vertical_unit_sphere():
         original_time = results["original"]["computation_time"]
 
         print(
-            "             {:8} & {:8} & {:8} & {:8} & {:8} & {:8.2f} & {:8.2f} & - & - \\\\".format(
+            "             {:8} & {:8} & {:8} & {:8} & {:8} & {:8.2f} & {:8.2f} & NA \\\\".format(
                 name.strip(".pkl"),
                 "original",
                 "-",
@@ -879,7 +879,7 @@ def vertical_unit_sphere():
 
         for projection_type in ["variable_reduction", "constraint_aggregation", "combined_projection"]:
             print(
-                    "   &  {:8} & {:8} & {:8} & {:8} & {:8.2f} & {:8.2f} & - & - \\\\".format(
+                    "   &  {:8} & {:8} & {:8} & {:8} & {:8.2f} & {:8.2f} & -  \\\\".format(
                         projection_type.replace("_", " "),
                         projections[0],
                         results[(type_variable, type_constraints)][projections[0]][projection_type]["size_psd_variable"],
@@ -890,7 +890,7 @@ def vertical_unit_sphere():
                 )
             for projection in projections[1:]:
                 print(
-                    "   &  & {:8} & {:8} & {:8} & {:8.2f} & {:8.2f} & - & - \\\\".format(
+                    "   &  & {:8} & {:8} & {:8} & {:8.2f} & {:8.2f} & -  \\\\".format(
                         projection,
                         results[(type_variable, type_constraints)][projection][projection_type]["size_psd_variable"],
                         results[(type_variable, type_constraints)][projection][projection_type]["no_constraints"],

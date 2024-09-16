@@ -114,7 +114,7 @@ class Polynomial:
 
         return polynomial
 
-    def generate_normal_form(self, n, d, seed=0, mean=0, variance=1):
+    def generate_normal_form(self, n, d, seed=0, mean=0, variance=1, density=0.5):
         """
         Generates a (form) polynomial of a given degree and dimension with
         coefficients taken from a normal distribution.
@@ -154,7 +154,8 @@ class Polynomial:
         np.random.seed(seed)
         for i, monomial in enumerate(polynomial):
             if sum([power for power in monomial]) == d:
-                polynomial[monomial] = np.random.normal(mean, variance)
+                if np.random.rand() < density:
+                    polynomial[monomial] = np.random.normal(mean, variance)
 
         return polynomial
 

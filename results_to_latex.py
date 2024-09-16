@@ -825,6 +825,93 @@ def unit_sphere_to_latex(projector_type, projection):
     """
     print(footer)
 
+def vertical_unit_sphere():
+    """
+    """
+
+    header = r"""
+        \begin{table}[!htbp]
+        \centering
+        \captionof{table}{Optimization over unit sphere}
+        \begin{adjustbox}{width=\textwidth}
+        \begin{tabular}{llrrrrrrrrrrrrrrrr} 
+            \toprule
+            Instance & Type & Projection & $X$  & $m$ & Value & Time  \\
+            """
+    print(header)
+
+    directory = "results/unit_sphere"
+    alphabetical_dir = sorted(
+        [file for file in os.listdir(directory) if file.endswith(".pkl")],
+        key=lambda x: int("".join([i for i in x if i.isdigit()])),
+    )
+
+    for name in alphabetical_dir[:1]:
+        print(r"\midrule")
+        file_path = os.path.join(directory, name)
+        with open(file_path, "rb") as file:
+            results = pickle.load(file)
+
+        original_value = results["original"]["objective"]
+        original_time = results["original"]["computation_time"]
+
+        print(
+            "             {:8} & {:8} & {:8} & {:8} & {:8} & {:8.2f} & {:8.2f} \\\\".format(
+                name.strip(".pkl"),
+                "original",
+                "-",
+                results["original"]["size_psd_variable"],
+                results["original"]["no_constraints"],
+                results["original"]["objective"],
+                results["original"]["computation_time"],
+            )
+        )
+        print(r"\cmidrule{2-7}")
+
+        # Pick projector type from config
+        matrix_size = results["original"]["size_psd_variable"]
+        pick_key = [key for key in config["densities"] if matrix_size in range(int(key.split(",")[0]), int(key.split(",")[1]))]
+        type_variable = config["densities"][pick_key[0]][0]
+        no_constraints = results["original"]["no_constraints"]
+        pick_key = [key for key in config["densities"] if no_constraints in range(int(key.split(",")[0]), int(key.split(",")[1]))]
+        type_constraints = config["densities"][pick_key[0]][0]
+        projections = list(results[(type_variable, type_constraints)].keys())
+
+        for projection_type in ["variable_reduction", "constraint_aggregation", "combined_projection"]:
+            print(
+                    "   &  {:8} & {:8} & {:8} & {:8} & {:8.2f} & {:8.2f} \\\\".format(
+                        projection_type.replace("_", " "),
+                        projections[0],
+                        results[(type_variable, type_constraints)][projections[0]][projection_type]["size_psd_variable"],
+                        results[(type_variable, type_constraints)][projections[0]][projection_type]["no_constraints"],
+                        results[(type_variable, type_constraints)][projections[0]][projection_type]["objective"],
+                        results[(type_variable, type_constraints)][projections[0]][projection_type]["computation_time"],
+                    )
+                )
+            for projection in projections[1:]:
+                print(
+                    "   &  & {:8} & {:8} & {:8} & {:8.2f} & {:8.2f} \\\\".format(
+                        projection,
+                        results[(type_variable, type_constraints)][projection][projection_type]["size_psd_variable"],
+                        results[(type_variable, type_constraints)][projection][projection_type]["no_constraints"],
+                        results[(type_variable, type_constraints)][projection][projection_type]["objective"],
+                        results[(type_variable, type_constraints)][projection][projection_type]["computation_time"],
+                    )
+                )
+
+            if projection_type != "combined_projection":
+                print(r"\cmidrule{2-7}")
+
+    footer = r"""
+        \bottomrule
+        \end{tabular}
+        \end{adjustbox}
+        \label{tab: unit sphere}
+    \end{table}
+    """
+
+    print(footer)
+
 
 with open("config.yml", "r") as file:
     config = yaml.safe_load(file)
@@ -840,4 +927,5 @@ if __name__ == "__main__":
     # sparsity_test_to_latex("results/maxcut")
     # sat_to_latex_simplified(config, [0.2, 0.5])
     # qcqp_to_latex("results/qcqp")
-    unit_sphere_to_latex("0.2_density", 0.9)
+    # unit_sphere_to_latex("0.2_density", 0.9)
+    vertical_unit_sphere()

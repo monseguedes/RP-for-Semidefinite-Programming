@@ -744,7 +744,7 @@ def randomly_generated_qcqp(config):
             print(f"Running QCQP instance {n} variables and {int(n * q)} constraints")
             sdp_relaxation_qcqp_problem(data)
 
-def unit_sphere_projections(polynomial, projector_type):
+def unit_sphere_projections(polynomial):
     """
     Run and store the projections for the unit sphere.
     """
@@ -769,29 +769,38 @@ def unit_sphere_projections(polynomial, projector_type):
         with open(directory, "wb") as f:
             pickle.dump(sol_dict, f)
 
-    if projector_type not in sol_dict:
-        sol_dict[projector_type] = {}
+    # Pick projector type from config
+    matrix_size = sol_dict["original"]["size_psd_variable"]
+    pick_key = [key for key in config["densities"] if matrix_size in range(int(key.split(",")[0]), int(key.split(",")[1]))]
+    type_variable = config["densities"][pick_key[0]][0]
+
+    no_constraints = sol_dict["original"]["no_constraints"]
+    pick_key = [key for key in config["densities"] if no_constraints in range(int(key.split(",")[0]), int(key.split(",")[1]))]
+    type_constraints = config["densities"][pick_key[0]][0]
+
+    if (type_variable, type_constraints) not in sol_dict:
+        sol_dict[(type_variable, type_constraints)] = {}
 
     gen_projection = (
         projection
         for projection in config["unit_sphere"]["projection"]
-        if projection not in sol_dict[projector_type]
+        if projection not in sol_dict[(type_variable, type_constraints)]
     )
     for projection in gen_projection:
-        if projection not in sol_dict[projector_type]:
-            sol_dict[projector_type][projection] = {}
-            
+        if projection not in sol_dict[(type_variable, type_constraints)]:
+            sol_dict[(type_variable, type_constraints)][projection] = {}
+
         # Variable projection
         projector_variables = rp.RandomProjector(
             round(projection * sol_dict["original"]["size_psd_variable"]),
             sol_dict["original"]["size_psd_variable"],
-            projector_type,
+            type_variable,
         )
         print(
-            f"    Solving variable reduction unit sphere with projector {projector_type} and projection {projection}"
+            f"    Solving variable reduction unit sphere with projector {type_variable} and projection {projection}"
         )
         p_results = optimization_unit_sphere.projected_sdp_CG_unit_sphere(polynomial, projector_variables)
-        sol_dict[projector_type][projection]["variable_reduction"] = p_results
+        sol_dict[(type_variable, type_constraints)][projection]["variable_reduction"] = p_results
         with open(directory, "wb") as f:
             pickle.dump(sol_dict, f)
 
@@ -799,26 +808,26 @@ def unit_sphere_projections(polynomial, projector_type):
         projector_constraints = rp.RandomProjector(
             round(projection * sol_dict["original"]["no_constraints"]),
             sol_dict["original"]["no_constraints"],
-            projector_type,
+            type_constraints,
         )
         print(
-            f"    Solving constraint aggregation unit sphere with projector {projector_type} and projection {projection}"
+            f"    Solving constraint aggregation unit sphere with projector {type_constraints} and projection {projection}"
         )
         p_results = optimization_unit_sphere.constraint_aggregation_CG_unit_sphere(polynomial, projector_constraints)
-        sol_dict[projector_type][projection]["constraint_aggregation"] = p_results
+        sol_dict[(type_variable, type_constraints)][projection]["constraint_aggregation"] = p_results
         with open(directory, "wb") as f:
             pickle.dump(sol_dict, f)
 
         # Combined projection
         print(
-            f"    Solving combined unit sphere with projector {projector_type} and projection {projection}"
+            f"    Solving combined unit sphere with projector {(type_variable, type_constraints)} and projection {projection}"
         )
         p_results = optimization_unit_sphere.combined_projection_CG_unit_sphere(polynomial, projector_variables, projector_constraints)
-        sol_dict[projector_type][projection]["combined_projection"] = p_results
+        sol_dict[(type_variable, type_constraints)][projection]["combined_projection"] = p_results
         with open(directory, "wb") as f:
             pickle.dump(sol_dict, f)
 
-def unit_sphere_experiments(config, projector_type):
+def unit_sphere_experiments(config):
     """
     Run experiments for the unit sphere.
     """
@@ -834,7 +843,7 @@ def unit_sphere_experiments(config, projector_type):
                 print(
                     f"Running unit sphere instance {variables} variables, {degree} degree, and seed {seed}"
                 )
-                unit_sphere_projections(polynomial, projector_type=projector_type)
+                unit_sphere_projections(polynomial)
 
 
 
@@ -848,4 +857,4 @@ if __name__ == "__main__":
     # quality_plot_computational_experiments_maxcut()
     # sat_feasibility(config)
     # randomly_generated_qcqp(config)
-    unit_sphere_experiments(config, projector_type="0.2_density")
+    unit_sphere_experiments(config)

@@ -832,7 +832,7 @@ def vertical_unit_sphere(name):
     header = r"""
         \begin{table}[!htbp]
         \centering
-        \captionof{table}{Optimization over unit sphere}
+        \captionof{table}{Comparison of different projectors and projections for the optimization of a quartic form with 10 variables over the unit sphere}
         \begin{adjustbox}{width=\textwidth}
         \begin{tabular}{llrrrrrrrrrrrrrrrr} 
             \toprule

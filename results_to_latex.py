@@ -836,7 +836,7 @@ def vertical_unit_sphere():
         \begin{adjustbox}{width=\textwidth}
         \begin{tabular}{llrrrrrrrrrrrrrrrr} 
             \toprule
-            Instance & Type & Projection & $X$  & $m$ & Value & Time  \\
+            Instance & Type & Projection & $X$  & $m$ & Value & Time & APM variable & APM original  \\
             """
     print(header)
 
@@ -856,7 +856,7 @@ def vertical_unit_sphere():
         original_time = results["original"]["computation_time"]
 
         print(
-            "             {:8} & {:8} & {:8} & {:8} & {:8} & {:8.2f} & {:8.2f} \\\\".format(
+            "             {:8} & {:8} & {:8} & {:8} & {:8} & {:8.2f} & {:8.2f} & - & - \\\\".format(
                 name.strip(".pkl"),
                 "original",
                 "-",
@@ -866,7 +866,7 @@ def vertical_unit_sphere():
                 results["original"]["computation_time"],
             )
         )
-        print(r"\cmidrule{2-7}")
+        print(r"\cmidrule{2-9}")
 
         # Pick projector type from config
         matrix_size = results["original"]["size_psd_variable"]
@@ -879,7 +879,7 @@ def vertical_unit_sphere():
 
         for projection_type in ["variable_reduction", "constraint_aggregation", "combined_projection"]:
             print(
-                    "   &  {:8} & {:8} & {:8} & {:8} & {:8.2f} & {:8.2f} \\\\".format(
+                    "   &  {:8} & {:8} & {:8} & {:8} & {:8.2f} & {:8.2f} & - & - \\\\".format(
                         projection_type.replace("_", " "),
                         projections[0],
                         results[(type_variable, type_constraints)][projections[0]][projection_type]["size_psd_variable"],
@@ -890,7 +890,7 @@ def vertical_unit_sphere():
                 )
             for projection in projections[1:]:
                 print(
-                    "   &  & {:8} & {:8} & {:8} & {:8.2f} & {:8.2f} \\\\".format(
+                    "   &  & {:8} & {:8} & {:8} & {:8.2f} & {:8.2f} & - & - \\\\".format(
                         projection,
                         results[(type_variable, type_constraints)][projection][projection_type]["size_psd_variable"],
                         results[(type_variable, type_constraints)][projection][projection_type]["no_constraints"],
@@ -900,7 +900,7 @@ def vertical_unit_sphere():
                 )
 
             if projection_type != "combined_projection":
-                print(r"\cmidrule{2-7}")
+                print(r"\cmidrule{2-9}")
 
     footer = r"""
         \bottomrule

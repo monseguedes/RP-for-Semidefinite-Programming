@@ -844,6 +844,7 @@ def constraint_aggregation_CG_unit_sphere(
             a = math.inf
             objective = np.inf
             computational_time = np.inf
+            X = math.inf 
 
         solution = {
             "a": a,
@@ -987,6 +988,7 @@ def combined_projection_CG_unit_sphere(
             a = math.inf
             objective = math.inf
             computational_time = math.inf
+            X = math.inf
 
         solution = {
             "a": a,

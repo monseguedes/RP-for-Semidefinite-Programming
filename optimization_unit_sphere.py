@@ -1000,7 +1000,8 @@ def combined_projection_CG_unit_sphere(
 
 def single_polynomial_table(
     polynomial,
-    type,
+    type_variable,
+    type_constraints,
     range,
     iterations, 
     form=True,
@@ -1074,7 +1075,7 @@ def single_polynomial_table(
     matrix_size = CG_sdp_solution["size_psd_variable"]
     for rate in np.linspace(range[0], range[1], iterations):
         random_projector = rp.RandomProjector(
-            round(matrix_size * rate), matrix_size, type=type
+            round(matrix_size * rate), matrix_size, type=type_variable
         )
         if form:
             CG_rp_solution = projected_sdp_CG_unit_sphere(
@@ -1111,7 +1112,7 @@ def single_polynomial_table(
     no_constraints = len(polynomial.distinct_monomials)
     for rate in np.linspace(range[0], range[1], iterations):
         random_projector = rp.RandomProjector(
-            round(no_constraints * rate), no_constraints, type=type
+            round(no_constraints * rate), no_constraints, type=type_constraints
         )
         if form:
             CG_rp_solution = constraint_aggregation_CG_unit_sphere(
@@ -1136,10 +1137,10 @@ def single_polynomial_table(
     matrix_size = CG_sdp_solution["size_psd_variable"]
     for rate in np.linspace(range[0], range[1], iterations):
         random_projector_variables = rp.RandomProjector(
-            round(matrix_size * rate), matrix_size, type=type
+            round(matrix_size * rate), matrix_size, type=type_variable
         )
         random_projector_constraints = rp.RandomProjector(
-            round(no_constraints * rate), no_constraints, type=type
+            round(no_constraints * rate), no_constraints, type=type_constraints
         )
         if form:
             CG_rp_solution = combined_projection_CG_unit_sphere(
@@ -1187,8 +1188,8 @@ if __name__ == "__main__":
     # ----------------------------------------
     # polynomial = poly.Polynomial("x1^2 + x2^2 + 2x1x2", 2, 2)
     # polynomial = poly.Polynomial("random", 15, 4, seed=seed)
-    polynomial = poly.Polynomial("normal_form", 10, 4, seed=seed)
+    polynomial = poly.Polynomial("normal_form", 12, 4, seed=seed)
 
     # Run the table
     # ----------------------------------------
-    single_polynomial_table(polynomial, "0.02_density", [0.5, 0.9], 5, form=True)
+    single_polynomial_table(polynomial, "0.05_density", "0.01_density", [0.5, 0.9], 5, form=True)

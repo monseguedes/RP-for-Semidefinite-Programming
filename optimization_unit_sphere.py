@@ -711,8 +711,8 @@ def projected_sdp_CG_unit_sphere(
         solution = {
             "a": a.level(),
             # "X": X.level().reshape(m, m),
-            # "lb": lb_variables.level(),
-            # "ub": ub_variables.level(),
+            "lb": lb_variables.level(),
+            "ub": ub_variables.level(),
             "objective": M.primalObjValue(),
             "size_psd_variable": m,
             "no_constraints": len(distinct_monomials),
@@ -847,6 +847,7 @@ def constraint_aggregation_CG_unit_sphere(
 
         solution = {
             "a": a,
+            "X": X,
             "objective": objective,
             "size_psd_variable": m,
             "no_constraints": random_projector.k,
@@ -989,6 +990,7 @@ def combined_projection_CG_unit_sphere(
 
         solution = {
             "a": a,
+            "X": X,
             "objective": objective,
             "size_psd_variable": A_old[tuple_of_constant].shape[0],
             "no_constraints": random_projector_constraints.k,
@@ -1182,14 +1184,121 @@ def single_polynomial_table(
     print("No. distinct monomials (constraints): ", len(polynomial.distinct_monomials))
 
 
+def alternating_projection_sdp(which_affine, polynomial, random_projector, solution_matrix, objective_feasible):
+    """
+    Alternating projection method to alternate between the
+    SDP solution found in the constraint aggregation/combined 
+    projection and the original and projected affine subspace.
+
+    The projection to affine subspace A ⊙ X = b is:
+    X = X' + A^T (AA^T)^-1 (b − A ⊙ X')
+
+    Parameters
+    ----------
+    which_affine : string
+        Which affine subspace to project onto.
+    polynomial : Polynomial
+        Polynomial to be optimized.
+    random_projector : RandomProjector
+        Random projector we used to project the variables.
+    solution_matrix : numpy.ndarray
+        Solution of the constraint aggregation.
+    objective_feasible : float
+        Feasible objective value of the variable reduction. 
+
+    """
+
+    iter = 0
+    psd_X = solution_matrix
+    tuple_of_constant = tuple([0 for i in list(polynomial.A.keys())[0]])
+    
+    # Constraints are: A_i · X - a * s_i + lbv[i] - ubv[i] = c_i
+    # So we project onto the affine subspaces  A_i · X = c_i + a * s_i (we need an a that we know is feasible)
+    sphere_polynomial = get_sphere_polynomial(polynomial.n, polynomial.d / 2)
+    sphere_polynomial = {key: value * objective_feasible for key, value in sphere_polynomial.items()}
+    rhs = {key: sphere_polynomial[key] + polynomial.polynomial[key] for key in sphere_polynomial.keys()}
+    
+    if which_affine == "original":
+        A_i = polynomial.A 
+    elif which_affine == "projected":
+        A_i = {}
+        for monomial in polynomial.distinct_monomials:
+            A_i[monomial] = random_projector.apply_rp_map(polynomial.A[monomial])
+    
+    while iter < 1000:
+        print("Iteration: ", iter)
+        # Check if linear constraints are satisfied
+        for monomial in A_i.keys():
+            if np.all(np.dot(A_i[monomial], psd_X) == rhs[monomial]):
+                print(
+                    "Linear constraints satisfied for psd matrix at iteration {}".format(
+                        iter
+                    )
+                )
+                return psd_X, rhs[tuple_of_constant] - psd_X[0, 0]
+
+        # Project onto the original affine subspace with orthogonal projection
+        A = np.array([A_i[monomial].flatten() for monomial in A_i.keys()])
+        inverse_AA = np.linalg.inv(A @ A.T)
+        b_AX = np.array(
+            [rhs[monomial] - np.trace(A_i[monomial].T @ psd_X) for monomial in A_i.keys()]
+        )
+        ATAATbAX = A.T @ inverse_AA @ b_AX
+        affine_X = psd_X + ATAATbAX.reshape(psd_X.shape)
+        affine_X.reshape(psd_X.shape)
+
+        # Check if the projection is psd
+        eigenvalues = np.linalg.eigvals(affine_X)
+        if np.all(eigenvalues >= -0.0001):
+            print("Projection onto affine subspace is psd at iteration {}".format(iter))
+            return affine_X, rhs[tuple_of_constant] - affine_X[0, 0]
+        else:
+            # Project onto the psd cone
+            # Spectral decomposition (eigenvalue decomposition)
+            eigenvalues, eigenvectors = np.linalg.eig(affine_X)
+            V = eigenvectors
+            S = np.diag(eigenvalues)
+            V_inv = np.linalg.inv(V)
+            S = np.maximum(S, 0)
+            psd_X = V @ S @ V_inv
+            iter += 1
+
+        print(rhs[tuple_of_constant] - psd_X[0, 0]) 
+    return psd_X, rhs[tuple_of_constant] - psd_X[0, 0]
+
 if __name__ == "__main__":
     seed = 1
     # Possible polynomials
     # ----------------------------------------
     # polynomial = poly.Polynomial("x1^2 + x2^2 + 2x1x2", 2, 2)
     # polynomial = poly.Polynomial("random", 15, 4, seed=seed)
-    polynomial = poly.Polynomial("normal_form", 12, 4, seed=seed)
+    polynomial = poly.Polynomial("normal_form", 10, 4, seed=seed)
 
     # Run the table
     # ----------------------------------------
-    single_polynomial_table(polynomial, "0.05_density", "0.01_density", [0., 0.9], 5, form=True)
+    # single_polynomial_table(polynomial, "0.5_density", "0.5_density", [0.9, 0.9], 1, form=True)
+
+    # # Run the alternating projection
+    # Solve original SDP
+    # ----------------------------------------
+    CG_sdp_solution = sdp_CG_unit_sphere(polynomial, verbose=False)
+    # Solve variable projected SDP
+    # ----------------------------------------
+    random_projector = rp.RandomProjector(round(0.9 * CG_sdp_solution["size_psd_variable"]), CG_sdp_solution["size_psd_variable"], type="0.2_density")
+    CG_rp_solution = projected_sdp_CG_unit_sphere(polynomial, random_projector, verbose=False)
+    # Solve constraint aggregation
+    # ----------------------------------------
+    random_projector_constraints = rp.RandomProjector(round(0.9 * len(polynomial.distinct_monomials)), len(polynomial.distinct_monomials), type="0.2_density")
+    CG_ca_solution = constraint_aggregation_CG_unit_sphere(polynomial, random_projector_constraints, verbose=False)
+
+    # Alternating projection
+    # ----------------------------------------
+    solution_matrix = CG_ca_solution["X"]
+    objective_feasible = CG_rp_solution["objective"]
+    psd_X, objective = alternating_projection_sdp("original", polynomial, random_projector, CG_ca_solution["X"], objective_feasible)
+
+    print("SDP objective: ", CG_sdp_solution["objective"])
+    print("Objective constraint aggregation: ", CG_ca_solution["objective"])
+    print("Objective value after APM to projected: ", objective)
+
+

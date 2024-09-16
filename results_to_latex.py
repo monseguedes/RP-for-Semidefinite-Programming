@@ -836,7 +836,7 @@ def vertical_unit_sphere(name):
         \begin{adjustbox}{width=\textwidth}
         \begin{tabular}{llrrrrrrrrrrrrrrrr} 
             \toprule
-            Instance & Type & Projection & $X$  & $m$ & Value & Time & APM   \\
+            Instance & Type & Projection & $X$  & $m$ & Value & Time(s) & APM   \\
             """
     print(header)
 
@@ -858,7 +858,7 @@ def vertical_unit_sphere(name):
         original_time = results["original"]["computation_time"]
 
         print(
-            "             {:8} & {:8} & {:8} & {:8} & {:8} & {:8.2f} & {:8.2f} & NA \\\\".format(
+            "             {:8} & {:8} & {:8} & {:8} & {:8} & {:8.2f} & {:8.2f} & - \\\\".format(
                 name.strip(".pkl"),
                 "original",
                 "-",

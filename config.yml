@@ -129,7 +129,7 @@ qcqp:
 unit_sphere:
   variables:
     - 10
-    - 15
+    # - 15
     # - 20
 
   degree: 
@@ -158,9 +158,11 @@ unit_sphere:
 
 densities:
   0, 400:
-    - "sparse"
+    # - "sparse"
+    - "0.1_density"
   401, 1200:
-    - "0.2_density"
+    # - "0.2_density"
+    - "0.05_density"
   1201, 4000:
     - "0.1_density"
   4001, 5000:

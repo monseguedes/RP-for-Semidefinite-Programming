@@ -849,7 +849,7 @@ def constraint_aggregation_CG_unit_sphere(
             "a": a,
             "objective": objective,
             "size_psd_variable": m,
-            "no_constraints": len(distinct_monomials),
+            "no_constraints": random_projector.k,
             "computation_time": computational_time,
         }
 
@@ -991,7 +991,7 @@ def combined_projection_CG_unit_sphere(
             "a": a,
             "objective": objective,
             "size_psd_variable": A_old[tuple_of_constant].shape[0],
-            "no_constraints": len(distinct_monomials),
+            "no_constraints": random_projector_constraints.k,
             "computation_time": computational_time,
         }
 
@@ -1192,4 +1192,4 @@ if __name__ == "__main__":
 
     # Run the table
     # ----------------------------------------
-    single_polynomial_table(polynomial, "0.05_density", "0.01_density", [0.5, 0.9], 5, form=True)
+    single_polynomial_table(polynomial, "0.05_density", "0.01_density", [0., 0.9], 5, form=True)

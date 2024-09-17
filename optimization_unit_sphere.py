@@ -863,6 +863,7 @@ def combined_projection_CG_unit_sphere(
     random_projector_variables: rp.RandomProjector,
     random_projector_constraints: rp.RandomProjector,
     verbose=False,
+    slack=True,
 ):
     """
     Solves a the constraint aggregation method of the unit sphere using the method
@@ -888,6 +889,11 @@ def combined_projection_CG_unit_sphere(
         Lower bound of the polynomial optimization problem.
 
     """
+
+    if slack:
+        epsilon = 0.00001
+        dual_lower_bound = -1 - epsilon
+        dual_upper_bound = 1 + epsilon
 
     distinct_monomials = polynomial.distinct_monomials
     tuple_of_constant = tuple([0 for i in range(len(distinct_monomials[0]))])
@@ -954,20 +960,60 @@ def combined_projection_CG_unit_sphere(
 
         # PSD variable X
         X = M.variable(mf.Domain.inPSDCone(m))
-
-        # Objective: maximize a (scalar)
         a = M.variable()
-        M.objective(mf.ObjectiveSense.Maximize, a)
-
-        # Constraint: A_i · X - a * s_i = c_i
-        for i in range(random_projector_constraints.k):
-            M.constraint(
-                mf.Expr.add(
-                    mf.Expr.dot(A[i], X),
-                    mf.Expr.mul(sphere_polynomial[i], a),
-                ),
-                mf.Domain.equalsTo(polynomial[i]),
+        
+        if slack:
+            lb_variables = M.variable(
+            "lb_variables", random_projector_constraints.k, mf.Domain.greaterThan(0)
             )
+            ub_variables = M.variable(
+                "ub_variables", random_projector_constraints.k, mf.Domain.greaterThan(0)
+            )
+
+            # Objective: (maximize) a + LB * sum(lbv) - UB * sum(ubv)
+            M.objective(
+                mf.ObjectiveSense.Maximize,
+                mf.Expr.add(
+                    a,
+                    mf.Expr.sub(
+                        mf.Expr.mul(
+                            dual_lower_bound,
+                            mf.Expr.dot(lb_variables, np.ones(random_projector_constraints.k)),
+                        ),
+                        mf.Expr.mul(
+                            dual_upper_bound,
+                            mf.Expr.dot(ub_variables, np.ones(random_projector_constraints.k)),
+                        ),
+                    ),
+                ),
+            )
+
+            # Constraints: A_i · X - a * s_i + lbv[i] - ubv[i] = c_i
+            for i in range(random_projector_constraints.k):
+                M.constraint(
+                    mf.Expr.add(
+                        mf.Expr.add(
+                            mf.Expr.dot(A[i], X),
+                            mf.Expr.mul(sphere_polynomial[i], a),
+                        ),
+                        mf.Expr.sub(lb_variables.index(i), ub_variables.index(i)),
+                    ),
+                    mf.Domain.equalsTo(polynomial[i]),
+                )
+
+        else:
+            # Objective: maximize a (scalar)
+            M.objective(mf.ObjectiveSense.Maximize, a)
+
+            # Constraint: A_i · X - a * s_i = c_i
+            for i in range(random_projector_constraints.k):
+                M.constraint(
+                    mf.Expr.add(
+                        mf.Expr.dot(A[i], X),
+                        mf.Expr.mul(sphere_polynomial[i], a),
+                    ),
+                    mf.Domain.equalsTo(polynomial[i]),
+                )
 
         if verbose:
             # Increase verbosity
@@ -1278,7 +1324,7 @@ if __name__ == "__main__":
 
     # Run the table
     # ----------------------------------------
-    single_polynomial_table(polynomial, "0.5_density", "0.5_density", [0.5, 0.9], 5, form=True)
+    single_polynomial_table(polynomial, "0.1_density", "0.01_density", [0.5, 0.9], 5, form=True)
 
     # # # Run the alternating projection
     # # Solve original SDP

@@ -355,90 +355,6 @@ def constraint_aggregation(graph, projector, verbose=False):
         return solution
 
 
-def single_graph_results(graph: Graph, type="sparse", range=(0.1, 0.6), iterations=5):
-    """
-    Get the results for a single graph.
-
-    Parameters
-    ----------
-    graph : Graph
-        Graph object.
-    type : str
-        Type of random projector.
-
-    """
-
-    # Solve unprojected stable set problem
-    # ----------------------------------------
-    print("\n" + "-" * 80)
-    print("Results for a graph with {} vertices".format(graph.n).center(80))
-    print("-" * 80)
-    print("\n{: <18} {: >10} {: >8} {: >8}".format("Type", "Size X", "Value", "Time"))
-    print("-" * 80)
-
-    first_level = ssp.stable_set_problem_sdp(graph, verbose=False)
-    print(
-        "{: <18} {: >10} {: >8.2f} {: >8.2f}".format(
-            "Original L1",
-            first_level["size_psd_variable"],
-            first_level["objective"],
-            first_level["computation_time"],
-        )
-    )
-
-    sdp_solution = second_level_stable_set_problem_sdp(graph, verbose=False)
-    print(
-        "{: <18} {: >10} {: >8.2f} {: >8.2f}".format(
-            "Original L2",
-            sdp_solution["size_psd_variable"],
-            sdp_solution["objective"],
-            sdp_solution["computation_time"],
-        )
-    )
-
-    matrix_size = graph.A_L2[graph.distinct_monomials_L2[0]].shape[0]
-
-    for rate in np.linspace(range[0], range[1], iterations):
-        slack = True
-        if rate > 0.5:
-            slack = True
-        random_projector = rp.RandomProjector(
-            round(matrix_size * rate), matrix_size, type=type
-        )
-        rp_solution = projected_second_level_stable_set_problem_sdp(
-            graph, random_projector, verbose=False, slack=slack
-        )
-
-        increment = rp_solution["objective"] - sdp_solution["objective"]
-        # Print in table format with rate as column and then value and increment as other columns
-
-        print(
-            "{: <18} {: >10} {: >8.2f} {: >8.2f}".format(
-                "Projection " + str(round(rate, 2)),
-                rp_solution["size_psd_variable"],
-                rp_solution["objective"],
-                rp_solution["computation_time"],
-            )
-        )
-
-    # Solve projected stable set problem
-    # ----------------------------------------
-    id_random_projector = rp.RandomProjector(matrix_size, matrix_size, type="identity")
-    id_rp_solution = projected_second_level_stable_set_problem_sdp(
-        graph, id_random_projector, verbose=False, slack=False
-    )
-    print(
-        "{: <18} {: >10} {: >8.2f} {: >8.2f}".format(
-            "Identity",
-            id_rp_solution["size_psd_variable"],
-            id_rp_solution["objective"],
-            id_rp_solution["computation_time"],
-        )
-    )
-
-    print()
-
-
 def projected_dimension(epsilon, probability, ranks_Ai, rank_solution):
     """ """
 
@@ -504,6 +420,7 @@ def random_constraint_aggregation_sdp(graph, projector, verbose=False):
     with mf.Model("SDP") as M:
         # PSD variable X
         size_psd_variable = list(A.values())[0].shape[0]
+        # print("Size of PSD variable: ", size_psd_variable)
         X = M.variable(mf.Domain.inPSDCone(size_psd_variable))
 
         # Objective
@@ -519,7 +436,7 @@ def random_constraint_aggregation_sdp(graph, projector, verbose=False):
                 mf.Domain.equalsTo(C[i]),
             )
 
-        print("Number of constraints: ", len(A.keys()) + 1)
+        # print("Number of constraints: ", len(A.keys()) + 1)
 
         if verbose:
             # Increase verbosity
@@ -533,26 +450,113 @@ def random_constraint_aggregation_sdp(graph, projector, verbose=False):
             # Get the solution
             X_sol = X.level()
             X_sol = X_sol.reshape(size_psd_variable, size_psd_variable)
-            gamma_sol = gamma.level()
             objective = M.primalObjValue()
-            size_psd_variable = int(np.sqrt(X_sol.shape[0]))
             computation_time = end_time - start_time
 
         except:
-            print("Unbounded relaxation")
-            X_sol = None
-            gamma_sol = None
-            objective = None
-            size_psd_variable = None
-            computation_time = None
+            # print("Unbounded relaxation")
+            X_sol = np.inf
+            objective = np.inf
+            computation_time = np.inf
 
         solution = {
-            "X": X_sol,
-            # "b": b_sol,
+            # "X": X,
             "objective": objective,
-            "computation_time": computation_time,
-            # "no_linear_variables": no_linear_variables,
             "size_psd_variable": size_psd_variable,
+            "no_constraints": projector.k,
+            "computation_time": computation_time,
+            "edges": len(edges),
+        }
+
+        return solution
+
+
+def combined_projection(
+    graph, projector_variables, projector_constraints, verbose=False
+):
+    distinct_monomials = graph.distinct_monomials_L2
+    edges = graph.edges
+    tuple_of_constant = tuple([0 for i in range(len(distinct_monomials[0]))])
+
+    # Coefficients of objective
+    C = {monomial: -1 if sum(monomial) == 1 else 0 for monomial in distinct_monomials}
+
+    # Get new set of rhs by randomly combining previous ones
+    C_old = C.copy()
+    C = {}
+    for i in range(projector_constraints.k):
+        C[i] = 0
+        for j, monomial in enumerate(distinct_monomials):
+            # if monomial != tuple_of_constant:
+            C[i] += projector_constraints.projector[i, j] * C_old[monomial]
+
+    A = graph.A_L2
+    A = {monomial: projector_variables.apply_rp_map(A[monomial]) for monomial in A.keys()}
+    A_old = A.copy()
+    A = {}
+    for i in range(projector_constraints.k):
+        A[i] = np.zeros(
+            (A_old[tuple_of_constant].shape[0], A_old[tuple_of_constant].shape[1])
+        )
+        for j, monomial in enumerate(distinct_monomials):
+            # if monomial != tuple_of_constant:
+            A[i] += projector_constraints.projector[i, j] * A_old[monomial]
+
+    b = {monomial: 0 for monomial in distinct_monomials}
+    b[tuple_of_constant] = 1
+    b_old = b.copy()
+    b = {}
+    for i in range(projector_constraints.k):
+        b[i] = 0
+        for j, monomial in enumerate(distinct_monomials):
+            b[i] += projector_constraints.projector[i, j] * b_old[monomial]
+
+    with mf.Model("SDP") as M:
+        # PSD variable X
+        size_psd_variable = list(A.values())[0].shape[0]
+        X = M.variable(mf.Domain.inPSDCone(size_psd_variable))
+        print("Size of PSD variable: ", size_psd_variable)
+
+        # Objective
+        gamma = M.variable()
+        M.objective(mf.ObjectiveSense.Maximize, gamma)
+
+        # Constraints:
+        # A_i · X  = c_i
+        for i in A.keys():
+            matrix_inner_product = mf.Expr.dot(A[i], X)
+            M.constraint(
+                mf.Expr.add(matrix_inner_product, mf.Expr.mul(b[i], gamma)),
+                mf.Domain.equalsTo(C[i]),
+            )
+
+        if verbose:
+            # Increase verbosity
+            M.setLogHandler(sys.stdout)
+
+        # Optimize
+        try:
+            start_time = time.time()
+            M.solve()
+            end_time = time.time()
+            # Get the solution
+            X_sol = X.level()
+            X_sol = X_sol.reshape(size_psd_variable, size_psd_variable)
+            objective = M.primalObjValue()
+            computation_time = end_time - start_time
+
+        except:
+            X_sol = np.inf
+            objective = np.inf
+            computation_time = np.inf
+
+        solution = {
+            # "X": X,
+            "objective": objective,
+            "size_psd_variable": size_psd_variable,
+            "no_constraints": projector_constraints.k,
+            "computation_time": computation_time,
+            "edges": len(edges),
         }
 
         return solution
@@ -615,44 +619,179 @@ def alternating_projection_sdp(graph, solution_matrix, objective):
     return psd_X, old_b[tuple_of_constant] - psd_X[0, 0]
 
 
+def single_graph_results(graph: Graph, 
+                         type_variable,
+                         type_constraint, 
+                         range=(0.1, 0.6), 
+                         iterations=5):
+    """
+    Get the results for a single graph.
+
+    Parameters
+    ----------
+    graph : Graph
+        Graph object.
+    type : str
+        Type of random projector.
+
+    """
+
+    # Solve unprojected stable set problem
+    # ----------------------------------------
+    print("\n" + "-" * 80)
+    print("Results for a graph with {} vertices".format(graph.n).center(80))
+    print("-" * 80)
+    print("\n{: <18} {: >10} {: >8} {: >8}".format("Type", "Size X", "Value", "Time"))
+    print("-" * 80)
+
+    first_level = ssp.stable_set_problem_sdp(graph, verbose=False)
+    print(
+        "{: <18} {: >10} {: >8.2f} {: >8.2f}".format(
+            "Original L1",
+            first_level["size_psd_variable"],
+            first_level["objective"],
+            first_level["computation_time"],
+        )
+    )
+
+    sdp_solution = second_level_stable_set_problem_sdp(graph, verbose=False)
+    print(
+        "{: <18} {: >10} {: >8.2f} {: >8.2f}".format(
+            "Original L2",
+            sdp_solution["size_psd_variable"],
+            sdp_solution["objective"],
+            sdp_solution["computation_time"],
+        )
+    )
+    print("." * 80)
+    
+    # Solve variable reduction
+    # ----------------------------------------
+    matrix_size = graph.A_L2[graph.distinct_monomials_L2[0]].shape[0]
+    for rate in np.linspace(range[0], range[1], iterations):
+        slack = True
+        if rate > 0.5:
+            slack = True
+        random_projector = rp.RandomProjector(
+            round(matrix_size * rate), matrix_size, type=type_variable
+        )
+        rp_solution = projected_second_level_stable_set_problem_sdp(
+            graph, random_projector, verbose=False, slack=slack
+        )
+
+        print(
+            "{: <18} {: >10} {: >8.2f} {: >8.2f}".format(
+                "Projection " + str(round(rate, 2)),
+                rp_solution["size_psd_variable"],
+                rp_solution["objective"],
+                rp_solution["computation_time"],
+            )
+        )
+    print("." * 80)
+
+    # Solve constraint aggregation
+    # ----------------------------------------
+    no_constraints = len(graph.A_L2.keys())
+    for rate in np.linspace(range[0], range[1], iterations):
+        random_projector = rp.RandomProjector(
+            round(no_constraints * rate), no_constraints, type=type_constraint
+        )
+        contraintagg = random_constraint_aggregation_sdp(
+            graph, random_projector, verbose=False
+        )
+
+        print(
+            "{: <18} {: >10} {: >8.2f} {: >8.2f}".format(
+                "Constraint " + str(round(rate, 2)),
+                contraintagg["size_psd_variable"],
+                contraintagg["objective"],
+                contraintagg["computation_time"],
+            )
+        )
+    print("." * 80)
+
+    # Solve combined projection
+    # ----------------------------------------
+    for rate in np.linspace(range[0], range[1], iterations):
+        projector_variables = rp.RandomProjector(
+            round(matrix_size * rate), matrix_size, type=type_variable
+        )
+        projector_constraints = rp.RandomProjector(
+            round(no_constraints * rate), no_constraints, type=type_constraint
+        )
+        combined = combined_projection(
+            graph, projector_variables, projector_constraints, verbose=False
+        )
+
+        print(
+            "{: <18} {: >10} {: >8.2f} {: >8.2f}".format(
+                "Combined " + str(round(rate, 2)),
+                combined["size_psd_variable"],
+                combined["objective"],
+                combined["computation_time"],
+            )
+        )
+
+
+    # # Solve projected stable set problem
+    # # ----------------------------------------
+    # id_random_projector = rp.RandomProjector(matrix_size, matrix_size, type="identity")
+    # id_rp_solution = projected_second_level_stable_set_problem_sdp(
+    #     graph, id_random_projector, verbose=False, slack=False
+    # )
+    # print(
+    #     "{: <18} {: >10} {: >8.2f} {: >8.2f}".format(
+    #         "Identity",
+    #         id_rp_solution["size_psd_variable"],
+    #         id_rp_solution["objective"],
+    #         id_rp_solution["computation_time"],
+    #     )
+    # )
+
+    print()
+
+
 if __name__ == "__main__":
-    # directory = "graphs/generalised_petersen_20_2_complement"
-    # file_path = directory + "/graph.pkl"
-    # with open(file_path, "rb") as file:
-    #     graph = pickle.load(file)
+    directory = "graphs/generalised_petersen_20_2_complement"
+    file_path = directory + "/graph.pkl"
+    with open(file_path, "rb") as file:
+        graph = pickle.load(file)
 
     # graph = generate_graphs.generate_cordones(100, complement=True, save=False, level=1)
-    # graph = generate_graphs.generate_generalised_petersen(10, 2, complement=False, save=False, level=2)
+    graph = generate_graphs.generate_generalised_petersen(
+        10, 2, complement=False, save=False, level=2
+    )
     # graph = generate_graphs.generate_jahangir_graph(5, 3, complement=False, save=False, level=2)
     # matrix_size = graph.graph.shape[0] + 1
     # print("Matrix size: {}".format(matrix_size))
 
-    # single_graph_results(graph, type="0.1_density2", range=(0.1, 0.8), iterations=8)
+    single_graph_results(graph, "sparse", "0.1_density", range=(0.1, 0.9), iterations=9)
     # print("No. distinct monomials: ", len(graph.distinct_monomials_L2))
 
-    seed = 1
-    graph = generate_graphs.generate_cordones(6, complement=False, save=False, level=2)
-    # graph = generate_graphs.generate_pentagon(complement=True)
-    # graph = generate_graphs.generate_generalised_petersen(10, 2, complement=True, save=False, level=1)
-    matrix_size = graph.graph.shape[0] + 1
-    print("Matrix size: {}".format(matrix_size))
+    # # Alternating projection
+    # seed = 1
+    # graph = generate_graphs.generate_cordones(6, complement=False, save=False, level=2)
+    # # graph = generate_graphs.generate_pentagon(complement=True)
+    # # graph = generate_graphs.generate_generalised_petersen(10, 2, complement=True, save=False, level=1)
+    # matrix_size = graph.graph.shape[0] + 1
+    # print("Matrix size: {}".format(matrix_size))
 
-    # single_graph_results(graph, type="sparse")
-    results = second_level_stable_set_problem_sdp(graph)
-    print("Objective: ", results["objective"])
+    # # single_graph_results(graph, type="sparse")
+    # results = second_level_stable_set_problem_sdp(graph)
+    # print("Objective: ", results["objective"])
 
-    projection = 0.8
-    print("No. distinct monomials: ", len(graph.distinct_monomials_L2))
-    projector = rp.RandomProjector(
-        round(len(graph.distinct_monomials_L2) * projection),
-        len(graph.distinct_monomials_L2),
-        type="gaussian",
-        seed=seed,
-    )
-    contraintagg = random_constraint_aggregation_sdp(graph, projector, verbose=False)
-    print("Objective: ", contraintagg["objective"])
+    # projection = 0.8
+    # print("No. distinct monomials: ", len(graph.distinct_monomials_L2))
+    # projector = rp.RandomProjector(
+    #     round(len(graph.distinct_monomials_L2) * projection),
+    #     len(graph.distinct_monomials_L2),
+    #     type="gaussian",
+    #     seed=seed,
+    # )
+    # contraintagg = random_constraint_aggregation_sdp(graph, projector, verbose=False)
+    # print("Objective: ", contraintagg["objective"])
 
-    alternated_X, bound = alternating_projection_sdp(
-        graph, contraintagg["X"], contraintagg["objective"]
-    )
-    print("Bound: ", bound)
+    # alternated_X, bound = alternating_projection_sdp(
+    #     graph, contraintagg["X"], contraintagg["objective"]
+    # )
+    # print("Bound: ", bound)

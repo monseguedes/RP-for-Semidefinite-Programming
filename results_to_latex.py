@@ -914,6 +914,179 @@ def vertical_unit_sphere(name):
 
     print(footer)
 
+def vertical_stable_set(graph_class, name):
+    header = r"""
+        \begin{table}[!htbp]
+        \centering
+        \captionof{table}{Comparison of different projectors and projections for the graph X for stable set problem}
+        \begin{adjustbox}{width=\textwidth}
+        \begin{tabular}{llrrrrrrrrrrrrrrrr} 
+            \toprule
+            Instance & Type & Projection & $X$  & $m$ & Value & Time(s) & APM   \\
+            """
+    print(header)
+
+    directory = "results/new_stable_set/" + graph_class
+    
+    alphabetical_dir = [name]
+
+    for name in alphabetical_dir[:1]:
+        print(r"\midrule")
+        file_path = os.path.join(directory, name)
+        with open(file_path, "rb") as file:
+            results = pickle.load(file)
+
+        original_value = results["original"]["objective"]
+        original_time = results["original"]["computation_time"]
+
+        print(
+            "             {:8} & {:8} & {:8} & {:8} & {:8} & {:8.2f} & {:8.2f} & - \\\\".format(
+                name.strip(".pkl"),
+                "original",
+                "-",
+                results["original"]["size_psd_variable"],
+                results["original"]["no_constraints"],
+                results["original"]["objective"],
+                results["original"]["computation_time"],
+            )
+        )
+        print(r"\cmidrule{2-8}")
+
+        # Pick projector type from config
+        matrix_size = results["original"]["size_psd_variable"]
+        pick_key = [key for key in config["densities"] if matrix_size in range(int(key.split(",")[0]), int(key.split(",")[1]))]
+        type_variable = config["densities"][pick_key[0]][0]
+        no_constraints = results["original"]["no_constraints"]
+        pick_key = [key for key in config["densities"] if no_constraints in range(int(key.split(",")[0]), int(key.split(",")[1]))]
+        type_constraints = config["densities"][pick_key[0]][0]
+        projections = list(results[(type_variable, type_constraints)].keys())
+
+        for projection_type in ["variable_reduction", "constraint_aggregation", "combined_projection"]:
+            print(
+                    "   &  {:8} & {:8} & {:8} & {:8} & {:8.2f} & {:8.2f} & -  \\\\".format(
+                        projection_type.replace("_", " "),
+                        projections[0],
+                        results[(type_variable, type_constraints)][projections[0]][projection_type]["size_psd_variable"],
+                        results[(type_variable, type_constraints)][projections[0]][projection_type]["no_constraints"],
+                        results[(type_variable, type_constraints)][projections[0]][projection_type]["objective"],
+                        results[(type_variable, type_constraints)][projections[0]][projection_type]["computation_time"],
+                    )
+                )
+            for projection in projections[1:]:
+                print(
+                    "   &  & {:8} & {:8} & {:8} & {:8.2f} & {:8.2f} & -  \\\\".format(
+                        projection,
+                        results[(type_variable, type_constraints)][projection][projection_type]["size_psd_variable"],
+                        results[(type_variable, type_constraints)][projection][projection_type]["no_constraints"],
+                        results[(type_variable, type_constraints)][projection][projection_type]["objective"],
+                        results[(type_variable, type_constraints)][projection][projection_type]["computation_time"],
+                    )
+                )
+
+            if projection_type != "combined_projection":
+                print(r"\cmidrule{2-8}")
+
+    footer = r"""
+        \bottomrule
+        \end{tabular}
+        \end{adjustbox}
+        \label{tab: unit sphere}
+    \end{table}
+    """
+
+    print(footer)
+
+
+def comparison_stable_set(projection):
+    """
+    \begin{table}[!htbp]
+    \centering  
+    \captionof{table}{Optimization complement graphs of stable set for 10\% projection}
+    \begin{adjustbox}{width=\textwidth}
+    \begin{tabular}{lrrrrrrrrrrrrrrrrr} 
+        \toprule
+        & & & && \multicolumn{2}{c}{original} && \multicolumn{2}{c}{VR} && \multicolumn{3}{c}{CA} &&  \multicolumn{3}{c}{VR + CA} \\
+        \cmidrule{6-7} \cmidrule{9-10} \cmidrule{12-14} \cmidrule{16-18} 
+        \rule{0pt}{10pt} % Adding space of 10pt between lines and text below
+        instance & $X$  & $e$ & $m$ && Value & Time && Value & Time && Value & Time & APM && Value & Time & APM \\
+        \midrule
+          c-petersen-20-2 &       40 &      720 &      102   &&    82 &       99 &&     7.63 & 8 \\
+        \bottomrule
+        \end{tabular}
+        \end{adjustbox}
+        \label{tab: unit sphere}
+    \end{table}
+    """
+
+    header = r"""
+    \begin{table}[!htbp]
+    \centering
+    \captionof{table}{Optimization complement graphs of stable set for 10\% projection}
+    \begin{adjustbox}{width=\textwidth}
+    \begin{tabular}{lrrrrrrrrrrrrrrrrr} 
+        \toprule
+        & & & && \multicolumn{2}{c}{original} && \multicolumn{2}{c}{VR} && \multicolumn{3}{c}{CA} &&  \multicolumn{3}{c}{VR + CA} \\
+        \cmidrule{6-7} \cmidrule{9-10} \cmidrule{12-14} \cmidrule{16-18} 
+        \rule{0pt}{10pt} % Adding space of 10pt between lines and text below
+        instance & $X$  & $e$ & $m$ && Value & Time && Value & Time && Value & Time & APM && Value & Time & APM \\
+        \midrule
+    """
+    print(header)
+
+    directory = "results/new_stable_set"
+    graphs = ["petersen", "cordones", "helm", "jahangir"]
+
+    for graph in graphs:
+        dir = os.path.join(directory, graph)
+
+        alphabetical_dir = sorted(
+            [file for file in os.listdir(dir) if file.endswith(".pkl")],
+            key=lambda x: int("".join([i for i in x if i.isdigit()])),
+        )
+        for name in alphabetical_dir:
+            file_path = os.path.join(dir, name)
+            with open(file_path, "rb") as file:
+                results = pickle.load(file)
+
+            # Pick projector type from config
+            matrix_size = results["original"]["size_psd_variable"]
+            pick_key = [key for key in config["densities"] if matrix_size in range(int(key.split(",")[0]), int(key.split(",")[1]))]
+            type_variable = config["densities"][pick_key[0]][0]
+            no_constraints = results["original"]["no_constraints"]
+            pick_key = [key for key in config["densities"] if no_constraints in range(int(key.split(",")[0]), int(key.split(",")[1]))]
+            type_constraints = config["densities"][pick_key[0]][0]
+
+            original_value = results["original"]["objective"]
+            original_time = results["original"]["computation_time"]
+
+            print(
+                "             {:8} & {:8} & {:8} & {:8} && {:8.2f} & {:8.2f} && {:8.2f} & {:8.2f} && {:8.2f} & {:8.2f} & - && {:8.2f} & {:8.2f} & - \\\\".format(
+                    graph + "-" + name.strip(".pkl").replace("_", "-"),
+                    results["original"]["size_psd_variable"],
+                    results["original"]["edges"],
+                    results["original"]["no_constraints"],
+                    results["original"]["objective"],
+                    results["original"]["computation_time"],
+                    results[(type_variable, type_constraints)][projection]["variable_reduction"]["objective"],
+                    results[(type_variable, type_constraints)][projection]["variable_reduction"]["computation_time"],
+                    results[(type_variable, type_constraints)][projection]["constraint_aggregation"]["objective"],
+                    results[(type_variable, type_constraints)][projection]["constraint_aggregation"]["computation_time"],
+                    results[(type_variable, type_constraints)][projection]["combined_projection"]["objective"],
+                    results[(type_variable, type_constraints)][projection]["combined_projection"]["computation_time"],
+                )
+            )
+
+    footer = r"""
+        \bottomrule
+        \end{tabular}
+        \end{adjustbox}
+        \label{tab: unit sphere}
+    \end{table}
+    """
+
+    print(footer)
+
+
 
 with open("config.yml", "r") as file:
     config = yaml.safe_load(file)
@@ -930,4 +1103,6 @@ if __name__ == "__main__":
     # sat_to_latex_simplified(config, [0.2, 0.5])
     # qcqp_to_latex("results/qcqp")
     # unit_sphere_to_latex("0.2_density", 0.9)
-    vertical_unit_sphere("form-4-10-1.pkl")
+    # vertical_unit_sphere("form-4-10-1.pkl")
+    # vertical_stable_set("petersen", "6_3_complement.pkl")
+    comparison_stable_set(0.5)

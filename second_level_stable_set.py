@@ -515,7 +515,7 @@ def combined_projection(
         # PSD variable X
         size_psd_variable = list(A.values())[0].shape[0]
         X = M.variable(mf.Domain.inPSDCone(size_psd_variable))
-        print("Size of PSD variable: ", size_psd_variable)
+        # print("Size of PSD variable: ", size_psd_variable)
 
         # Objective
         gamma = M.variable()
@@ -759,13 +759,13 @@ if __name__ == "__main__":
 
     # graph = generate_graphs.generate_cordones(100, complement=True, save=False, level=1)
     graph = generate_graphs.generate_generalised_petersen(
-        10, 2, complement=False, save=False, level=2
+        12, 3, complement=True, save=False, level=2
     )
     # graph = generate_graphs.generate_jahangir_graph(5, 3, complement=False, save=False, level=2)
     # matrix_size = graph.graph.shape[0] + 1
     # print("Matrix size: {}".format(matrix_size))
 
-    single_graph_results(graph, "sparse", "0.1_density", range=(0.1, 0.9), iterations=9)
+    single_graph_results(graph, "sparse", "0.1_small", range=(0.1, 0.9), iterations=9)
     # print("No. distinct monomials: ", len(graph.distinct_monomials_L2))
 
     # # Alternating projection

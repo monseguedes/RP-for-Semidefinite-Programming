@@ -915,6 +915,9 @@ def vertical_unit_sphere(name):
     print(footer)
 
 def vertical_stable_set(graph_class, name):
+    """
+    Print table for a single graph comparing all projections
+    """
     header = r"""
         \begin{table}[!htbp]
         \centering
@@ -999,29 +1002,18 @@ def vertical_stable_set(graph_class, name):
 
 def comparison_stable_set(projection):
     """
-    \begin{table}[!htbp]
-    \centering  
-    \captionof{table}{Optimization complement graphs of stable set for 10\% projection}
-    \begin{adjustbox}{width=\textwidth}
-    \begin{tabular}{lrrrrrrrrrrrrrrrrr} 
-        \toprule
-        & & & && \multicolumn{2}{c}{original} && \multicolumn{2}{c}{VR} && \multicolumn{3}{c}{CA} &&  \multicolumn{3}{c}{VR + CA} \\
-        \cmidrule{6-7} \cmidrule{9-10} \cmidrule{12-14} \cmidrule{16-18} 
-        \rule{0pt}{10pt} % Adding space of 10pt between lines and text below
-        instance & $X$  & $e$ & $m$ && Value & Time && Value & Time && Value & Time & APM && Value & Time & APM \\
-        \midrule
-          c-petersen-20-2 &       40 &      720 &      102   &&    82 &       99 &&     7.63 & 8 \\
-        \bottomrule
-        \end{tabular}
-        \end{adjustbox}
-        \label{tab: unit sphere}
-    \end{table}
+    Print table comparing different graphs for a specific projection
     """
 
     header = r"""
     \begin{table}[!htbp]
-    \centering
-    \captionof{table}{Optimization complement graphs of stable set for 10\% projection}
+    \centering"""
+
+    print(header)
+
+    print(r"""\captionof{table}{Optimization complement graphs of stable set for """, int(projection * 100), "\% projection}")
+    
+    header = r"""
     \begin{adjustbox}{width=\textwidth}
     \begin{tabular}{lrrrrrrrrrrrrrrrrr} 
         \toprule
@@ -1103,6 +1095,6 @@ if __name__ == "__main__":
     # sat_to_latex_simplified(config, [0.2, 0.5])
     # qcqp_to_latex("results/qcqp")
     # unit_sphere_to_latex("0.2_density", 0.9)
-    # vertical_unit_sphere("form-4-10-1.pkl")
+    vertical_unit_sphere("form-4-10-1.pkl")
     # vertical_stable_set("petersen", "6_3_complement.pkl")
-    comparison_stable_set(0.5)
+    # comparison_stable_set(0.5)

@@ -1057,6 +1057,214 @@ def new_stable_set_experiment(config, complement=True):
             print("Done!")
 
 
+def first_level_stable_set_projections(graph, directory, complement=False):
+    """
+    Run and store the projections for the stable set.
+    """
+
+    if os.path.exists(
+        directory
+    ):  # Load previous results if available
+        with open(directory, "rb") as f:
+            sol_dict = pickle.load(f)
+    else:
+        sol_dict = {}
+
+    if "original" not in sol_dict:  # Run original sdp only if not stored
+        print(
+            f"Solving original sdp stable set for {directory}"
+        )
+        results = first_level_stable_set.stable_set_problem_sdp(graph, verbose=False)
+        print("Finished original sdp unit sphere")
+        sol_dict = {"original": results}
+        with open(directory, "wb") as f:
+            pickle.dump(sol_dict, f)
+
+    # Pick projector type from config
+    matrix_size = sol_dict["original"]["size_psd_variable"]
+    pick_key = [key for key in config["densities"] if matrix_size in range(int(key.split(",")[0]), int(key.split(",")[1]))]
+    type_variable = config["densities"][pick_key[0]][0]
+
+    no_constraints = sol_dict["original"]["no_constraints"]
+    pick_key = [key for key in config["densities"] if no_constraints in range(int(key.split(",")[0]), int(key.split(",")[1]))]
+    type_constraints = config["densities"][pick_key[0]][0]
+
+    if (type_variable, type_constraints) not in sol_dict:
+        sol_dict[(type_variable, type_constraints)] = {}
+
+    if complement:
+        gen_projection = (
+            projection
+            for projection in config["stable_set"]["c_projection"]
+            if projection not in sol_dict[(type_variable, type_constraints)]
+        )
+
+    else:
+        gen_projection = (
+            projection
+            for projection in config["stable_set"]["projection"]
+            if projection not in sol_dict[(type_variable, type_constraints)]
+        )
+
+    for projection in gen_projection:
+        if projection not in sol_dict[(type_variable, type_constraints)]:
+            sol_dict[(type_variable, type_constraints)][projection] = {}
+
+        # Variable projection
+        projector_variables = rp.RandomProjector(
+            round(projection * sol_dict["original"]["size_psd_variable"]),
+            sol_dict["original"]["size_psd_variable"],
+            type_variable,
+        )
+        print(
+            f"    Solving variable reduction stable set with projector {type_variable} and projection {projection}"
+        )
+        p_results = first_level_stable_set.projected_stable_set_problem_sdp(graph, projector_variables)
+        sol_dict[(type_variable, type_constraints)][projection]["variable_reduction"] = p_results
+        with open(directory, "wb") as f:
+            pickle.dump(sol_dict, f)
+
+        # Constraint aggregation
+        projector_constraints = rp.RandomProjector(
+            round(projection * sol_dict["original"]["no_constraints"]),
+            sol_dict["original"]["no_constraints"],
+            type_constraints,
+        )
+        print(
+            f"    Solving constraint aggregation stable set with projector {type_constraints} and projection {projection}"
+        )
+        p_results = first_level_stable_set.random_constraint_aggregation_sdp(graph, projector_constraints)
+        sol_dict[(type_variable, type_constraints)][projection]["constraint_aggregation"] = p_results
+        with open(directory, "wb") as f:
+            pickle.dump(sol_dict, f)
+
+        # Combined projection
+        print(
+            f"    Solving combined stable set with projector {(type_variable, type_constraints)} and projection {projection}"
+        )
+        p_results = first_level_stable_set.combined_projection_sdp(graph, projector_variables, projector_constraints)
+        sol_dict[(type_variable, type_constraints)][projection]["combined_projection"] = p_results
+        with open(directory, "wb") as f:
+            pickle.dump(sol_dict, f)
+
+
+def first_level_stable_set_experiment(config, complement=True):
+    """
+    
+    """
+
+    # Create folder for stable set results
+    if not os.path.exists("results/first_stable_set"):
+        os.makedirs("results/first_stable_set")
+
+    # Create folder for petersen results
+    os.makedirs("results/first_stable_set/petersen", exist_ok=True)
+    for i, graph in enumerate(config["petersen_n_k"]):
+        n = graph["n"]
+        k = graph["k"]
+        print(f"Scanning petersen graph {i + 1} of {len(config['petersen_n_k'])}")
+        if 2 * graph["n"] <= config["stable_set"]["max_vertices"]:
+            if complement:
+                print(f"    Running experiments for petersen {n}_{k} complement...")
+                name = f"{n}_{k}_complement.pkl"
+            else:
+                print(f"    Running experiments for petersen {n}_{k}...")
+                name = f"{n}_{k}.pkl"
+
+            if not os.path.exists(
+                f"results/first_stable_set/petersen/{name}"
+            ):
+                graph = generate_graphs.generate_generalised_petersen(
+                    n, k, complement=complement, save=False, level=1
+                )
+
+                first_level_stable_set_projections(
+                    graph,
+                    f"results/first_stable_set/petersen/{name}",
+                    complement=complement,
+                )
+
+            print("Done!")
+
+    # Create folder for cordones results
+    os.makedirs("results/first_stable_set/cordones", exist_ok=True)
+    for i, graph in enumerate(config["cordones"]):
+        n = graph["n"]
+        print(f"Scanning cordones graph {i + 1} of {len(config['cordones'])}")
+        if 2 * graph["n"] <= config["stable_set"]["max_vertices"]:
+            if complement:
+                print(f"    Running experiments for cordones {n} complement")
+                name = f"{n}_complement.pkl"
+            else:
+                print(f"    Running experiments for cordones {n}")
+                name = f"{n}.pkl"
+
+            if not os.path.exists(f"results/first_stable_set/cordones/{name}"):
+                graph = generate_graphs.generate_cordones(
+                    n, complement=complement, save=False, level=1
+                )
+
+                first_level_stable_set_projections(
+                    graph,
+                    f"results/first_stable_set/cordones/{name}",
+                    complement=complement,
+                )
+
+            print("Done!")
+
+    # Create folder for helm results
+    os.makedirs("results/first_stable_set/helm", exist_ok=True)
+    for i, graph in enumerate(config["helm"]):
+        n = graph["n"]
+        print(f"Scanning helm graph {i + 1} of {len(config['helm'])}")
+        if 2 * graph["n"] <= config["stable_set"]["max_vertices"]:
+            if complement:
+                print(f"    Running experiments for helm {n} complement")
+                name = f"{n}_complement.pkl"
+            else:
+                print(f"    Running experiments for helm {n}")
+                name = f"{n}.pkl"
+
+            if not os.path.exists(f"results/first_stable_set/helm/{name}"):
+                graph = generate_graphs.generate_helm_graph(
+                    n, complement=complement, save=False, level=1
+                )
+
+                first_level_stable_set_projections(
+                    graph,
+                    f"results/first_stable_set/helm/{name}",
+                    complement=complement,
+                )
+            print("Done!")
+
+    # Create folder for jahangir results
+    os.makedirs("results/first_stable_set/jahangir", exist_ok=True)
+    for i, graph in enumerate(config["jahangir"]):
+        n = graph["n"]
+        k = graph["k"]
+        print(f"Scanning jahangir graph {i + 1} of {len(config['jahangir'])}")
+        if n + (n * k) + 1 <= config["stable_set"]["max_vertices"]:
+            if complement:
+                print(f"    Running experiments for jahangir {n, k} complement")
+                name = f"{n}_{k}_complement.pkl"
+            else:
+                print(f"    Running experiments for jahangir {n, k}")
+                name = f"{n}_{k}.pkl"
+
+            if not os.path.exists(
+                f"results/first_stable_set/jahangir/{name}"
+            ):
+                graph = generate_graphs.generate_jahangir_graph(
+                    n, k, complement=complement, save=False, level=1
+                )
+
+                first_level_stable_set_projections(
+                    graph,
+                    f"results/first_stable_set/jahangir/{name}",
+                    complement=complement,
+                )
+            print("Done!")
+
 
 if __name__ == "__main__":
     with open("config.yml", "r") as config_file:
@@ -1070,3 +1278,4 @@ if __name__ == "__main__":
     # randomly_generated_qcqp(config)
     # unit_sphere_experiments(config)
     new_stable_set_experiment(config, complement=True)
+    # first_level_stable_set_experiment(config, complement=True)

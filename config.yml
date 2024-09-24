@@ -12,6 +12,10 @@ stable_set:
   max_vertices: 200
   max_matrix: 7000
   projection:
+    - 0.1
+    - 0.2
+    - 0.3
+    - 0.4
     - 0.5 
     - 0.6
     - 0.7
@@ -33,9 +37,9 @@ stable_set:
     - "0.1_density"
     - "0.2_density"
     
-# petersen_n_k:
-#   - n: 6
-#     k: 3
+petersen_n_k:
+  - n: 20
+    k: 3
 # cordones:
 #   - n: 5
 # helm:
@@ -44,32 +48,32 @@ stable_set:
 #   - n: 8
 #     k: 2
 
-petersen_n_k:
-  # - n: 5
-  #   k: 2
-  - n: 20
-    k: 2
-  - n: 30
-    k: 2
-  # - n: 40
-  #   k: 2
-cordones:
-  # - n: 5
-  - n: 20
-  - n: 30
-  # - n: 40
-helm:
-  # - n: 5
-  - n: 21
-  - n: 31
-  # - n: 41
-jahangir:
-  - n: 17
-    k: 2
-  - n: 19
-    k: 3
-  # - n: 41
-  #   k: 2
+# petersen_n_k:
+#   # - n: 5
+#   #   k: 2
+#   - n: 20
+#     k: 2
+#   - n: 30
+#     k: 2
+#   # - n: 40
+#   #   k: 2
+# cordones:
+#   # - n: 5
+#   - n: 20
+#   - n: 30
+#   # - n: 40
+# helm:
+#   # - n: 5
+#   - n: 21
+#   - n: 31
+#   # - n: 41
+# jahangir:
+#   - n: 17
+#     k: 2
+#   - n: 19
+#     k: 3
+#   # - n: 41
+#   #   k: 2
 
 
 
@@ -140,6 +144,7 @@ qcqp:
     # - 5000
     # - 7000
   q:
+    - 0.05
     - 0.1
     - 0.5
     - 1
@@ -150,7 +155,7 @@ qcqp:
 #Unit sphere
 unit_sphere:
   variables:
-    # - 10
+    - 10
     # - 15
     - 20
 

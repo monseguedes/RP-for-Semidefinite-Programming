@@ -6,6 +6,10 @@ import pickle
 import sys
 import seaborn as sns
 import yaml
+import process_graphs
+from process_graphs import File
+import random_projections
+import maxcut
 
 SMALL_SIZE = 12
 MEDIUM_SIZE = 16
@@ -81,6 +85,87 @@ def plot_quality(config):
         dpi=300,
         transparent=False,
     )
+
+def box_plot_seeds():
+    """
+    Function to generate a box plot for all the seeds
+    """
+    # Process all the seeds
+    for graph in [
+        name for name in os.listdir("graphs/maxcut/seedsplot")
+    ]: 
+        file_name = "graphs/maxcut/seedsplot/" + graph
+        if not os.path.exists(f"graphs/maxcut/seedsplot/{graph.strip('.txt')}/graph.pkl"):
+            print("Processsing ", graph)
+            file = File(file_name)
+            file.store_graph("/seedsplot/" + graph.strip(".txt"))
+
+        else:
+            with open(f"graphs/maxcut/seedsplot/{graph.strip('.txt')}/graph.pkl", "rb") as f:
+                file = pickle.load(f)
+
+    # Make folder of results if not exists
+    if not os.path.exists("results/maxcut/seedsplot"):
+        os.makedirs("results/maxcut/seedsplot")
+
+    values_dict = {}
+    if not os.path.exists("results/maxcut/seedsplot/original.pkl"):
+        original = maxcut.sdp_relaxation(file)
+        with open(f"results/maxcut/seedsplot/original.pkl", "wb") as f:
+            pickle.dump(original, f)
+    else:
+        with open("results/maxcut/seedsplot/original.pkl", "rb") as f:
+            original = pickle.load(f)
+
+    # Run experiments if not alreasy stored
+    # for projection in [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9]:
+    for projection in [0.1, 0.2, 0.3]:
+        values_dict[projection] = []
+        # for seed in [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]:
+        for seed in [1, 2, 3]:
+            if not os.path.exists(f"results/maxcut/seedsplot/{seed}_{int(projection * 100)}.pkl"):
+                print("Running experiments seed {} and projection {}".format(seed, projection))
+                projector = random_projections.RandomProjector(k=round(projection * 2000), m=2000, type="0.6_density", seed=seed)
+                projected_solution = maxcut.projected_sdp_relaxation(file, projector)
+                values_dict[projection].append(projected_solution["objective"])
+                with open(f"results/maxcut/seedsplot/{seed}_{int(projection * 100)}.pkl", "wb") as f:
+                    pickle.dump(projected_solution, f)
+            else:
+                with open(f"results/maxcut/seedsplot/{seed}_{int(projection * 100)}.pkl", "rb") as f:
+                    projected_solution = pickle.load(f)
+                    values_dict[projection].append(projected_solution["objective"])
+
+    # Plot box plot with projection on x axis and all seeds as box plot
+    plt.boxplot(
+        [values_dict[projection] for projection in values_dict.keys()],
+        positions=[projection for projection in values_dict.keys()],
+        widths=0.05,
+    )
+
+    # Color the box plot
+    for i, box in enumerate(plt.gca().boxes):
+        box.set_facecolor(plt.cm.viridis((i + 1) / len(plt.gca().boxes)))
+
+    # Horizontal line for original value
+    plt.hlines(y=original["objective"], xmin=0.05, xmax=0.95, color="black", linestyles="dotted")
+    plt.xlabel("Projection (%)")
+    plt.ylabel("Bound")
+    plt.title("Quality of Projection for Different Seeds")
+    plt.savefig(
+        "plots/seeds.pdf",
+        bbox_inches="tight",
+        dpi=300,
+        transparent=True,
+    )
+
+    plt.savefig(
+        "plots/seeds.png",
+        bbox_inches="tight",
+        dpi=300,
+        transparent=False,
+    )
+
+
 
 def unit_sphere_projection_percentage(name):
     directory = f"results/unit_sphere/{name}.pkl"
@@ -161,4 +246,5 @@ with open("config.yml", "r") as file:
     config = yaml.safe_load(file)
 
 # plot_quality(config=config)
-unit_sphere_projection_percentage("form-4-10-3")
+# unit_sphere_projection_percentage("form-4-10-3")
+box_plot_seeds()

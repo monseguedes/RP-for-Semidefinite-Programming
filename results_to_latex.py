@@ -646,9 +646,13 @@ def qcqp_to_latex(directory):
         with open(file_path, "rb") as file:
             results = pickle.load(file)
 
-        projector_type = config["densities"][
-            results["original"]["size_psd_variable"] - 1
-        ][0]
+        # projector_type = config["densities"][
+        #     results["original"]["size_psd_variable"] - 1
+        # ][0]
+        # Pick projector type from config
+        matrix_size = results["original"]["size_psd_variable"]
+        pick_key = [key for key in config["densities"] if matrix_size in range(int(key.split(",")[0]), int(key.split(",")[1]))]
+        projector_type = config["densities"][pick_key[0]][0]
 
         first_projector_type = projector_type
         second_projector_type = projector_type
@@ -1176,9 +1180,9 @@ if __name__ == "__main__":
     # maxsat_to_latex_simplified("results/maxsat", [0.1, 0.2])
     # sparsity_test_to_latex("results/maxcut")
     # sat_to_latex_simplified(config, [0.2, 0.5])
-    # qcqp_to_latex("results/qcqp")
+    qcqp_to_latex("results/qcqp")
     # unit_sphere_to_latex("0.2_density", 0.9)
     # vertical_unit_sphere("form-4-10-1.pkl")
     # vertical_stable_set("petersen", "20_3_complement.pkl")
-    comparison_stable_set(0.7)
+    # comparison_stable_set(0.7)
     # vertical_first_stable_set("petersen", "30_2.pkl")

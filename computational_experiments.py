@@ -693,31 +693,36 @@ def sdp_relaxation_qcqp_problem(data):
         with open(f"results/qcqp/{data.n}_{data.m}.pkl", "wb") as f:
             pickle.dump(sol_dict, f)
 
-    for projector_type in list(
-        config["densities"][data.n]
-    ):  # Run projection for different projectors only if not stored
-        if projector_type not in sol_dict:
-            sol_dict[projector_type] = {}
-        gen_projection = (
-            projection
-            for projection in config["qcqp"]["projection"]
-            if projection not in sol_dict[projector_type]
-        )
-        for projection in gen_projection:
-            projector = rp.RandomProjector(
-                round(projection * sol_dict["original"]["size_psd_variable"]),
-                sol_dict["original"]["size_psd_variable"],
-                projector_type,
-            )
-            print(
-                f"    Solving qcqp with projector {projector_type} and projection {projection}"
-            )
-            p_results = random_qcqp.random_projection_sdp(data, projector)
-            print("     Finished qcqp with projector")
-            sol_dict[projector_type][projection] = p_results
+    # Pick projector type from config
+    matrix_size = sol_dict["original"]["size_psd_variable"]
+    pick_key = [key for key in config["densities"] if matrix_size in range(int(key.split(",")[0]), int(key.split(",")[1]))]
+    projector_type = config["densities"][pick_key[0]][0]
 
-        with open(f"results/qcqp/{data.n}_{data.m}.pkl", "wb") as f:
-            pickle.dump(sol_dict, f)
+    # for projector_type in list(
+    #     config["densities"][data.n]
+    # ):  # Run projection for different projectors only if not stored
+    if projector_type not in sol_dict:
+        sol_dict[projector_type] = {}
+    gen_projection = (
+        projection
+        for projection in config["qcqp"]["projection"]
+        if projection not in sol_dict[projector_type]
+    )
+    for projection in gen_projection:
+        projector = rp.RandomProjector(
+            round(projection * sol_dict["original"]["size_psd_variable"]),
+            sol_dict["original"]["size_psd_variable"],
+            projector_type,
+        )
+        print(
+            f"    Solving qcqp with projector {projector_type} and projection {projection}"
+        )
+        p_results = random_qcqp.random_projection_sdp(data, projector)
+        print("     Finished qcqp with projector")
+        sol_dict[projector_type][projection] = p_results
+
+    with open(f"results/qcqp/{data.n}_{data.m}.pkl", "wb") as f:
+        pickle.dump(sol_dict, f)
 
 
 def randomly_generated_qcqp(config):

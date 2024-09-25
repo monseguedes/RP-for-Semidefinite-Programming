@@ -118,11 +118,11 @@ def box_plot_seeds():
             original = pickle.load(f)
 
     # Run experiments if not alreasy stored
-    # for projection in [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9]:
-    for projection in [0.1, 0.2, 0.3]:
+    for projection in [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9]:
+    # for projection in [0.1, 0.2, 0.3]:
         values_dict[projection] = []
-        # for seed in [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]:
-        for seed in [1, 2, 3]:
+        for seed in [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]:
+        # for seed in [1, 2, 3]:
             if not os.path.exists(f"results/maxcut/seedsplot/{seed}_{int(projection * 100)}.pkl"):
                 print("Running experiments seed {} and projection {}".format(seed, projection))
                 projector = random_projections.RandomProjector(k=round(projection * 2000), m=2000, type="0.6_density", seed=seed)

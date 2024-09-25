@@ -119,7 +119,7 @@ def box_plot_seeds():
 
     # Run experiments if not alreasy stored
     for projection in [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9]:
-    # for projection in [0.1, 0.2, 0.3]:
+    # for projection in [0.1]:
         values_dict[projection] = []
         for seed in [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]:
         # for seed in [1, 2, 3]:
@@ -135,19 +135,32 @@ def box_plot_seeds():
                     projected_solution = pickle.load(f)
                     values_dict[projection].append(projected_solution["objective"])
 
-    # Plot box plot with projection on x axis and all seeds as box plot
+    # Normalize the values
+    for key in values_dict.keys():
+        values_dict[key] = [value / original["objective"] * 100 for value in values_dict[key]]
+
+    # Plot box plot
     plt.boxplot(
-        [values_dict[projection] for projection in values_dict.keys()],
-        positions=[projection for projection in values_dict.keys()],
-        widths=0.05,
+        values_dict.values(),
+        positions=[int(key * 100) for key in values_dict.keys()],
+        showfliers=False,
+        patch_artist=True,
+        widths=0.1,
     )
 
-    # Color the box plot
-    for i, box in enumerate(plt.gca().boxes):
-        box.set_facecolor(plt.cm.viridis((i + 1) / len(plt.gca().boxes)))
+    # Scatter plot, differnt color for each seed
+    colors = ["red", "blue", "green", "orange", "purple", "brown", "pink", "gray", "olive", "cyan"]
+    for i, key in enumerate(values_dict.keys()):
+        for j, value in enumerate(values_dict[key]):
+            plt.scatter(
+                x=int(key * 100),
+                y=value,
+                color=colors[j],
+                s=10,
+            )
 
     # Horizontal line for original value
-    plt.hlines(y=original["objective"], xmin=0.05, xmax=0.95, color="black", linestyles="dotted")
+    # plt.hlines(y=original["objective"], xmin=0.05, xmax=0.95, color="black", linestyles="dotted")
     plt.xlabel("Projection (%)")
     plt.ylabel("Bound")
     plt.title("Quality of Projection for Different Seeds")

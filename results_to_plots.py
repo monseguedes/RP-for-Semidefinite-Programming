@@ -118,11 +118,11 @@ def box_plot_seeds():
             original = pickle.load(f)
 
     # Run experiments if not alreasy stored
-    for projection in [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9]:
-    # for projection in [0.1]:
+    # for projection in [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9]:
+    for projection in [0.1, 0.2, 0.3, 0.4]:
         values_dict[projection] = []
-        for seed in [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]:
-        # for seed in [1, 2, 3]:
+        # for seed in [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]:
+        for seed in [1, 2, 3, 4, 5, 6]:
             if not os.path.exists(f"results/maxcut/seedsplot/{seed}_{int(projection * 100)}.pkl"):
                 print("Running experiments seed {} and projection {}".format(seed, projection))
                 projector = random_projections.RandomProjector(k=round(projection * 2000), m=2000, type="0.6_density", seed=seed)
@@ -139,31 +139,37 @@ def box_plot_seeds():
     for key in values_dict.keys():
         values_dict[key] = [value / original["objective"] * 100 for value in values_dict[key]]
 
-    # Plot box plot
-    plt.boxplot(
-        values_dict.values(),
-        positions=[int(key * 100) for key in values_dict.keys()],
-        showfliers=False,
-        patch_artist=True,
-        widths=0.1,
-    )
+    colors = sns.color_palette("muted", 9)
 
-    # Scatter plot, differnt color for each seed
-    colors = ["red", "blue", "green", "orange", "purple", "brown", "pink", "gray", "olive", "cyan"]
-    for i, key in enumerate(values_dict.keys()):
-        for j, value in enumerate(values_dict[key]):
-            plt.scatter(
-                x=int(key * 100),
-                y=value,
-                color=colors[j],
-                s=10,
-            )
+    # Fake data to debug plot
+    # for projection in [0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9]:
+    for projection in [0.5, 0.6, 0.7, 0.8, 0.9]:
+        values_dict[projection] = values_dict[0.2]
+
+    # Make a subplot with one box plot per projection
+    fig = plt.figure(figsize=(18, 13))
+    for i, projection in enumerate(values_dict.keys()):
+        ax = fig.add_subplot(3, 3, i + 1)
+        ax = sns.boxplot(values_dict[projection], width=0.2, color=colors[i])
+        ax = sns.swarmplot(values_dict[projection], color="grey", alpha=0.5, size=12)
+        ax.set_title(f"Projection of {int(projection * 100)}%", fontsize=28, y=1.02)
+        ax.set_xticks([])
+        ax.set_yticks(np.linspace(min(values_dict[projection]), max(values_dict[projection]), 10))
+        # We change the fontsize of minor ticks label 
+        ax.tick_params(axis='both', which='major', labelsize=20)
+        ax.tick_params(axis='both', which='minor', labelsize=20)
+        if i % 3 == 0:
+            ax.set_ylabel("Bound", fontsize=26)
+        
+        
+
+    plt.tight_layout()
 
     # Horizontal line for original value
     # plt.hlines(y=original["objective"], xmin=0.05, xmax=0.95, color="black", linestyles="dotted")
-    plt.xlabel("Projection (%)")
-    plt.ylabel("Bound")
-    plt.title("Quality of Projection for Different Seeds")
+    # plt.xlabel("Projection (%)")
+    # plt.ylabel("Bound")
+    plt.suptitle("Quality of Projections for Multiple Seeds", fontsize=38, y=1.04)
     plt.savefig(
         "plots/seeds.pdf",
         bbox_inches="tight",
@@ -177,8 +183,6 @@ def box_plot_seeds():
         dpi=300,
         transparent=False,
     )
-
-
 
 def unit_sphere_projection_percentage(name):
     directory = f"results/unit_sphere/{name}.pkl"

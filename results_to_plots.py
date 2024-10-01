@@ -90,19 +90,19 @@ def box_plot_seeds():
     """
     Function to generate a box plot for all the seeds
     """
-    # Process all the seeds
-    for graph in [
-        name for name in os.listdir("graphs/maxcut/seedsplot")
-    ]: 
-        file_name = "graphs/maxcut/seedsplot/" + graph
-        if not os.path.exists(f"graphs/maxcut/seedsplot/{graph.strip('.txt')}/graph.pkl"):
-            print("Processsing ", graph)
-            file = File(file_name)
-            file.store_graph("/seedsplot/" + graph.strip(".txt"))
+    # # Process all the seeds
+    # for graph in [
+    #     name for name in os.listdir("graphs/maxcut/seedsplot")
+    # ]: 
+    #     file_name = "graphs/maxcut/seedsplot/" + graph
+    #     if not os.path.exists(f"graphs/maxcut/seedsplot/{graph.strip('.txt')}/graph.pkl"):
+    #         print("Processsing ", graph)
+    #         file = File(file_name)
+    #         file.store_graph("/seedsplot/" + graph.strip(".txt"))
 
-        else:
-            with open(f"graphs/maxcut/seedsplot/{graph.strip('.txt')}/graph.pkl", "rb") as f:
-                file = pickle.load(f)
+    #     else:
+    #         with open(f"graphs/maxcut/seedsplot/{graph.strip('.txt')}/graph.pkl", "rb") as f:
+    #             file = pickle.load(f)
 
     # Make folder of results if not exists
     if not os.path.exists("results/maxcut/seedsplot"):
@@ -119,10 +119,10 @@ def box_plot_seeds():
 
     # Run experiments if not alreasy stored
     # for projection in [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9]:
-    for projection in [0.1, 0.2, 0.3, 0.4]:
+    for projection in [0.1, 0.2, 0.3, 0.4, 0.5, 0.6]:
         values_dict[projection] = []
-        # for seed in [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]:
-        for seed in [1, 2, 3, 4, 5, 6]:
+        for seed in [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]:
+        # for seed in [1, 2, 3, 4, 5, 6]:
             if not os.path.exists(f"results/maxcut/seedsplot/{seed}_{int(projection * 100)}.pkl"):
                 print("Running experiments seed {} and projection {}".format(seed, projection))
                 projector = random_projections.RandomProjector(k=round(projection * 2000), m=2000, type="0.6_density", seed=seed)
@@ -141,35 +141,39 @@ def box_plot_seeds():
 
     colors = sns.color_palette("muted", 9)
 
-    # Fake data to debug plot
-    # for projection in [0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9]:
-    for projection in [0.5, 0.6, 0.7, 0.8, 0.9]:
-        values_dict[projection] = values_dict[0.2]
+    # # Fake data to debug plot
+    # # for projection in [0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9]:
+    # for projection in [0.5, 0.6, 0.7, 0.8, 0.9]:
+    #     values_dict[projection] = [0 for i in range(6)]
 
     # Make a subplot with one box plot per projection
-    fig = plt.figure(figsize=(18, 13))
+    fig = plt.figure(figsize=(18, 12))
     for i, projection in enumerate(values_dict.keys()):
-        ax = fig.add_subplot(3, 3, i + 1)
-        ax = sns.boxplot(values_dict[projection], width=0.2, color=colors[i])
-        ax = sns.swarmplot(values_dict[projection], color="grey", alpha=0.5, size=12)
+        ymin = min(values_dict[projection])
+        ymax = max(values_dict[projection])
+        ax = fig.add_subplot(2, 3, i + 1)
+        ax = sns.boxplot(values_dict[projection], width=0.20, color=colors[i])
+        ax = sns.swarmplot(values_dict[projection], color="grey", alpha=0.7, size=12)
         ax.set_title(f"Projection of {int(projection * 100)}%", fontsize=28, y=1.02)
         ax.set_xticks([])
-        ax.set_yticks(np.linspace(min(values_dict[projection]), max(values_dict[projection]), 10))
+        ax.set_yticks(np.linspace(ymin, ymax, 10))
         # We change the fontsize of minor ticks label 
         ax.tick_params(axis='both', which='major', labelsize=20)
         ax.tick_params(axis='both', which='minor', labelsize=20)
         if i % 3 == 0:
             ax.set_ylabel("Bound", fontsize=26)
-        
-        
-
+        # ax.vlines(x=0.2, ymin=ymin, ymax=ymax, color="black", linestyles="dotted")
+        # ax.vlines(x=-0.2, ymin=ymin, ymax=ymax, color="white", linestyles="dotted")
+        # ax.text(0.1, (ymax - ymin)/2, str(ymax - ymin), fontsize=20)
+        ax.text(.94, .11, "Δ= {:2.4f}".format(ymax - ymin), transform=ax.transAxes, fontsize=16, verticalalignment='top', horizontalalignment='right', bbox=dict(facecolor='none', edgecolor='black', pad=5.0))
+                
     plt.tight_layout()
 
     # Horizontal line for original value
     # plt.hlines(y=original["objective"], xmin=0.05, xmax=0.95, color="black", linestyles="dotted")
     # plt.xlabel("Projection (%)")
     # plt.ylabel("Bound")
-    plt.suptitle("Quality of Projections for Multiple Seeds", fontsize=38, y=1.04)
+    plt.suptitle("Quality of Projections for Multiple Seeds", fontsize=38, y=1.06)
     plt.savefig(
         "plots/seeds.pdf",
         bbox_inches="tight",

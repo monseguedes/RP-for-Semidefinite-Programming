@@ -2,7 +2,6 @@
 
 This repository contains the implementation of methods and experiments related to using **random projections** for approximating semidefinite programming (SDP) problems and polynomial optimization problems. These methods aim to reduce the size of optimization problems, making them computationally efficient without significant loss of accuracy.
 
----
 
 ## Overview
 
@@ -19,7 +18,6 @@ Key highlights of the project include:
   - Poisoning attack problems in adversarial machine learning.
   - Polynomial optimization problems such as optimization over the unit sphere and stable set problems.
 
----
 
 ## Repository Structure
 
@@ -50,7 +48,6 @@ Key highlights of the project include:
 | `second_level_stable_set.py` | Second-level relaxation for stable set problems. |
 | `setup_python_env.sh` | Script to set up the Python environment for this project. |
 
----
 
 ## Features
 
@@ -67,7 +64,6 @@ Key highlights of the project include:
 - Bilevel polynomial optimization.
 - Poisoning attack problems in adversarial machine learning.
 
----
 
 ## Installation
 
@@ -88,7 +84,6 @@ or
    pip install -r requirements.txt
    ```
 
----
 
 ## Usage
 
@@ -102,7 +97,6 @@ or
   python results_to_plots.py
   ```
 
----
 
 ## Results
 
